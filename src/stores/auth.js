@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useAuthStore = defineStore('auth', () => {
-  const isAdmin = ref(sessionStorage.getItem('niknax_admin') === '1')
+  const isAdmin = ref(localStorage.getItem('niknax_admin') === '1')
 
   function login(pin) {
     const correctPin = import.meta.env.VITE_ADMIN_PIN
@@ -12,7 +12,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
     if (pin === correctPin) {
       isAdmin.value = true
-      sessionStorage.setItem('niknax_admin', '1')
+      localStorage.setItem('niknax_admin', '1')
       return true
     }
     return false
@@ -20,7 +20,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function logout() {
     isAdmin.value = false
-    sessionStorage.removeItem('niknax_admin')
+    localStorage.removeItem('niknax_admin')
   }
 
   return { isAdmin, login, logout }

@@ -2,29 +2,150 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme tokens ────────────────────────────────────────────────────────── */
+:root {
+  /* Light theme surfaces */
+  --color-base:    #faf5ff;   /* niknax-50   — page background  */
+  --color-surface: #ffffff;   /* cards                          */
+  --color-sur2:    #f3e8ff;   /* niknax-100  — inputs, alt bg  */
+  --color-bd:      #e9d5ff;   /* niknax-200  — borders          */
+  --color-bd2:     #d8b4fe;   /* niknax-300  — stronger borders */
+
+  /* Light theme text */
+  --color-tx1:  #111827;   /* gray-900  — primary text   */
+  --color-tx2:  #581c87;   /* niknax-900 — secondary     */
+  --color-tx3:  #9ca3af;   /* gray-400   — muted         */
+
+  /* Status badges — colorblind-friendly (blue / orange / gray)
+     Blue  = LIVE, Orange = UPCOMING, Gray = DRAFT
+     These work for deuteranopia, protanopia, and tritanopia.        */
+  --badge-live-bg:       #dbeafe;  /* blue-100  */
+  --badge-live-text:     #1e40af;  /* blue-800  */
+  --badge-live-dot:      #3b82f6;  /* blue-500  */
+
+  --badge-upcoming-bg:   #ffedd5;  /* orange-100 */
+  --badge-upcoming-text: #7c2d12;  /* orange-900 */
+  --badge-upcoming-dot:  #f97316;  /* orange-500 */
+
+  --badge-draft-bg:      #f3f4f6;  /* gray-100  */
+  --badge-draft-text:    #4b5563;  /* gray-600  */
+  --badge-draft-dot:     #9ca3af;  /* gray-400  */
+}
+
+.dark {
+  /* Dark theme surfaces */
+  --color-base:    #030712;   /* gray-950 */
+  --color-surface: #111827;   /* gray-900 */
+  --color-sur2:    #1f2937;   /* gray-800 */
+  --color-bd:      #374151;   /* gray-700 */
+  --color-bd2:     #4b5563;   /* gray-600 */
+
+  /* Dark theme text */
+  --color-tx1:  #f9fafb;   /* gray-50  */
+  --color-tx2:  #d1d5db;   /* gray-300 */
+  --color-tx3:  #6b7280;   /* gray-500 */
+
+  /* Status badges — dark variants */
+  --badge-live-bg:       rgba(30, 58, 138, 0.55);   /* blue-900 */
+  --badge-live-text:     #93c5fd;                    /* blue-300 */
+  --badge-live-dot:      #60a5fa;                    /* blue-400 */
+
+  --badge-upcoming-bg:   rgba(67, 20, 7, 0.65);     /* orange-950 */
+  --badge-upcoming-text: #fdba74;                    /* orange-300 */
+  --badge-upcoming-dot:  #fb923c;                    /* orange-400 */
+
+  --badge-draft-bg:      #1f2937;   /* gray-800 */
+  --badge-draft-text:    #9ca3af;   /* gray-400 */
+  --badge-draft-dot:     #6b7280;   /* gray-500 */
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
 @layer base {
   body {
-    @apply bg-gray-950 text-gray-100 min-h-screen;
+    background-color: var(--color-base);
+    color: var(--color-tx1);
+    @apply min-h-screen;
   }
 }
 
+/* ── Component utilities ─────────────────────────────────────────────────── */
 @layer components {
+
+  /* Buttons */
   .btn-primary {
-    @apply bg-niknax-600 hover:bg-niknax-500 text-white font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-niknax-600 hover:bg-niknax-500 text-white font-semibold px-4 py-2 rounded-lg
+           transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply bg-gray-700 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors;
+    background-color: var(--color-sur2);
+    color: var(--color-tx1);
+    border: 1px solid var(--color-bd);
+    @apply font-semibold px-4 py-2 rounded-lg transition-colors;
+  }
+  .btn-secondary:hover {
+    background-color: var(--color-bd);
   }
   .btn-danger {
     @apply bg-red-700 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors;
   }
+
+  /* Form controls */
   .input {
-    @apply bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-niknax-500 focus:border-transparent w-full;
+    background-color: var(--color-sur2);
+    border: 1px solid var(--color-bd2);
+    color: var(--color-tx1);
+    @apply rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-niknax-500
+           focus:border-transparent w-full;
+  }
+  .input::placeholder {
+    color: var(--color-tx3);
   }
   .label {
-    @apply block text-sm font-medium text-gray-300 mb-1;
+    color: var(--color-tx2);
+    @apply block text-sm font-medium mb-1;
   }
+
+  /* Card */
   .card {
-    @apply bg-gray-900 border border-gray-700 rounded-xl p-6;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-bd);
+    @apply rounded-xl p-6;
   }
+
+  /* Status badges — colorblind-friendly */
+  .badge-live {
+    background-color: var(--badge-live-bg);
+    color: var(--badge-live-text);
+    @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
+  }
+  .badge-upcoming {
+    background-color: var(--badge-upcoming-bg);
+    color: var(--badge-upcoming-text);
+    @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
+  }
+  .badge-draft {
+    background-color: var(--badge-draft-bg);
+    color: var(--badge-draft-text);
+    @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
+  }
+
+  /* Calendar event chips */
+  .chip-live {
+    background-color: var(--badge-live-bg);
+    color: var(--badge-live-text);
+    @apply block text-xs px-1.5 py-0.5 rounded mb-0.5 truncate leading-tight transition-colors;
+  }
+  .chip-live:hover { filter: brightness(0.92); }
+  .chip-upcoming {
+    background-color: var(--badge-upcoming-bg);
+    color: var(--badge-upcoming-text);
+    @apply block text-xs px-1.5 py-0.5 rounded mb-0.5 truncate leading-tight transition-colors;
+  }
+  .chip-upcoming:hover { filter: brightness(0.92); }
+  .chip-draft {
+    background-color: var(--badge-draft-bg);
+    color: var(--badge-draft-text);
+    @apply block text-xs px-1.5 py-0.5 rounded mb-0.5 truncate leading-tight transition-colors;
+  }
+  .chip-draft:hover { filter: brightness(0.92); }
 }

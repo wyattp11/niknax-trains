@@ -1,27 +1,23 @@
 <template>
-  <div class="min-h-screen bg-gray-950">
-    <!-- Nav -->
-    <header class="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-      <RouterLink to="/" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm">
-        ← All Events
-      </RouterLink>
-      <span class="text-gray-600 text-xs">Niknax Raid Trains</span>
-    </header>
+  <div class="min-h-screen bg-base">
+    <PublicNav>
+      <RouterLink to="/" class="text-tx2 hover:text-tx1 text-sm transition-colors">← All Events</RouterLink>
+    </PublicNav>
 
-    <div v-if="loading" class="text-center py-32 text-gray-500">Loading…</div>
+    <div v-if="loading" class="text-center py-32 text-tx3">Loading…</div>
 
     <template v-else-if="train">
       <!-- Hero -->
       <div
-        class="relative bg-gradient-to-br from-niknax-900 via-gray-900 to-gray-950 border-b border-gray-800"
+        class="relative bg-gradient-to-br from-niknax-900 via-niknax-950 to-base border-b border-bd"
         :style="train.cover_url ? `background-image: url(${train.cover_url}); background-size: cover; background-position: center;` : ''"
       >
         <div class="bg-gray-950/80 backdrop-blur-sm px-6 py-10 max-w-4xl mx-auto">
           <h1 class="text-3xl sm:text-4xl font-bold font-display text-white mb-2">
             {{ train.name }}
           </h1>
-          <p v-if="train.tagline" class="text-niknax-300 text-lg mb-3">{{ train.tagline }}</p>
-          <p v-if="train.description" class="text-gray-300 mb-4 max-w-2xl">{{ train.description }}</p>
+          <p v-if="train.tagline" class="text-niknax-200 text-lg mb-3">{{ train.tagline }}</p>
+          <p v-if="train.description" class="text-gray-200 mb-4 max-w-2xl">{{ train.description }}</p>
 
           <div class="flex flex-wrap gap-3">
             <a
@@ -50,49 +46,49 @@
       <!-- Schedule -->
       <main class="max-w-4xl mx-auto px-4 py-10">
         <div v-for="day in days" :key="day.id" class="mb-12">
-          <h2 class="text-xl font-bold text-white mb-1">
+          <h2 class="text-xl font-bold text-tx1 mb-1">
             {{ day.day_label ? `${day.day_label} — ` : '' }}{{ formatDate(day.day_date) }}
           </h2>
-          <p class="text-gray-500 text-sm mb-5">All times shown in your local time zone below</p>
+          <p class="text-tx3 text-sm mb-5">All times shown below — ET is primary</p>
 
           <div class="overflow-x-auto">
             <table class="w-full text-sm min-w-[560px]">
               <thead>
-                <tr class="bg-gray-800/80 text-gray-400 rounded-t-lg">
+                <tr class="bg-sur2 text-tx3">
                   <th class="text-left px-4 py-3 w-8">#</th>
                   <th class="text-left px-4 py-3">Seller</th>
-                  <th class="text-left px-4 py-3 font-semibold text-niknax-300">ET</th>
+                  <th class="text-left px-4 py-3 font-semibold text-niknax-500">ET</th>
                   <th class="text-left px-4 py-3">CT</th>
                   <th class="text-left px-4 py-3">MT</th>
                   <th class="text-left px-4 py-3">PT</th>
                   <th class="text-left px-4 py-3 w-28"></th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-800">
+              <tbody class="divide-y divide-bd">
                 <tr
                   v-for="slot in slotsByDay[day.id] || []"
                   :key="slot.id"
                   :class="[
-                    slot.is_pre_assigned ? 'bg-niknax-950/50' : '',
-                    !slot.username && !slot.is_pre_assigned ? 'hover:bg-gray-800/40' : '',
+                    slot.is_pre_assigned ? 'bg-niknax-500/10' : '',
+                    !slot.username && !slot.is_pre_assigned ? 'hover:bg-sur2/60' : '',
                   ]"
                   class="transition-colors"
                 >
-                  <td class="px-4 py-3 text-gray-600 text-xs">{{ slot.slot_order + 1 }}</td>
+                  <td class="px-4 py-3 text-tx3 text-xs">{{ slot.slot_order + 1 }}</td>
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-2">
-                      <span v-if="slot.username" class="font-medium text-white">{{ slot.username }}</span>
-                      <span v-else class="text-gray-500 italic text-xs">— available —</span>
+                      <span v-if="slot.username" class="font-medium text-tx1">{{ slot.username }}</span>
+                      <span v-else class="text-tx3 italic text-xs">— available —</span>
                       <span
                         v-if="slot.label"
-                        class="text-xs font-semibold text-niknax-300 bg-niknax-900/60 px-1.5 py-0.5 rounded"
+                        class="text-xs font-semibold text-niknax-500 bg-niknax-500/15 px-1.5 py-0.5 rounded"
                       >{{ slot.label }}</span>
                     </div>
                   </td>
-                  <td class="px-4 py-3 text-white font-medium">{{ zones(slot.start_time)[0].time }}</td>
-                  <td class="px-4 py-3 text-gray-300">{{ zones(slot.start_time)[1].time }}</td>
-                  <td class="px-4 py-3 text-gray-300">{{ zones(slot.start_time)[2].time }}</td>
-                  <td class="px-4 py-3 text-gray-300">{{ zones(slot.start_time)[3].time }}</td>
+                  <td class="px-4 py-3 text-tx1 font-medium">{{ zones(slot.start_time)[0].time }}</td>
+                  <td class="px-4 py-3 text-tx2">{{ zones(slot.start_time)[1].time }}</td>
+                  <td class="px-4 py-3 text-tx2">{{ zones(slot.start_time)[2].time }}</td>
+                  <td class="px-4 py-3 text-tx2">{{ zones(slot.start_time)[3].time }}</td>
                   <td class="px-4 py-3 text-right">
                     <button
                       v-if="!slot.username && !slot.is_pre_assigned"
@@ -108,13 +104,13 @@
           </div>
         </div>
 
-        <p class="text-center text-gray-600 text-xs mt-8">
+        <p class="text-center text-tx3 text-xs mt-8">
           Remember: do not remove anyone from their slot. Doing so may result in removal from the event.
         </p>
       </main>
     </template>
 
-    <div v-else class="text-center py-32 text-gray-500">Event not found.</div>
+    <div v-else class="text-center py-32 text-tx3">Event not found.</div>
 
     <!-- ── Signup Modal ── -->
     <Teleport to="body">
@@ -123,7 +119,7 @@
         class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4"
         @click.self="signupModal = null"
       >
-        <div class="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+        <div class="bg-surface border border-bd rounded-2xl p-6 w-full max-w-sm shadow-2xl">
 
           <!-- ── Success state ── -->
           <template v-if="signupSuccess">
@@ -160,8 +156,8 @@
 
           <!-- ── Input state ── -->
           <template v-else>
-            <h3 class="text-lg font-bold text-white mb-1">Sign Up for This Slot</h3>
-            <p class="text-gray-400 text-sm mb-5">
+            <h3 class="text-lg font-bold text-tx1 mb-1">Sign Up for This Slot</h3>
+            <p class="text-tx3 text-sm mb-5">
               {{ zones(signupModal.slot.start_time)[0].time }} ET
               · {{ signupModal.slot.duration_min }} min
               · {{ formatDate(signupModal.day.day_date) }}
@@ -210,6 +206,7 @@ import { ref, computed, onMounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { supabase } from '../../lib/supabase.js'
 import { allZones, formatDate } from '../../lib/timeUtils.js'
+import PublicNav from '../../components/PublicNav.vue'
 
 const route = useRoute()
 

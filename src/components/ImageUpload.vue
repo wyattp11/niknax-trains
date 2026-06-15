@@ -4,13 +4,13 @@
     <div v-if="preview || currentUrl" class="relative mb-3 group">
       <img
         :src="preview || currentUrl"
-        class="w-full max-h-56 object-cover rounded-xl border border-gray-700"
+        class="w-full max-h-56 object-cover rounded-xl border border-bd"
         alt="Train graphic preview"
       />
       <button
         type="button"
         @click="clear"
-        class="absolute top-2 right-2 bg-gray-900/90 hover:bg-gray-800 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm transition-colors shadow"
+        class="absolute top-2 right-2 bg-surface/90 hover:bg-sur2 text-tx1 rounded-full w-7 h-7 flex items-center justify-center text-sm transition-colors shadow"
       >×</button>
     </div>
 
@@ -20,7 +20,7 @@
         'block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors',
         dragging
           ? 'border-niknax-400 bg-niknax-900/20'
-          : 'border-gray-600 hover:border-niknax-500 hover:bg-gray-800/40',
+          : 'border-bd2 hover:border-niknax-500 hover:bg-sur2/40',
       ]"
       @dragover.prevent="dragging = true"
       @dragleave="dragging = false"
@@ -34,10 +34,10 @@
         @change="onSelect"
       />
       <div class="text-3xl mb-2">🖼️</div>
-      <p class="text-gray-300 text-sm font-medium">
+      <p class="text-tx2 text-sm font-medium">
         {{ preview || currentUrl ? 'Replace image' : 'Upload train graphic' }}
       </p>
-      <p class="text-gray-500 text-xs mt-1">Click or drag & drop · PNG, JPG, GIF · max 10 MB</p>
+      <p class="text-tx3 text-xs mt-1">Click or drag & drop · PNG, JPG, GIF · max 10 MB</p>
     </label>
 
     <p v-if="sizeError" class="text-red-400 text-xs mt-2">{{ sizeError }}</p>

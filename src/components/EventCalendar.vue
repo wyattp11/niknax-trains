@@ -5,39 +5,39 @@
       <div class="flex items-center gap-1">
         <button
           @click="shift(-1)"
-          class="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
+          class="w-8 h-8 flex items-center justify-center rounded-lg bg-sur2 hover:bg-bd text-tx2 transition-colors"
         >‹</button>
-        <span class="text-white font-semibold min-w-[180px] text-center">{{ headerLabel }}</span>
+        <span class="text-tx1 font-semibold min-w-[180px] text-center">{{ headerLabel }}</span>
         <button
           @click="shift(1)"
-          class="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
+          class="w-8 h-8 flex items-center justify-center rounded-lg bg-sur2 hover:bg-bd text-tx2 transition-colors"
         >›</button>
       </div>
 
-      <div class="ml-auto flex rounded-lg overflow-hidden border border-gray-700">
+      <div class="ml-auto flex rounded-lg overflow-hidden border border-bd">
         <button
           @click="view = 'month'"
-          :class="view === 'month' ? 'bg-niknax-700 text-white' : 'text-gray-400 hover:text-gray-200 bg-gray-900'"
+          :class="view === 'month' ? 'bg-niknax-600 text-white' : 'text-tx2 hover:text-tx1 bg-surface'"
           class="px-3 py-1.5 text-sm font-medium transition-colors"
         >Month</button>
         <button
           @click="view = '3month'"
-          :class="view === '3month' ? 'bg-niknax-700 text-white' : 'text-gray-400 hover:text-gray-200 bg-gray-900'"
-          class="px-3 py-1.5 text-sm font-medium transition-colors border-l border-gray-700"
+          :class="view === '3month' ? 'bg-niknax-600 text-white' : 'text-tx2 hover:text-tx1 bg-surface'"
+          class="px-3 py-1.5 text-sm font-medium transition-colors border-l border-bd"
         >3 Month</button>
       </div>
     </div>
 
     <!-- Legend -->
-    <div class="flex items-center gap-4 mb-4 text-xs text-gray-400">
+    <div class="flex items-center gap-4 mb-4 text-xs text-tx3">
       <span class="flex items-center gap-1.5">
-        <span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block"></span> Live
+        <span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color: var(--badge-live-dot)"></span> Live
       </span>
       <span class="flex items-center gap-1.5">
-        <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Upcoming
+        <span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color: var(--badge-upcoming-dot)"></span> Upcoming
       </span>
       <span class="flex items-center gap-1.5">
-        <span class="w-2.5 h-2.5 rounded-full bg-gray-500 inline-block"></span> Draft
+        <span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color: var(--badge-draft-dot)"></span> Draft
       </span>
     </div>
 
@@ -59,19 +59,19 @@
         </div>
 
         <!-- Day cells -->
-        <div class="grid grid-cols-7 gap-px bg-gray-800 rounded-xl overflow-hidden border border-gray-800">
+        <div class="grid grid-cols-7 gap-px bg-bd rounded-xl overflow-hidden border border-bd">
           <div
             v-for="(cell, i) in monthGrid(offset)"
             :key="i"
             :class="[
-              cell ? 'bg-gray-900' : 'bg-gray-950',
+              cell ? 'bg-surface' : 'bg-base',
               isToday(offset, cell) ? 'ring-1 ring-inset ring-niknax-500' : '',
             ]"
             class="min-h-[72px] p-1.5"
           >
             <span
               v-if="cell"
-              :class="isToday(offset, cell) ? 'text-niknax-400 font-bold' : 'text-gray-400'"
+              :class="isToday(offset, cell) ? 'text-niknax-500 font-bold' : 'text-tx3'"
               class="text-xs block mb-1"
             >{{ cell }}</span>
 
@@ -80,7 +80,6 @@
               :key="ev.id"
               :to="ev.published || ev.is_upcoming ? `/train/${ev.id}` : '#'"
               :class="chipClass(ev)"
-              class="block text-xs px-1.5 py-0.5 rounded mb-0.5 truncate leading-tight transition-colors"
             >
               {{ ev.name }}
             </RouterLink>
@@ -170,8 +169,8 @@ function isToday(offset, day) {
 }
 
 function chipClass(ev) {
-  if (ev.published)   return 'bg-green-900/70 text-green-200 hover:bg-green-800/80'
-  if (ev.is_upcoming) return 'bg-amber-900/70 text-amber-200 hover:bg-amber-800/80'
-  return 'bg-gray-700/80 text-gray-400 hover:bg-gray-600/80'
+  if (ev.published)   return 'chip-live'
+  if (ev.is_upcoming) return 'chip-upcoming'
+  return 'chip-draft'
 }
 </script>

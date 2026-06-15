@@ -1,33 +1,20 @@
 <template>
-  <div class="min-h-screen bg-gray-950">
-    <!-- Header -->
-    <header class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <span class="text-2xl">✨</span>
-        <h1 class="text-lg font-bold text-white font-display">Niknax Train Admin</h1>
-      </div>
-      <div class="flex items-center gap-4">
-        <RouterLink to="/" class="text-gray-400 hover:text-white text-sm">Public site ↗</RouterLink>
-        <button @click="logout" class="text-gray-400 hover:text-white text-sm">Sign out</button>
-      </div>
-    </header>
+  <div class="min-h-screen bg-base">
+    <AdminNav />
 
     <main class="max-w-4xl mx-auto px-6 py-10">
       <div class="flex items-center justify-between mb-8">
-        <h2 class="text-2xl font-bold">Raid Trains</h2>
-        <RouterLink to="/admin/trains/new" class="btn-primary">
-          + New Train
-        </RouterLink>
+        <h2 class="text-2xl font-bold text-tx1">Raid Trains</h2>
       </div>
 
       <!-- Loading -->
-      <div v-if="loading" class="text-gray-400 text-center py-16">Loading…</div>
+      <div v-if="loading" class="text-tx3 text-center py-16">Loading…</div>
 
       <!-- Empty -->
       <div v-else-if="trains.length === 0" class="card text-center py-16">
         <div class="text-5xl mb-4">🚂</div>
-        <p class="text-gray-300 text-lg mb-2">No trains yet</p>
-        <p class="text-gray-500 mb-6">Create your first raid train event.</p>
+        <p class="text-tx1 text-lg mb-2">No trains yet</p>
+        <p class="text-tx3 mb-6">Create your first raid train event.</p>
         <RouterLink to="/admin/trains/new" class="btn-primary">Create Train</RouterLink>
       </div>
 
@@ -45,34 +32,22 @@
             class="w-14 h-14 rounded-lg object-cover shrink-0"
             alt=""
           />
-          <div v-else class="w-14 h-14 rounded-lg bg-niknax-900/60 flex items-center justify-center text-2xl shrink-0">
+          <div v-else class="w-14 h-14 rounded-lg bg-niknax-900/40 flex items-center justify-center text-2xl shrink-0">
             🚂
           </div>
 
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1 flex-wrap">
-              <span
-                :class="train.published
-                  ? 'bg-green-900 text-green-300'
-                  : train.is_upcoming
-                    ? 'bg-amber-900 text-amber-300'
-                    : 'bg-gray-700 text-gray-300'"
-                class="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
-              >
+              <span :class="train.published ? 'badge-live' : train.is_upcoming ? 'badge-upcoming' : 'badge-draft'">
                 {{ train.published ? 'LIVE' : train.is_upcoming ? 'UPCOMING' : 'DRAFT' }}
               </span>
-              <h3 class="font-semibold text-white truncate">{{ train.name }}</h3>
+              <h3 class="font-semibold text-tx1 truncate">{{ train.name }}</h3>
             </div>
-            <p class="text-sm text-gray-400">
-              Created {{ formatDate(train.created_at) }}
-            </p>
+            <p class="text-sm text-tx3">Created {{ formatDate(train.created_at) }}</p>
           </div>
+
           <div class="flex gap-2 shrink-0">
-            <RouterLink
-              :to="`/train/${train.id}`"
-              target="_blank"
-              class="btn-secondary text-sm py-1.5"
-            >
+            <RouterLink :to="`/train/${train.id}`" target="_blank" class="btn-secondary text-sm py-1.5">
               View
             </RouterLink>
             <RouterLink :to="`/admin/trains/${train.id}`" class="btn-primary text-sm py-1.5">
@@ -87,12 +62,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
-import { useAuthStore } from '../../stores/auth.js'
+import { RouterLink } from 'vue-router'
+import AdminNav from '../../components/AdminNav.vue'
 import { supabase } from '../../lib/supabase.js'
 
-const auth   = useAuthStore()
-const router = useRouter()
 const trains  = ref([])
 const loading = ref(true)
 
@@ -108,11 +81,6 @@ async function loadTrains() {
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function logout() {
-  auth.logout()
-  router.push('/admin')
 }
 
 onMounted(loadTrains)

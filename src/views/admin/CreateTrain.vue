@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-950">
+  <div class="min-h-screen bg-base">
     <AdminNav />
 
     <main class="max-w-3xl mx-auto px-6 py-10">
@@ -43,11 +43,11 @@
             />
             <!-- Upload progress (shown while saving) -->
             <div v-if="uploadStatus" class="mt-2">
-              <div class="flex items-center justify-between text-xs text-gray-400 mb-1">
+              <div class="flex items-center justify-between text-xs text-tx3 mb-1">
                 <span>{{ uploadStatus }}</span>
                 <span>{{ uploadPct }}%</span>
               </div>
-              <div class="w-full bg-gray-700 rounded-full h-1.5">
+              <div class="w-full bg-sur2 rounded-full h-1.5">
                 <div
                   class="bg-niknax-500 h-1.5 rounded-full transition-all duration-200"
                   :style="{ width: uploadPct + '%' }"
@@ -64,17 +64,17 @@
             <button type="button" @click="addDay" class="btn-secondary text-sm py-1.5">+ Add Day</button>
           </div>
 
-          <div v-if="form.days.length === 0" class="text-gray-500 text-sm italic">
+          <div v-if="form.days.length === 0" class="text-tx3 text-sm italic">
             No days added yet. Click "+ Add Day" above.
           </div>
 
           <div
             v-for="(day, di) in form.days"
             :key="di"
-            class="border border-gray-700 rounded-lg p-4 space-y-4"
+            class="border border-bd rounded-lg p-4 space-y-4"
           >
             <div class="flex items-center justify-between">
-              <span class="font-medium text-gray-200">Day {{ di + 1 }}</span>
+              <span class="font-medium text-tx2">Day {{ di + 1 }}</span>
               <button type="button" @click="removeDay(di)" class="text-red-400 hover:text-red-300 text-sm">Remove</button>
             </div>
 
@@ -90,8 +90,8 @@
             </div>
 
             <!-- Slot generation settings -->
-            <div class="bg-gray-800 rounded-lg p-4 space-y-4">
-              <p class="text-sm text-gray-300 font-medium">Open Slot Generation</p>
+            <div class="bg-sur2 rounded-lg p-4 space-y-4">
+              <p class="text-sm text-tx2 font-medium">Open Slot Generation</p>
 
               <div class="grid grid-cols-3 gap-4">
                 <div>
@@ -107,7 +107,7 @@
                   <input v-model.number="day.slot_count" type="number" min="1" max="100" class="input" />
                 </div>
               </div>
-              <p class="text-xs text-gray-500">
+              <p class="text-xs text-tx3">
                 This generates {{ day.slot_count }} open slots of {{ day.slot_duration }} min each, starting at {{ formatDisplayTime(day.start_time) }} ET.
                 Pre-assigned slots below will overwrite matching times.
               </p>
@@ -116,13 +116,13 @@
             <!-- Pre-assigned slots -->
             <div class="space-y-3">
               <div class="flex items-center justify-between">
-                <p class="text-sm text-gray-300 font-medium">Pre-Assigned Slots</p>
+                <p class="text-sm text-tx2 font-medium">Pre-Assigned Slots</p>
                 <button type="button" @click="addPreAssigned(di)" class="text-niknax-400 hover:text-niknax-300 text-xs">
                   + Add
                 </button>
               </div>
 
-              <p class="text-xs text-gray-500 -mt-1">
+              <p class="text-xs text-tx3 -mt-1">
                 Reserved spots (moderators, Jocelyn's boosts, kickoff). These cannot be claimed via public signup.
               </p>
 

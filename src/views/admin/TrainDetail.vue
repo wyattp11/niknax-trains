@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-950">
+  <div class="min-h-screen bg-base">
     <AdminNav />
 
     <main class="max-w-5xl mx-auto px-6 py-10">
@@ -7,7 +7,7 @@
         ← Back to dashboard
       </RouterLink>
 
-      <div v-if="loading" class="text-gray-400 text-center py-20">Loading…</div>
+      <div v-if="loading" class="text-tx3 text-center py-20">Loading…</div>
 
       <template v-else-if="train">
 
@@ -17,7 +17,7 @@
             <span :class="statusBadge.class" class="text-xs font-bold px-2.5 py-1 rounded-full">
               {{ statusBadge.label }}
             </span>
-            <h2 class="text-2xl font-bold text-white">{{ train.name }}</h2>
+            <h2 class="text-2xl font-bold text-tx1">{{ train.name }}</h2>
           </div>
           <div class="flex gap-2 shrink-0 flex-wrap">
             <a v-if="train.published" :href="`/train/${train.id}`" target="_blank" class="btn-secondary text-sm">
@@ -35,7 +35,7 @@
         <!-- ── Public link ── -->
         <div v-if="train.published" class="card mb-4 flex items-center gap-3">
           <span class="text-green-400">🔗</span>
-          <p class="text-sm font-mono text-white flex-1 truncate">{{ publicUrl }}</p>
+          <p class="text-sm font-mono text-tx1 flex-1 truncate">{{ publicUrl }}</p>
           <button @click="copyLink" class="btn-secondary text-sm py-1.5 shrink-0">
             {{ copied ? 'Copied!' : 'Copy' }}
           </button>
@@ -44,8 +44,8 @@
         <!-- ── Upcoming toggle (only for drafts) ── -->
         <div v-if="!train.published" class="card mb-6 flex items-center justify-between gap-4">
           <div>
-            <p class="font-medium text-white">Show as Upcoming Event</p>
-            <p class="text-sm text-gray-400 mt-0.5">
+            <p class="font-medium text-tx1">Show as Upcoming Event</p>
+            <p class="text-sm text-tx3 mt-0.5">
               Displays this event on the public home page and calendar before it's fully live.
               Sellers can see the dates but won't be able to sign up yet.
             </p>
@@ -54,7 +54,7 @@
             @click="toggleUpcoming"
             :class="train.is_upcoming
               ? 'bg-amber-500 hover:bg-amber-400'
-              : 'bg-gray-700 hover:bg-gray-600'"
+              : 'bg-sur2 hover:bg-bd'"
             class="relative inline-flex items-center shrink-0 w-11 h-6 rounded-full transition-colors"
           >
             <span
@@ -71,10 +71,10 @@
             class="flex items-center justify-between w-full text-left"
           >
             <span class="font-semibold text-niknax-300">Edit Event Details</span>
-            <span class="text-gray-400 text-lg">{{ showEdit ? '▲' : '▼' }}</span>
+            <span class="text-tx3 text-lg">{{ showEdit ? '▲' : '▼' }}</span>
           </button>
 
-          <div v-if="showEdit" class="mt-5 space-y-5 border-t border-gray-700 pt-5">
+          <div v-if="showEdit" class="mt-5 space-y-5 border-t border-bd pt-5">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="label">Event Name *</label>
@@ -102,11 +102,11 @@
                   @cleared="editForm.cover_url = null; editCoverFile = null; editUploadPct = 0; editUploadStatus = ''"
                 />
                 <div v-if="editUploadStatus" class="mt-2">
-                  <div class="flex items-center justify-between text-xs text-gray-400 mb-1">
+                  <div class="flex items-center justify-between text-xs text-tx3 mb-1">
                     <span>{{ editUploadStatus }}</span>
                     <span>{{ editUploadPct }}%</span>
                   </div>
-                  <div class="w-full bg-gray-700 rounded-full h-1.5">
+                  <div class="w-full bg-sur2 rounded-full h-1.5">
                     <div
                       class="bg-niknax-500 h-1.5 rounded-full transition-all duration-200"
                       :style="{ width: editUploadPct + '%' }"
@@ -152,10 +152,10 @@
           </h3>
 
           <div class="card overflow-x-auto p-0">
-            <p class="text-xs text-gray-600 px-4 pt-3 pb-1">Drag a row to move or swap sellers between slots.</p>
+            <p class="text-xs text-tx3 px-4 pt-3 pb-1">Drag a row to move or swap sellers between slots.</p>
             <table class="w-full text-sm">
               <thead>
-                <tr class="bg-gray-800 text-gray-400">
+                <tr class="bg-sur2 text-tx3">
                   <th class="px-3 py-3 w-6"></th>
                   <th class="text-left px-3 py-3 w-8">#</th>
                   <th class="text-left px-3 py-3">Username</th>
@@ -184,11 +184,11 @@
                       ? 'bg-niknax-900/60 outline outline-2 outline-niknax-500' : '',
                     dragSource?.id === slot.id ? 'opacity-40' : '',
                   ]"
-                  class="hover:bg-gray-800/40 transition-colors cursor-grab active:cursor-grabbing"
+                  class="hover:bg-sur2/40 transition-colors cursor-grab active:cursor-grabbing"
                 >
                   <!-- Drag handle -->
-                  <td class="px-3 py-2.5 text-gray-600 select-none text-base">⠿</td>
-                  <td class="px-3 py-2.5 text-gray-500 text-xs">{{ slot.slot_order + 1 }}</td>
+                  <td class="px-3 py-2.5 text-tx3 select-none text-base">⠿</td>
+                  <td class="px-3 py-2.5 text-tx3 text-xs">{{ slot.slot_order + 1 }}</td>
                   <td class="px-3 py-2.5">
                     <span v-if="editingSlot === slot.id">
                       <input
@@ -200,24 +200,24 @@
                       />
                     </span>
                     <span v-else class="flex items-center gap-2">
-                      <span v-if="slot.username" class="text-white font-medium">{{ slot.username }}</span>
-                      <span v-else class="text-gray-500 italic text-xs">— open —</span>
+                      <span v-if="slot.username" class="text-tx1 font-medium">{{ slot.username }}</span>
+                      <span v-else class="text-tx3 italic text-xs">— open —</span>
                       <span v-if="slot.label" class="text-xs text-niknax-400 bg-niknax-900/50 px-1.5 py-0.5 rounded">{{ slot.label }}</span>
                     </span>
                   </td>
-                  <td class="px-3 py-2.5 text-gray-300">{{ zones(slot.start_time)[0].time }}</td>
-                  <td class="px-3 py-2.5 text-gray-300">{{ zones(slot.start_time)[1].time }}</td>
-                  <td class="px-3 py-2.5 text-gray-300">{{ zones(slot.start_time)[2].time }}</td>
-                  <td class="px-3 py-2.5 text-gray-300">{{ zones(slot.start_time)[3].time }}</td>
-                  <td class="px-3 py-2.5 text-gray-500 text-xs">{{ slot.duration_min }}m</td>
+                  <td class="px-3 py-2.5 text-tx2">{{ zones(slot.start_time)[0].time }}</td>
+                  <td class="px-3 py-2.5 text-tx2">{{ zones(slot.start_time)[1].time }}</td>
+                  <td class="px-3 py-2.5 text-tx2">{{ zones(slot.start_time)[2].time }}</td>
+                  <td class="px-3 py-2.5 text-tx2">{{ zones(slot.start_time)[3].time }}</td>
+                  <td class="px-3 py-2.5 text-tx3 text-xs">{{ slot.duration_min }}m</td>
                   <td class="px-3 py-2.5">
                     <span v-if="slot.is_pre_assigned" class="text-xs text-niknax-400">Reserved</span>
-                    <span v-else class="text-xs text-gray-500">Open</span>
+                    <span v-else class="text-xs text-tx3">Open</span>
                   </td>
                   <td class="px-3 py-2.5 text-right">
                     <span v-if="editingSlot === slot.id" class="flex gap-1 justify-end">
                       <button @click="saveSlotUsername(slot)" class="text-green-400 text-xs font-medium">Save</button>
-                      <button @click="editingSlot = null" class="text-gray-500 text-xs">✕</button>
+                      <button @click="editingSlot = null" class="text-tx3 text-xs">✕</button>
                     </span>
                     <button v-else @click="startEdit(slot)" class="text-niknax-400 hover:text-niknax-300 text-xs">Edit</button>
                   </td>
@@ -241,24 +241,24 @@
     <!-- ── Swap / Replace modal ── -->
     <Teleport to="body">
       <div v-if="dndModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" @click.self="dndModal = null">
-        <div class="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
-          <h3 class="text-lg font-bold text-white">Move Seller</h3>
+        <div class="bg-surface border border-bd rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+          <h3 class="text-lg font-bold text-tx1">Move Seller</h3>
 
           <div class="space-y-1 text-sm">
-            <p class="text-gray-400">
-              Moving <span class="text-white font-semibold">{{ dndModal.source.username || '(empty)' }}</span>
-              from <span class="text-gray-300">{{ zones(dndModal.source.start_time)[0].time }} ET</span>
+            <p class="text-tx3">
+              Moving <span class="text-tx1 font-semibold">{{ dndModal.source.username || '(empty)' }}</span>
+              from <span class="text-tx2">{{ zones(dndModal.source.start_time)[0].time }} ET</span>
             </p>
-            <p class="text-gray-400">
-              to <span class="text-gray-300">{{ zones(dndModal.target.start_time)[0].time }} ET</span>
-              currently held by <span class="text-white font-semibold">{{ dndModal.target.username }}</span>
+            <p class="text-tx3">
+              to <span class="text-tx2">{{ zones(dndModal.target.start_time)[0].time }} ET</span>
+              currently held by <span class="text-tx1 font-semibold">{{ dndModal.target.username }}</span>
             </p>
           </div>
 
           <div class="space-y-2 pt-1">
             <button @click="doSwap" class="w-full btn-secondary text-left px-4">
               <span class="font-semibold">↕ Swap</span>
-              <span class="block text-xs text-gray-400 mt-0.5 font-normal">
+              <span class="block text-xs text-tx3 mt-0.5 font-normal">
                 {{ dndModal.source.username }} → {{ zones(dndModal.target.start_time)[0].time }} ET &nbsp;·&nbsp;
                 {{ dndModal.target.username }} → {{ zones(dndModal.source.start_time)[0].time }} ET
               </span>
@@ -271,15 +271,15 @@
             </button>
           </div>
 
-          <button @click="dndModal = null" class="w-full text-gray-500 hover:text-gray-300 text-sm">Cancel</button>
+          <button @click="dndModal = null" class="w-full text-tx3 hover:text-tx2 text-sm">Cancel</button>
         </div>
       </div>
     </Teleport>
 
     <!-- Add slot modal -->
     <div v-if="addSlotDay" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-      <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm space-y-4">
-        <h4 class="font-semibold text-white">Add Slot</h4>
+      <div class="bg-surface border border-bd rounded-xl p-6 w-full max-w-sm space-y-4">
+        <h4 class="font-semibold text-tx1">Add Slot</h4>
         <div>
           <label class="label">Username (blank = open slot)</label>
           <input v-model="newSlot.username" class="input" placeholder="@username" />
@@ -298,7 +298,7 @@
           <label class="label">Label (optional)</label>
           <input v-model="newSlot.label" class="input" placeholder="Kickoff, Boost…" />
         </div>
-        <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+        <label class="flex items-center gap-2 text-sm text-tx2 cursor-pointer">
           <input v-model="newSlot.is_pre_assigned" type="checkbox" class="rounded" />
           Reserved (cannot be claimed publicly)
         </label>
@@ -429,9 +429,9 @@ async function applyMove(source, newSourceUsername, target, newTargetUsername) {
 const publicUrl = computed(() => `${location.origin}/train/${train.value?.id}`)
 
 const statusBadge = computed(() => {
-  if (train.value?.published)   return { label: 'LIVE',     class: 'bg-green-900 text-green-300' }
-  if (train.value?.is_upcoming) return { label: 'UPCOMING', class: 'bg-amber-900 text-amber-300' }
-  return { label: 'DRAFT', class: 'bg-gray-700 text-gray-300' }
+  if (train.value?.published)   return { label: 'LIVE',     class: 'badge-live' }
+  if (train.value?.is_upcoming) return { label: 'UPCOMING', class: 'badge-upcoming' }
+  return { label: 'DRAFT', class: 'badge-draft' }
 })
 
 const slotsByDay = computed(() => {

@@ -1,9 +1,19 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{vue,js,ts}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
+        // ── Semantic surface / text tokens (driven by CSS variables) ──
+        base:    'var(--color-base)',
+        surface: 'var(--color-surface)',
+        sur2:    'var(--color-sur2)',
+        bd:      'var(--color-bd)',
+        bd2:     'var(--color-bd2)',
+        tx1:     'var(--color-tx1)',
+        tx2:     'var(--color-tx2)',
+        tx3:     'var(--color-tx3)',
         niknax: {
           50:  '#faf5ff',
           100: '#f3e8ff',
