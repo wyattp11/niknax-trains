@@ -246,7 +246,8 @@ async function playClunk() {
 }
 
 // Caboose whistle: real audio element (mike_stranks, CC0)
-async function playStationBell() {
+// Fires when last car clunk ends — announces the caboose rolling in
+async function playCabooseWhistle() {
   if (!cabooseWhistleEl) return
   try {
     cabooseWhistleEl.currentTime = 0
@@ -254,6 +255,19 @@ async function playStationBell() {
   } catch {
     pendingCaboose = true
   }
+}
+
+// "All aboard!" conductor call — fires when the whole train has stopped.
+// Download from: https://pixabay.com/sound-effects/people-quotall-aboardquot-train-conductor-177678/
+// Save as: niknax-trains/public/sounds/all-aboard.mp3
+let allAboardEl = null
+
+async function playAllAboard() {
+  if (!allAboardEl) return
+  try {
+    allAboardEl.currentTime = 0
+    await allAboardEl.play()
+  } catch {}
 }
 
 // ── Animation state machine ───────────────────────────────────────────────
@@ -278,7 +292,12 @@ function slide(xRef, fromPx, stopPx, elapsedMs, speedPxPerSec) {
 
 function startNextCar() {
   if (carPhase >= numCars) {
-    waitTimer = setTimeout(startCabPhase, 350)
+    // Clunk buffer is ~280ms. Play caboose whistle right as it ends,
+    // then immediately start the caboose rolling in simultaneously.
+    waitTimer = setTimeout(() => {
+      playCabooseWhistle()
+      startCabPhase()
+    }, 290)
     return
   }
   phase = 1
@@ -321,7 +340,8 @@ function tick(now) {
     if (slide(cabX, -CAB_W * cw, stopCab, el, SPEED_CAB)) {
       cabX.value = stopCab
       phase = 99
-      playStationBell()
+      // Train fully stopped — conductor calls "All aboard!"
+      playAllAboard()
       return
     }
   } else {
@@ -368,6 +388,12 @@ onMounted(async () => {
   cabooseWhistleEl.volume  = 0.85
   cabooseWhistleEl.load()
 
+  // "All aboard!" — loaded from local file; silently skipped if not present
+  allAboardEl = new Audio('/sounds/all-aboard.mp3')
+  allAboardEl.preload = 'auto'
+  allAboardEl.volume  = 0.9
+  allAboardEl.load()
+
   // Helper: warm up an Audio element silently to unlock playback
   async function warmUp(el) {
     try {
@@ -384,6 +410,7 @@ onMounted(async () => {
     try { await webCtx().resume() } catch {}
     await warmUp(whistleEl)
     await warmUp(cabooseWhistleEl)
+    if (allAboardEl) await warmUp(allAboardEl)
     // Play caboose whistle if it was blocked earlier
     if (pendingCaboose) {
       pendingCaboose = false
@@ -406,5 +433,6 @@ onUnmounted(() => {
   if (audioCtx)        { try { audioCtx.close() } catch {} }
   if (whistleEl)       { whistleEl.pause(); whistleEl.src = '' }
   if (cabooseWhistleEl){ cabooseWhistleEl.pause(); cabooseWhistleEl.src = '' }
+  if (allAboardEl)     { allAboardEl.pause();      allAboardEl.src = '' }
 })
 </script>

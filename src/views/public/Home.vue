@@ -8,7 +8,7 @@
         ✦ &nbsp; All Aboard &nbsp; ✦
       </p>
       <h1 class="font-display leading-none mb-2 text-4xl sm:text-5xl lg:text-7xl text-tx1">
-        Niknax Raid Trains
+        Niknax Train Station
       </h1>
       <p class="text-tx3 text-xs font-mono tracking-widest mt-2">
         DISTRICT LIVE SELLING · BACK-TO-BACK SHOWS
