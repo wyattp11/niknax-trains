@@ -2,17 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme tokens — Vintage Train palette ───────────────────────────────── */
+/* ── Theme tokens — Pullman Forest Green palette ────────────────────────── */
 :root {
-  /* Light: aged parchment / railway timetable */
-  --color-base:    #fdf6e3;   /* warm parchment */
-  --color-surface: #fffef9;   /* cream white    */
-  --color-sur2:    #f0e6cc;   /* aged paper     */
-  --color-bd:      #d4b890;   /* brass line     */
-  --color-bd2:     #b89a6a;   /* deeper brass   */
-  --color-tx1:     #1a0a04;   /* near-black warm */
-  --color-tx2:     #5c2d14;   /* mahogany        */
-  --color-tx3:     #9c7852;   /* muted brown     */
+  /* Light: warm ivory / station platform */
+  --color-base:    #F5F7F0;   /* pale sage white  */
+  --color-surface: #FFFFFF;   /* crisp white      */
+  --color-sur2:    #E8F0E9;   /* light sage input */
+  --color-bd:      #B4CDB8;   /* sage green line  */
+  --color-bd2:     #8AAF90;   /* deeper sage      */
+  --color-tx1:     #0A1A10;   /* near-black green */
+  --color-tx2:     #1A5C38;   /* forest green     */
+  --color-tx3:     #6B8F76;   /* muted sage       */
 
   /* Status badges — colorblind-friendly (blue / orange / gray)
      Blue = LIVE, Orange = UPCOMING, Gray = DRAFT               */
@@ -30,15 +30,15 @@
 }
 
 .dark {
-  /* Dark: coal black / locomotive shed */
-  --color-base:    #0e0906;   /* near-black charcoal */
-  --color-surface: #1a100a;   /* dark mahogany        */
-  --color-sur2:    #281a0e;   /* slightly lighter     */
-  --color-bd:      #4a2d1a;   /* dark brown border    */
-  --color-bd2:     #6b4422;   /* medium brown         */
-  --color-tx1:     #f5edd8;   /* warm cream           */
-  --color-tx2:     #c9a96e;   /* antique brass        */
-  --color-tx3:     #7a6040;   /* muted brass          */
+  /* Dark: deep forest / Pullman sleeper car */
+  --color-base:    #040e0a;   /* near-black green     */
+  --color-surface: #081C15;   /* dark forest          */
+  --color-sur2:    #0f2d1a;   /* slightly lighter     */
+  --color-bd:      #1d4a2d;   /* dark green border    */
+  --color-bd2:     #2E6B40;   /* medium green border  */
+  --color-tx1:     #F5F7F0;   /* pale sage white      */
+  --color-tx2:     #D4A017;   /* antique gold text    */
+  --color-tx3:     #4a8a60;   /* muted sage           */
 
   /* Status badges — dark variants */
   --badge-live-bg:       rgba(30, 58, 138, 0.55);

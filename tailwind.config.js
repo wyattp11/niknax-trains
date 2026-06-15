@@ -14,31 +14,31 @@ export default {
         tx1:     'var(--color-tx1)',
         tx2:     'var(--color-tx2)',
         tx3:     'var(--color-tx3)',
-        // ── Vintage train palette: Tuscan Red / Maroon ──
+        // ── Vintage train palette: Deep Forest Green / Pullman ──
         niknax: {
-          50:  '#fdf5f3',
-          100: '#fce8e4',
-          200: '#f8cdc5',
-          300: '#f29893',   // warm rose — headings in dark mode
-          400: '#e06b62',   // copper-rose — links
-          500: '#b83e2f',   // burnt sienna — hover state
-          600: '#8B2635',   // Tuscan Red — primary buttons
-          700: '#7a1f2d',
-          800: '#601820',
-          900: '#3d0f18',   // deep maroon — dark gradients
-          950: '#1f0a0e',
+          50:  '#f0faf5',
+          100: '#d8f0e3',
+          200: '#b2dfc5',
+          300: '#7fc4a2',   // sage — headings / accents in dark
+          400: '#52a882',   // medium sage — links
+          500: '#2E8B57',   // sea green — hover
+          600: '#1A5C38',   // deep forest — primary buttons
+          700: '#154a2d',
+          800: '#0f3a22',
+          900: '#081C15',   // near-black green — dark bg
+          950: '#040e0a',
         },
         // ── Antique Brass / Gold ──
         gold: {
-          300: '#e8c97d',
-          400: '#C9A227',   // antique gold accent
-          500: '#a07d0a',
-          600: '#7a5e08',
+          300: '#f0d27a',
+          400: '#D4A017',   // antique gold
+          500: '#b07d10',
+          600: '#8a5f0a',
         }
       },
       fontFamily: {
-        display: ['Playfair Display', 'Georgia', 'serif'],
-        mono:    ['Courier Prime', 'Courier New', 'monospace'],
+        display: ['Abril Fatface', 'Georgia', 'serif'],
+        mono:    ['Space Mono', 'Courier New', 'monospace'],
       }
     }
   },

@@ -2,26 +2,21 @@
   <div class="min-h-screen bg-base">
     <PublicNav />
 
-    <!-- Hero: vintage station board + ASCII animation -->
-    <div class="bg-gradient-to-b from-niknax-950 via-niknax-900/30 to-base border-b border-bd pt-10 pb-0">
-      <div class="text-center px-6 mb-5">
-        <p class="text-gold-400 dark:text-gold-300 text-xs font-mono tracking-[0.35em] uppercase mb-2 opacity-75">
-          ✦ &nbsp; All Aboard &nbsp; ✦
-        </p>
-        <h1 class="font-display font-black leading-none mb-3
-                   text-4xl sm:text-5xl lg:text-6xl
-                   bg-gradient-to-br from-niknax-200 via-gold-300 to-niknax-300
-                   bg-clip-text text-transparent">
-          Niknax Raid Trains
-        </h1>
-        <p class="text-niknax-200/60 dark:text-niknax-300/50 text-xs font-mono tracking-widest">
-          DISTRICT LIVE SELLING · BACK-TO-BACK SHOWS
-        </p>
-      </div>
-
-      <!-- ASCII locomotive animation -->
-      <TrainAnimation class="px-1 sm:px-4" />
+    <!-- Hero: title + ASCII animation, no banner -->
+    <div class="pt-10 pb-4 text-center px-6">
+      <p class="text-gold-500 dark:text-gold-400 text-xs font-mono tracking-[0.35em] uppercase mb-3">
+        ✦ &nbsp; All Aboard &nbsp; ✦
+      </p>
+      <h1 class="font-display leading-none mb-2 text-4xl sm:text-5xl lg:text-7xl text-tx1">
+        Niknax Raid Trains
+      </h1>
+      <p class="text-tx3 text-xs font-mono tracking-widest mt-2">
+        DISTRICT LIVE SELLING · BACK-TO-BACK SHOWS
+      </p>
     </div>
+
+    <!-- ASCII locomotive animation -->
+    <TrainAnimation class="px-1 sm:px-4" />
 
     <main class="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-12">
 
