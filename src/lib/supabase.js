@@ -20,8 +20,13 @@ export const supabase = createClient(
  * @param {(pct: number) => void} [onProgress] - called with 0‑100 during upload
  * @returns {Promise<string>} public URL of the uploaded object
  */
-export function uploadWithProgress(bucket, path, file, onProgress) {
+export async function uploadWithProgress(bucket, path, file, onProgress) {
   const base = (supabaseUrl || '').replace(/\/$/, '')
+
+  // The sb_publishable_ key isn't a raw JWT — get the real token from the SDK session.
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token ?? supabaseKey
+
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.upload.onprogress = (e) => {
@@ -40,7 +45,7 @@ export function uploadWithProgress(bucket, path, file, onProgress) {
     }
     xhr.onerror = () => reject(new Error('Network error during upload'))
     xhr.open('POST', `${base}/storage/v1/object/${bucket}/${path}`)
-    xhr.setRequestHeader('Authorization', `Bearer ${supabaseKey}`)
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`)
     xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
     xhr.setRequestHeader('x-upsert', 'true')
     xhr.send(file)
