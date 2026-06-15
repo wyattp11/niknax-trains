@@ -13,7 +13,7 @@
 
       <!-- Main title — huge Righteous display -->
       <h1 class="font-display leading-none text-tx1 select-none">
-        <span class="block text-[4.5rem] sm:text-[7rem] md:text-[9rem] lg:text-[12rem] xl:text-[14rem] leading-[0.9]">
+        <span class="block text-[3.5rem] sm:text-[5.5rem] md:text-[7rem] lg:text-[9rem] xl:text-[11rem] leading-[0.9]">
           Niknax
         </span>
         <span class="block text-xl sm:text-2xl md:text-3xl lg:text-4xl text-niknax-600 dark:text-niknax-400 tracking-[0.3em] mt-2 uppercase">

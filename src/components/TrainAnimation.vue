@@ -129,13 +129,13 @@ const carTypeIdx = Array.from({ length: MAX_CARS }, (_, i) => i % CAR_ARTS.lengt
 const cabVis  = ref(false)
 
 const isDark     = ref(false)
-const locoColor  = computed(() => isDark.value ? '#FF7A30' : '#D44400')
-const cabColor   = computed(() => isDark.value ? '#D44400' : '#AA3600')
-const trackColor = computed(() => isDark.value ? 'rgba(74,40,0,0.35)' : 'rgba(232,201,154,0.55)')
+const locoColor  = computed(() => isDark.value ? '#FF4D7E' : '#C8002A')
+const cabColor   = computed(() => isDark.value ? '#C8002A' : '#9A001E')
+const trackColor = computed(() => isDark.value ? 'rgba(74,0,24,0.35)' : 'rgba(240,192,204,0.55)')
 
-// Warm orange / teal alternating shades for cars
-const carColors     = ['#AA3600', '#007A70', '#C84000', '#005C55', '#B83800']
-const carColorsDark = ['#FF7A30', '#2BBFB4', '#FF9050', '#5CD6CC', '#FF6B20']
+// Red / teal alternating shades for cars
+const carColors     = ['#9A001E', '#007A70', '#C8002A', '#005C55', '#B80028']
+const carColorsDark = ['#FF4D7E', '#2BBFB4', '#FF7090', '#5CD6CC', '#FF3060']
 
 const pieces = computed(() => [
   { key: 'loco', art: LOCO_ART, x: locoX.value, visible: true, color: locoColor.value },
