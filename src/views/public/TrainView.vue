@@ -36,6 +36,13 @@
             <button @click="copyPageLink" class="btn-secondary text-sm">
               {{ pageLinkCopied ? '✓ Copied!' : '🔗 Share Event' }}
             </button>
+            <button
+              v-if="train.cover_url"
+              @click="downloadGraphic"
+              class="btn-secondary text-sm flex items-center gap-1.5"
+            >
+              📥 Download Train Graphic
+            </button>
           </div>
         </div>
       </div>
@@ -48,7 +55,6 @@
           </h2>
           <p class="text-gray-500 text-sm mb-5">All times shown in your local time zone below</p>
 
-          <!-- Time zone header -->
           <div class="overflow-x-auto">
             <table class="w-full text-sm min-w-[560px]">
               <thead>
@@ -73,8 +79,6 @@
                   class="transition-colors"
                 >
                   <td class="px-4 py-3 text-gray-600 text-xs">{{ slot.slot_order + 1 }}</td>
-
-                  <!-- Seller name -->
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-2">
                       <span v-if="slot.username" class="font-medium text-white">{{ slot.username }}</span>
@@ -82,19 +86,13 @@
                       <span
                         v-if="slot.label"
                         class="text-xs font-semibold text-niknax-300 bg-niknax-900/60 px-1.5 py-0.5 rounded"
-                      >
-                        {{ slot.label }}
-                      </span>
+                      >{{ slot.label }}</span>
                     </div>
                   </td>
-
-                  <!-- Time zones -->
                   <td class="px-4 py-3 text-white font-medium">{{ zones(slot.start_time)[0].time }}</td>
                   <td class="px-4 py-3 text-gray-300">{{ zones(slot.start_time)[1].time }}</td>
                   <td class="px-4 py-3 text-gray-300">{{ zones(slot.start_time)[2].time }}</td>
                   <td class="px-4 py-3 text-gray-300">{{ zones(slot.start_time)[3].time }}</td>
-
-                  <!-- Action -->
                   <td class="px-4 py-3 text-right">
                     <button
                       v-if="!slot.username && !slot.is_pre_assigned"
@@ -110,7 +108,6 @@
           </div>
         </div>
 
-        <!-- Bottom note -->
         <p class="text-center text-gray-600 text-xs mt-8">
           Remember: do not remove anyone from their slot. Doing so may result in removal from the event.
         </p>
@@ -119,47 +116,89 @@
 
     <div v-else class="text-center py-32 text-gray-500">Event not found.</div>
 
-    <!-- Signup Modal -->
+    <!-- ── Signup Modal ── -->
     <Teleport to="body">
-      <div v-if="signupModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" @click.self="signupModal = null">
+      <div
+        v-if="signupModal"
+        class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4"
+        @click.self="signupModal = null"
+      >
         <div class="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-          <h3 class="text-lg font-bold text-white mb-1">Sign Up for This Slot</h3>
-          <p class="text-gray-400 text-sm mb-5">
-            {{ zones(signupModal.slot.start_time)[0].time }} ET
-            · {{ signupModal.slot.duration_min }} min
-            · {{ formatDate(signupModal.day.day_date) }}
-          </p>
 
-          <div class="space-y-4">
-            <div>
-              <label class="label">Your District / Niknax Username *</label>
-              <input
-                v-model="signupUsername"
-                class="input"
-                placeholder="@YourUsername"
-                @keyup.enter="submitSignup"
-                autofocus
-              />
+          <!-- ── Success state ── -->
+          <template v-if="signupSuccess">
+            <div class="text-center mb-5">
+              <div class="text-5xl mb-3">🎉</div>
+              <h3 class="text-xl font-bold text-white mb-1">You're on the train!</h3>
+              <p class="text-gray-400 text-sm">
+                {{ signupSuccess.username }} · {{ zones(signupSuccess.slot.start_time)[0].time }} ET
+                · {{ formatDate(signupSuccess.day.day_date) }}
+              </p>
             </div>
-            <div>
-              <label class="label">Your District Show Link (optional)</label>
-              <input
-                v-model="signupLink"
-                class="input"
-                type="url"
-                placeholder="https://districtapp.tv/…"
-              />
+
+            <!-- Graphic download card -->
+            <div v-if="train.cover_url" class="bg-gray-800 rounded-xl overflow-hidden mb-5">
+              <img :src="train.cover_url" class="w-full object-cover max-h-48" alt="Train graphic" />
+              <div class="p-3 flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-white text-sm font-semibold">Train Graphic</p>
+                  <p class="text-gray-400 text-xs">Share with your followers!</p>
+                </div>
+                <button
+                  @click="downloadGraphic"
+                  class="btn-primary text-sm py-1.5 shrink-0 flex items-center gap-1.5"
+                >
+                  📥 Download
+                </button>
+              </div>
             </div>
-          </div>
 
-          <p v-if="signupError" class="text-red-400 text-sm mt-3">{{ signupError }}</p>
-
-          <div class="flex gap-3 mt-6">
-            <button @click="signupModal = null" class="btn-secondary flex-1">Cancel</button>
-            <button @click="submitSignup" :disabled="signingUp" class="btn-primary flex-1">
-              {{ signingUp ? 'Saving…' : 'Claim Slot ✓' }}
+            <button @click="signupModal = null; signupSuccess = null" class="btn-secondary w-full">
+              Close
             </button>
-          </div>
+          </template>
+
+          <!-- ── Input state ── -->
+          <template v-else>
+            <h3 class="text-lg font-bold text-white mb-1">Sign Up for This Slot</h3>
+            <p class="text-gray-400 text-sm mb-5">
+              {{ zones(signupModal.slot.start_time)[0].time }} ET
+              · {{ signupModal.slot.duration_min }} min
+              · {{ formatDate(signupModal.day.day_date) }}
+            </p>
+
+            <div class="space-y-4">
+              <div>
+                <label class="label">Your District / Niknax Username *</label>
+                <input
+                  v-model="signupUsername"
+                  class="input"
+                  placeholder="@YourUsername"
+                  @keyup.enter="submitSignup"
+                  autofocus
+                />
+              </div>
+              <div>
+                <label class="label">Your District Show Link (optional)</label>
+                <input
+                  v-model="signupLink"
+                  class="input"
+                  type="url"
+                  placeholder="https://districtapp.tv/…"
+                />
+              </div>
+            </div>
+
+            <p v-if="signupError" class="text-red-400 text-sm mt-3">{{ signupError }}</p>
+
+            <div class="flex gap-3 mt-6">
+              <button @click="signupModal = null" class="btn-secondary flex-1">Cancel</button>
+              <button @click="submitSignup" :disabled="signingUp" class="btn-primary flex-1">
+                {{ signingUp ? 'Saving…' : 'Claim Slot ✓' }}
+              </button>
+            </div>
+          </template>
+
         </div>
       </div>
     </Teleport>
@@ -180,6 +219,7 @@ const slots   = ref([])
 const loading = ref(true)
 
 const signupModal    = ref(null)
+const signupSuccess  = ref(null)   // { username, slot, day } after successful claim
 const signupUsername = ref('')
 const signupLink     = ref('')
 const signupError    = ref('')
@@ -214,7 +254,6 @@ async function load() {
   if (!t) { loading.value = false; return }
   train.value = t
 
-  // Update OG meta tags dynamically
   document.title = `${t.name} — Niknax Raid Train`
   setMeta('og:title', t.name)
   setMeta('og:description', t.tagline || 'Join the live-selling train on District!')
@@ -249,7 +288,8 @@ function setMeta(name, content) {
 }
 
 function openSignup(slot, day) {
-  signupModal.value   = { slot, day }
+  signupSuccess.value  = null
+  signupModal.value    = { slot, day }
   signupUsername.value = ''
   signupLink.value     = ''
   signupError.value    = ''
@@ -260,22 +300,18 @@ async function submitSignup() {
     signupError.value = 'Please enter your username.'
     return
   }
-  signingUp.value = true
+  signingUp.value   = true
   signupError.value = ''
 
-  const slot = signupModal.value.slot
+  const { slot, day } = signupModal.value
 
-  // Re-check the slot is still open
+  // Re-check slot is still open
   const { data: fresh } = await supabase
-    .from('slots')
-    .select('username')
-    .eq('id', slot.id)
-    .single()
+    .from('slots').select('username').eq('id', slot.id).single()
 
   if (fresh?.username) {
     signupError.value = 'Sorry — this slot was just claimed! Please pick another.'
     signingUp.value = false
-    // Refresh slots
     await load()
     return
   }
@@ -287,20 +323,37 @@ async function submitSignup() {
       seller_link: signupLink.value.trim() || null,
     })
     .eq('id', slot.id)
-    .is('username', null) // safety: only update if still null
+    .is('username', null)
 
   if (error) {
     signupError.value = 'Could not claim slot. Please try again.'
   } else {
-    // Update local state
     const idx = slots.value.findIndex(s => s.id === slot.id)
     if (idx !== -1) {
       slots.value[idx].username    = signupUsername.value.trim()
       slots.value[idx].seller_link = signupLink.value.trim() || null
     }
-    signupModal.value = null
+    // Show success screen with graphic download
+    signupSuccess.value = { username: signupUsername.value.trim(), slot, day }
   }
   signingUp.value = false
+}
+
+async function downloadGraphic() {
+  if (!train.value?.cover_url) return
+  const filename = `${train.value.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-train-graphic`
+  try {
+    const res  = await fetch(train.value.cover_url)
+    const blob = await res.blob()
+    const ext  = blob.type.includes('png') ? 'png' : blob.type.includes('gif') ? 'gif' : 'jpg'
+    const url  = URL.createObjectURL(blob)
+    const a    = Object.assign(document.createElement('a'), { href: url, download: `${filename}.${ext}` })
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    // CORS blocked — open in new tab so user can save manually
+    window.open(train.value.cover_url, '_blank')
+  }
 }
 
 function copyPageLink() {
