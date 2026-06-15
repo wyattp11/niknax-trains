@@ -107,48 +107,45 @@ const rawTrains = ref([])
 const loading   = ref(true)
 
 async function load() {
-  // Fetch published OR upcoming trains, with their days
+  // Fetch ALL trains with their days — the events list filters below,
+  // but the calendar shows everything including drafts.
   const { data } = await supabase
     .from('trains')
     .select('*, days:train_days(id, day_date)')
-    .or('published.eq.true,is_upcoming.eq.true')
     .order('created_at', { ascending: false })
 
   rawTrains.value = data || []
   loading.value   = false
 }
 
-// Sorted events for the list (published first, then upcoming, both sorted by soonest date)
-const events = computed(() => {
-  return [...rawTrains.value]
-    .map(t => {
-      const dates    = (t.days || []).map(d => d.day_date).sort()
-      const dateRange = dates.length
-        ? dates.length === 1
-          ? formatDate(dates[0])
-          : `${formatDate(dates[0])} – ${formatDate(dates[dates.length - 1])}`
-        : null
-      return { ...t, dates, dateRange }
-    })
-    .sort((a, b) => {
-      // Live before upcoming
-      if (a.published !== b.published) return a.published ? -1 : 1
-      // Then by soonest date
-      const aDate = a.dates[0] || '9999'
-      const bDate = b.dates[0] || '9999'
-      return aDate.localeCompare(bDate)
-    })
-})
+// Helper: enrich a raw train with dates / dateRange
+function enrich(t) {
+  const dates = (t.days || []).map(d => d.day_date).sort()
+  const dateRange = dates.length
+    ? dates.length === 1
+      ? formatDate(dates[0])
+      : `${formatDate(dates[0])} – ${formatDate(dates[dates.length - 1])}`
+    : null
+  return { ...t, dates, dateRange }
+}
 
-// Calendar-formatted events
+// Events list: only published or upcoming, sorted live-first then by date
+const events = computed(() =>
+  rawTrains.value
+    .filter(t => t.published || t.is_upcoming)
+    .map(enrich)
+    .sort((a, b) => {
+      if (a.published !== b.published) return a.published ? -1 : 1
+      return (a.dates[0] || '9999').localeCompare(b.dates[0] || '9999')
+    })
+)
+
+// Calendar: ALL trains so drafts appear too (styled differently in EventCalendar)
 const calendarEvents = computed(() =>
-  events.value.map(ev => ({
-    id:          ev.id,
-    name:        ev.name,
-    published:   ev.published,
-    is_upcoming: ev.is_upcoming,
-    dates:       ev.dates,
-  }))
+  rawTrains.value.map(t => {
+    const e = enrich(t)
+    return { id: e.id, name: e.name, published: e.published, is_upcoming: e.is_upcoming, dates: e.dates }
+  })
 )
 
 onMounted(load)

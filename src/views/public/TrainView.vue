@@ -248,7 +248,6 @@ async function load() {
     .from('trains')
     .select('*')
     .eq('id', id)
-    .eq('published', true)
     .single()
 
   if (!t) { loading.value = false; return }

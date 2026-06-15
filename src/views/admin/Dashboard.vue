@@ -36,17 +36,30 @@
         <div
           v-for="train in trains"
           :key="train.id"
-          class="card flex items-center justify-between gap-4"
+          class="card flex items-center gap-4"
         >
+          <!-- Thumbnail -->
+          <img
+            v-if="train.cover_url"
+            :src="train.cover_url"
+            class="w-14 h-14 rounded-lg object-cover shrink-0"
+            alt=""
+          />
+          <div v-else class="w-14 h-14 rounded-lg bg-niknax-900/60 flex items-center justify-center text-2xl shrink-0">
+            🚂
+          </div>
+
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1">
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
               <span
                 :class="train.published
                   ? 'bg-green-900 text-green-300'
-                  : 'bg-gray-700 text-gray-300'"
-                class="text-xs font-semibold px-2 py-0.5 rounded-full"
+                  : train.is_upcoming
+                    ? 'bg-amber-900 text-amber-300'
+                    : 'bg-gray-700 text-gray-300'"
+                class="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
               >
-                {{ train.published ? 'LIVE' : 'DRAFT' }}
+                {{ train.published ? 'LIVE' : train.is_upcoming ? 'UPCOMING' : 'DRAFT' }}
               </span>
               <h3 class="font-semibold text-white truncate">{{ train.name }}</h3>
             </div>

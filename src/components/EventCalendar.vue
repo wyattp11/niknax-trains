@@ -36,6 +36,9 @@
       <span class="flex items-center gap-1.5">
         <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Upcoming
       </span>
+      <span class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-gray-500 inline-block"></span> Draft
+      </span>
     </div>
 
     <!-- Calendar grids -->
@@ -75,10 +78,8 @@
             <RouterLink
               v-for="ev in eventsOnDay(offset, cell)"
               :key="ev.id"
-              :to="ev.published ? `/train/${ev.id}` : '#'"
-              :class="ev.published
-                ? 'bg-green-900/70 text-green-200 hover:bg-green-800/80'
-                : 'bg-amber-900/70 text-amber-200 hover:bg-amber-800/80'"
+              :to="ev.published || ev.is_upcoming ? `/train/${ev.id}` : '#'"
+              :class="chipClass(ev)"
               class="block text-xs px-1.5 py-0.5 rounded mb-0.5 truncate leading-tight transition-colors"
             >
               {{ ev.name }}
@@ -166,5 +167,11 @@ function eventsOnDay(offset, day) {
 function isToday(offset, day) {
   if (!day) return false
   return dateStr(offset, day) === today.toISOString().slice(0, 10)
+}
+
+function chipClass(ev) {
+  if (ev.published)   return 'bg-green-900/70 text-green-200 hover:bg-green-800/80'
+  if (ev.is_upcoming) return 'bg-amber-900/70 text-amber-200 hover:bg-amber-800/80'
+  return 'bg-gray-700/80 text-gray-400 hover:bg-gray-600/80'
 }
 </script>
