@@ -119,8 +119,8 @@ const totalH = computed(() => 6 * lineH.value + lineH.value + 4)
 const locoX = ref(-2000)
 const cabX  = ref(-2000)
 
-// Up to 5 cars
-const MAX_CARS = 5
+// Up to 4 cars
+const MAX_CARS = 4
 const carXs   = Array.from({ length: MAX_CARS }, () => ref(-2000))
 const carVis  = Array.from({ length: MAX_CARS }, () => ref(false))
 // Which car art to use for each slot
@@ -206,9 +206,12 @@ async function playWhistle() {
   if (!whistleEl) return
   try {
     whistleEl.currentTime = 0
+    // Chain: caboose whistle plays immediately when the arrival whistle ends
+    whistleEl.addEventListener('ended', () => playCabooseWhistle(), { once: true })
     await whistleEl.play()
   } catch {
-    // Fallback: synthesized whistle if audio is blocked
+    // Fallback: synthesized whistle if audio is blocked; chain caboose after synth (~1.3s)
+    setTimeout(() => playCabooseWhistle(), 1400)
     try {
       const ac = await ensureCtx()
       const t  = ac.currentTime
@@ -292,10 +295,9 @@ function slide(xRef, fromPx, stopPx, elapsedMs, speedPxPerSec) {
 
 function startNextCar() {
   if (carPhase >= numCars) {
-    // Clunk buffer is ~280ms. Play caboose whistle right as it ends,
-    // then immediately start the caboose rolling in simultaneously.
+    // Clunk buffer is ~280ms. Start caboose rolling immediately after.
+    // (Caboose whistle already fired right after the arrival whistle ended.)
     waitTimer = setTimeout(() => {
-      playCabooseWhistle()
       startCabPhase()
     }, 290)
     return
@@ -364,7 +366,7 @@ onMounted(async () => {
   else if (W < 900)  { fz.value = 11; lineH.value = 16 }
   else               { fz.value = 13; lineH.value = 18 }
 
-  numCars = W < 480 ? 2 : W < 700 ? 3 : W < 1000 ? 4 : 5
+  numCars = W < 480 ? 1 : W < 700 ? 2 : W < 1000 ? 3 : 4
 
   await document.fonts.ready
   const span = document.createElement('span')

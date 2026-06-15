@@ -21,6 +21,12 @@
         </span>
       </h1>
 
+      <!-- Admin link — subtle, floating top-left -->
+      <RouterLink
+        to="/admin"
+        class="absolute top-5 left-5 text-tx3 hover:text-tx1 transition-colors text-xs font-mono uppercase tracking-widest"
+      >Admin</RouterLink>
+
       <!-- Dark mode toggle — subtle, floating top-right -->
       <button
         @click="theme.toggle()"
