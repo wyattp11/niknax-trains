@@ -40,14 +40,14 @@ const TRACKS = '═'.repeat(300)
 // the left, small (o) front pilots on the right.
 const LOCO_RAW = [
   `                 ________                                              `,  // cab roof (rises above boiler)
-  `                   | || |          \\==//               `,  // cab window + stack top (forward!)
+  `                   | || |          \\\==//               `,  // cab window + stack top (forward!)
   `                   |_||_|^___^____!_|__|_`,  // boiler roof + stack base
   `  |#############|  |     | ~*NIKNAX*~  ___|`,  // body + boiler label + coupler
   ` |_______________| |_____|______|    |____|`,  // underframe
-  `  (*)(*)--(*)(*)    (-*-)=(-*-)    (0)-(0)\\    `,  // big rear drivers + small front pilots
+  `  (*)(*)--(*)(*)    (-*-)=(-*-)    (0)-(0)\\\    `,  // big rear drivers + small front pilots
 ]
 
-// ── Five cargo car types (1 blank row prepended so wheels align with 6-row loco) ──
+// ── Four cargo car types (1 blank row prepended so wheels align with 6-row loco) ──
 const CAR_TYPES_RAW = [
   // 0: Oil lamp car
   [
@@ -62,37 +62,28 @@ const CAR_TYPES_RAW = [
   [
     `               `,
     `  _____________`,
-    ` | /U\ /U\ /U\ |`,
+    ` |//U\\//U\\///U\\   |`,
     ` |    GLASS    |>`,
     ` |_____________|`,
-    `  -(o)-----(o)-`,
+    `  -(*)-----(*)-`,
   ],
-  // 2: Barrel car
-  [
-    `               `,
-    `  ______________`,
-    ` |oooooooooooooo|`,
-    ` | PAPERWEIGHTS |>`,
-    ` |______________|`,
-    `  -(o)-----(o)-`,
-  ],
-  // 3: Crate/box car
+  // 2: Jewelry car
   [
     `               `,
     `  _____________`,
     ` |[$][$][$][$] |`,
     ` |   JEWELRY   |>`,
     ` |_____________|`,
-    `  -(o)-----(o)-`,
+    `  -(*)-----(*)-`,
   ],
-  // 4: Niknax signature car
+  // 3: MCM car
   [
     `               `,
     `  _____________`,
     ` |* * * * * * *|`,
     ` |     MCM     |>`,
     ` |_____________|`,
-    `  -(o)-----(o)-`,
+    `  -(*)-----(*)-`,
   ],
 ]
 
@@ -102,7 +93,7 @@ const CABOOSE_RAW = [
     ` |             |`,
     ` |  ~*NIKNAX*~ |>`,
     ` |_____________|`,
-    `  -(o)-----(o)-`,
+    `  -(*)-----(*)-`,
   ]
 
 function artStr(lines) {
