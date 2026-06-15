@@ -68,17 +68,28 @@
                 <tr
                   v-for="slot in slotsByDay[day.id] || []"
                   :key="slot.id"
+                  :id="`slot-${slot.id}`"
                   :class="[
-                    slot.is_pre_assigned ? 'bg-niknax-500/10' : '',
-                    !slot.username && !slot.is_pre_assigned ? 'hover:bg-sur2/60' : '',
+                    slot.id === activeSlotId
+                      ? 'bg-[var(--badge-live-bg)] ring-1 ring-inset ring-[var(--badge-live-dot)]'
+                      : slot.is_pre_assigned
+                        ? 'bg-niknax-500/10'
+                        : !slot.username ? 'hover:bg-sur2/60' : '',
                   ]"
                   class="transition-colors"
                 >
                   <td class="px-4 py-3 text-tx3 text-xs">{{ slot.slot_order + 1 }}</td>
                   <td class="px-4 py-3">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
                       <span v-if="slot.username" class="font-medium text-tx1">{{ slot.username }}</span>
                       <span v-else class="text-tx3 italic text-xs">— available —</span>
+                      <span
+                        v-if="slot.id === activeSlotId"
+                        class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-[var(--badge-live-bg)] text-[var(--badge-live-text)]"
+                      >
+                        <span class="w-1.5 h-1.5 rounded-full bg-[var(--badge-live-dot)] animate-pulse inline-block"></span>
+                        LIVE NOW
+                      </span>
                       <span
                         v-if="slot.label"
                         class="text-xs font-semibold text-niknax-500 bg-niknax-500/15 px-1.5 py-0.5 rounded"
@@ -202,10 +213,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { supabase } from '../../lib/supabase.js'
-import { allZones, formatDate } from '../../lib/timeUtils.js'
+import { allZones, formatDate, parseTime } from '../../lib/timeUtils.js'
 import PublicNav from '../../components/PublicNav.vue'
 
 const route = useRoute()
@@ -224,6 +235,35 @@ const signingUp      = ref(false)
 const pageLinkCopied = ref(false)
 
 function zones(t) { return allZones(t) }
+
+// ── Live-now tracking ─────────────────────────────────────────────────────
+function getCurrentET() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }))
+}
+
+const nowET = ref(getCurrentET())
+let clockInterval = null
+
+const activeSlotId = computed(() => {
+  const d = nowET.value
+  const dateStr = [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0'),
+  ].join('-')
+  const nowMin = d.getHours() * 60 + d.getMinutes()
+
+  for (const day of days.value) {
+    if (day.day_date !== dateStr) continue
+    for (const slot of (slotsByDay.value[day.id] || [])) {
+      const { hours, minutes } = parseTime(slot.start_time)
+      const startMin = hours * 60 + minutes
+      const endMin   = startMin + (slot.duration_min || 30)
+      if (nowMin >= startMin && nowMin < endMin) return slot.id
+    }
+  }
+  return null
+})
 
 const slotsByDay = computed(() => {
   const map = {}
@@ -358,5 +398,16 @@ function copyPageLink() {
   setTimeout(() => pageLinkCopied.value = false, 2000)
 }
 
-onMounted(load)
+async function loadAndScroll() {
+  await load()
+  clockInterval = setInterval(() => { nowET.value = getCurrentET() }, 30_000)
+  await nextTick()
+  if (activeSlotId.value) {
+    document.getElementById(`slot-${activeSlotId.value}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+}
+
+onMounted(loadAndScroll)
+onUnmounted(() => { if (clockInterval) clearInterval(clockInterval) })
 </script>
