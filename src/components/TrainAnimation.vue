@@ -178,13 +178,18 @@ function computeStops() {
 }
 
 // ── Audio ─────────────────────────────────────────────────────────────────
-// Real steam whistle: Freesound #71778 by Bidone (CC0, public domain)
+// Loco arrival whistle: Freesound #71778 by Bidone (CC0)
 // https://freesound.org/people/Bidone/sounds/71778/
 const WHISTLE_URL = 'https://cdn.freesound.org/previews/71/71778_706955-lq.mp3'
 
-let whistleEl   = null
-let audioCtx    = null
-let pendingBell = false
+// Caboose whistle: Freesound #407394 by mike_stranks (CC0)
+// https://freesound.org/people/mike_stranks/sounds/407394/
+const CABOOSE_WHISTLE_URL = 'https://cdn.freesound.org/previews/407/407394_5385809-lq.mp3'
+
+let whistleEl       = null
+let cabooseWhistleEl = null
+let audioCtx        = null
+let pendingCaboose  = false
 
 function webCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
@@ -240,40 +245,15 @@ async function playClunk() {
   } catch {}
 }
 
-// Station bell — two dings with realistic bell harmonics (1 : 2 : 2.756 : 3.5 : 5.4)
-function doStationBell(ac) {
-  const t = ac.currentTime
-  function ding(when, fund = 440) {
-    [1, 2, 2.756, 3.5, 5.4].forEach((ratio, i) => {
-      const amp = [0.5, 0.25, 0.15, 0.09, 0.05][i]
-      const osc = ac.createOscillator(), g = ac.createGain()
-      osc.connect(g); g.connect(ac.destination)
-      osc.type = 'sine'; osc.frequency.value = fund * ratio
-      g.gain.setValueAtTime(0, when)
-      g.gain.linearRampToValueAtTime(amp, when + 0.01)
-      g.gain.exponentialRampToValueAtTime(0.001, when + 2.2)
-      osc.start(when); osc.stop(when + 2.3)
-    })
-    // Metallic attack transient
-    const osc2 = ac.createOscillator(), g2 = ac.createGain()
-    osc2.connect(g2); g2.connect(ac.destination)
-    osc2.type = 'triangle'; osc2.frequency.value = 2400
-    g2.gain.setValueAtTime(0.2, when); g2.gain.exponentialRampToValueAtTime(0.001, when + 0.1)
-    osc2.start(when); osc2.stop(when + 0.12)
-  }
-  ding(t)
-  ding(t + 0.58)
-}
-
+// Caboose whistle: real audio element (mike_stranks, CC0)
 async function playStationBell() {
+  if (!cabooseWhistleEl) return
   try {
-    const ac = await ensureCtx()
-    if (ac.state !== 'running') {
-      pendingBell = true
-      return
-    }
-    doStationBell(ac)
-  } catch {}
+    cabooseWhistleEl.currentTime = 0
+    await cabooseWhistleEl.play()
+  } catch {
+    pendingCaboose = true
+  }
 }
 
 // ── Animation state machine ───────────────────────────────────────────────
@@ -377,27 +357,37 @@ onMounted(async () => {
   computeStops()
   locoX.value = -LOCO_W * cw
 
-  // Preload the real whistle audio
+  // Preload both real audio elements
   whistleEl = new Audio(WHISTLE_URL)
   whistleEl.preload = 'auto'
   whistleEl.volume  = 0.8
   whistleEl.load()
 
-  // Unlock audio (both WebAudio and HTMLAudio) on first user interaction
+  cabooseWhistleEl = new Audio(CABOOSE_WHISTLE_URL)
+  cabooseWhistleEl.preload = 'auto'
+  cabooseWhistleEl.volume  = 0.85
+  cabooseWhistleEl.load()
+
+  // Helper: warm up an Audio element silently to unlock playback
+  async function warmUp(el) {
+    try {
+      el.muted = true
+      await el.play()
+      el.pause()
+      el.currentTime = 0
+      el.muted = false
+    } catch {}
+  }
+
+  // Unlock audio on first user interaction
   const unlock = async () => {
     try { await webCtx().resume() } catch {}
-    // Warm up HTMLAudio element so it's allowed to play
-    try {
-      whistleEl.muted = true
-      await whistleEl.play()
-      whistleEl.pause()
-      whistleEl.currentTime = 0
-      whistleEl.muted = false
-    } catch {}
-    // Play pending bell if it was blocked
-    if (pendingBell) {
-      pendingBell = false
-      try { doStationBell(webCtx()) } catch {}
+    await warmUp(whistleEl)
+    await warmUp(cabooseWhistleEl)
+    // Play caboose whistle if it was blocked earlier
+    if (pendingCaboose) {
+      pendingCaboose = false
+      try { cabooseWhistleEl.currentTime = 0; cabooseWhistleEl.play() } catch {}
     }
   }
   document.addEventListener('click',      unlock, { once: true })
@@ -413,7 +403,8 @@ onMounted(async () => {
 onUnmounted(() => {
   if (rafId)     cancelAnimationFrame(rafId)
   if (waitTimer) clearTimeout(waitTimer)
-  if (audioCtx)  { try { audioCtx.close() } catch {} }
-  if (whistleEl) { whistleEl.pause(); whistleEl.src = '' }
+  if (audioCtx)        { try { audioCtx.close() } catch {} }
+  if (whistleEl)       { whistleEl.pause(); whistleEl.src = '' }
+  if (cabooseWhistleEl){ cabooseWhistleEl.pause(); cabooseWhistleEl.src = '' }
 })
 </script>
