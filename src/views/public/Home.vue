@@ -1,26 +1,44 @@
 <template>
-  <div class="min-h-screen bg-base">
-    <PublicNav />
+  <div class="min-h-screen bg-base flex flex-col">
 
-    <!-- Hero: title + ASCII animation, no banner -->
-    <div class="pt-10 pb-4 text-center px-6">
-      <p class="text-gold-500 dark:text-gold-400 text-xs font-mono tracking-[0.35em] uppercase mb-3">
-        ✦ &nbsp; All Aboard &nbsp; ✦
+    <!-- ── Top accent stripe ── -->
+    <div class="h-3 bg-niknax-600 shrink-0"></div>
+
+    <!-- ── Hero: bold 60s title, no nav ── -->
+    <header class="text-center px-6 pt-12 pb-6 relative">
+      <!-- Eyebrow -->
+      <p class="text-niknax-600 dark:text-niknax-400 text-[0.65rem] font-mono tracking-[0.55em] uppercase mb-6">
+        District · Live Selling · Raid Trains
       </p>
-      <h1 class="font-display leading-none mb-2 text-4xl sm:text-5xl lg:text-7xl text-tx1">
-        Niknax Train Station
+
+      <!-- Main title — huge Righteous display -->
+      <h1 class="font-display leading-none text-tx1 select-none">
+        <span class="block text-[4.5rem] sm:text-[7rem] md:text-[9rem] lg:text-[12rem] xl:text-[14rem] leading-[0.9]">
+          Niknax
+        </span>
+        <span class="block text-xl sm:text-2xl md:text-3xl lg:text-4xl text-niknax-600 dark:text-niknax-400 tracking-[0.3em] mt-2 uppercase">
+          Train Station
+        </span>
       </h1>
-      <p class="text-tx3 text-xs font-mono tracking-widest mt-2">
-        DISTRICT LIVE SELLING · BACK-TO-BACK SHOWS
-      </p>
-    </div>
 
-    <!-- ASCII locomotive animation -->
+      <!-- Dark mode toggle — subtle, floating top-right -->
+      <button
+        @click="theme.toggle()"
+        class="absolute top-5 right-5 text-tx3 hover:text-tx1 transition-colors text-lg"
+        :title="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+      >{{ theme.isDark ? '☀' : '◑' }}</button>
+    </header>
+
+    <!-- ── ASCII locomotive animation ── -->
     <TrainAnimation class="px-1 sm:px-4" />
 
-    <main class="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-12">
+    <!-- ── Divider under animation ── -->
+    <div class="h-px bg-bd mx-4 sm:mx-8 mt-2 mb-10"></div>
 
-      <!-- Setup notice -->
+    <!-- ── Content ── -->
+    <main class="max-w-5xl mx-auto w-full px-4 sm:px-6 flex-1 space-y-14 pb-16">
+
+      <!-- Setup notice (dev only) -->
       <div v-if="!isSupabaseConfigured" class="bg-[var(--badge-upcoming-bg)] border border-[var(--badge-upcoming-dot)] rounded-xl px-5 py-4">
         <p class="font-semibold text-[var(--badge-upcoming-text)] mb-1">⚙️ Supabase not connected yet</p>
         <p class="text-[var(--badge-upcoming-text)] text-sm opacity-80">
@@ -30,7 +48,10 @@
 
       <!-- Events list -->
       <section>
-        <h2 class="font-display text-2xl font-bold text-tx1 mb-4">Events</h2>
+        <div class="flex items-center gap-5 mb-7">
+          <h2 class="font-display text-4xl text-tx1 shrink-0">Events</h2>
+          <div class="flex-1 h-[3px] bg-niknax-600 rounded-full"></div>
+        </div>
 
         <div v-if="loading" class="text-tx3 text-sm">Loading…</div>
 
@@ -44,38 +65,57 @@
             v-for="ev in events"
             :key="ev.id"
             :to="ev.published ? `/train/${ev.id}` : undefined"
-            class="flex items-center gap-4 card transition-colors"
-            :class="ev.published ? 'group cursor-pointer hover:border-niknax-400' : 'opacity-80'"
+            class="flex items-center gap-4 card transition-all"
+            :class="ev.published
+              ? 'group cursor-pointer hover:border-niknax-600 hover:shadow-md hover:-translate-y-0.5'
+              : 'opacity-70'"
           >
-            <img v-if="ev.cover_url" :src="ev.cover_url" class="w-14 h-14 rounded-lg object-cover shrink-0" alt="" />
-            <div v-else class="w-14 h-14 rounded-lg bg-niknax-900/30 border border-bd flex items-center justify-center font-mono text-xl text-niknax-600 shrink-0">🚂</div>
+            <img
+              v-if="ev.cover_url"
+              :src="ev.cover_url"
+              class="w-14 h-14 rounded-lg object-cover shrink-0"
+              alt=""
+            />
+            <div
+              v-else
+              class="w-14 h-14 rounded-lg bg-niknax-100 dark:bg-niknax-950 border border-bd
+                     flex items-center justify-center font-mono text-2xl shrink-0"
+            >🚂</div>
 
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-0.5 flex-wrap">
                 <span :class="ev.published ? 'badge-live' : 'badge-upcoming'" class="shrink-0">
                   {{ ev.published ? 'LIVE' : 'UPCOMING' }}
                 </span>
-                <h3 class="font-semibold text-tx1 group-hover:text-niknax-500 transition-colors truncate">{{ ev.name }}</h3>
+                <h3 class="font-semibold text-tx1 group-hover:text-niknax-600 dark:group-hover:text-niknax-400 transition-colors truncate">
+                  {{ ev.name }}
+                </h3>
               </div>
               <p v-if="ev.tagline" class="text-tx3 text-sm truncate">{{ ev.tagline }}</p>
               <p v-if="ev.dateRange" class="text-tx3 text-xs mt-0.5 font-mono">{{ ev.dateRange }}</p>
             </div>
 
-            <span v-if="ev.published" class="text-niknax-500 group-hover:translate-x-1 transition-transform text-lg shrink-0">→</span>
-            <span v-else class="text-tx3 text-sm shrink-0">Sign-up coming soon</span>
+            <span v-if="ev.published" class="text-niknax-600 dark:text-niknax-400 group-hover:translate-x-1 transition-transform text-xl shrink-0 font-bold">→</span>
+            <span v-else class="text-tx3 text-sm shrink-0 font-mono">coming soon</span>
           </component>
         </div>
       </section>
 
       <!-- Calendar -->
       <section>
-        <h2 class="font-display text-2xl font-bold text-tx1 mb-4">Calendar</h2>
+        <div class="flex items-center gap-5 mb-7">
+          <h2 class="font-display text-4xl text-tx1 shrink-0">Calendar</h2>
+          <div class="flex-1 h-[3px] bg-niknax-600 rounded-full"></div>
+        </div>
         <div class="card">
           <EventCalendar :events="calendarEvents" />
         </div>
       </section>
 
     </main>
+
+    <!-- ── Bottom accent stripe ── -->
+    <div class="h-3 bg-niknax-600 shrink-0"></div>
   </div>
 </template>
 
@@ -84,10 +124,11 @@ import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { supabase, isSupabaseConfigured } from '../../lib/supabase.js'
 import { formatDate } from '../../lib/timeUtils.js'
+import { useThemeStore } from '../../stores/theme.js'
 import EventCalendar from '../../components/EventCalendar.vue'
-import PublicNav from '../../components/PublicNav.vue'
 import TrainAnimation from '../../components/TrainAnimation.vue'
 
+const theme     = useThemeStore()
 const rawTrains = ref([])
 const loading   = ref(true)
 

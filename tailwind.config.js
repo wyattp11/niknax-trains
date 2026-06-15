@@ -14,30 +14,32 @@ export default {
         tx1:     'var(--color-tx1)',
         tx2:     'var(--color-tx2)',
         tx3:     'var(--color-tx3)',
-        // ── Vintage train palette: Deep Forest Green / Pullman ──
+        // ── 60s Mod palette: Warm Orange / Space Age ──
         niknax: {
-          50:  '#f0faf5',
-          100: '#d8f0e3',
-          200: '#b2dfc5',
-          300: '#7fc4a2',   // sage — headings / accents in dark
-          400: '#52a882',   // medium sage — links
-          500: '#2E8B57',   // sea green — hover
-          600: '#1A5C38',   // deep forest — primary buttons
-          700: '#154a2d',
-          800: '#0f3a22',
-          900: '#081C15',   // near-black green — dark bg
-          950: '#040e0a',
+          50:  '#fff8f0',
+          100: '#feecdc',
+          200: '#fcd5b4',
+          300: '#f9b580',
+          400: '#f58c47',
+          500: '#EF5A0A',   // 60s orange — hover
+          600: '#D44400',   // bold orange — primary buttons / brand
+          700: '#AA3600',
+          800: '#7A2700',
+          900: '#421400',
+          950: '#200900',
         },
-        // ── Antique Brass / Gold ──
-        gold: {
-          300: '#f0d27a',
-          400: '#D4A017',   // antique gold
-          500: '#b07d10',
-          600: '#8a5f0a',
-        }
+        // ── Teal / Turquoise accent ──
+        teal: {
+          300: '#5CD6CC',
+          400: '#2BBFB4',
+          500: '#009B8F',
+          600: '#007A70',
+          700: '#005C55',
+        },
       },
       fontFamily: {
-        display: ['Abril Fatface', 'Georgia', 'serif'],
+        display: ['Righteous', 'Impact', 'sans-serif'],
+        sans:    ['DM Sans', 'system-ui', 'sans-serif'],
         mono:    ['Space Mono', 'Courier New', 'monospace'],
       }
     }

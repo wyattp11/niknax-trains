@@ -1,23 +1,51 @@
 <template>
-  <div class="min-h-screen bg-base">
-    <PublicNav>
-      <RouterLink to="/" class="text-tx2 hover:text-tx1 text-sm transition-colors">← All Events</RouterLink>
-    </PublicNav>
+  <div class="min-h-screen bg-base flex flex-col">
+
+    <!-- ── Top accent stripe + back nav ── -->
+    <div class="h-3 bg-niknax-600 shrink-0"></div>
+    <div class="px-4 sm:px-6 py-3 border-b border-bd flex items-center justify-between max-w-4xl mx-auto w-full">
+      <RouterLink to="/" class="font-display text-niknax-600 dark:text-niknax-400 hover:text-niknax-500 text-sm tracking-wide transition-colors">
+        ← Niknax Train Station
+      </RouterLink>
+      <button
+        @click="theme.toggle()"
+        class="text-tx3 hover:text-tx1 transition-colors text-base"
+        :title="theme.isDark ? 'Light mode' : 'Dark mode'"
+      >{{ theme.isDark ? '☀' : '◑' }}</button>
+    </div>
 
     <div v-if="loading" class="text-center py-32 text-tx3">Loading…</div>
 
     <template v-else-if="train">
-      <!-- Hero -->
+      <!-- Hero — 60s style: strong typography, optional photo strip -->
       <div
-        class="relative bg-gradient-to-br from-niknax-900 via-niknax-950 to-base border-b border-bd"
+        class="relative border-b border-bd"
+        :class="train.cover_url ? '' : 'bg-base'"
         :style="train.cover_url ? `background-image: url(${train.cover_url}); background-size: cover; background-position: center;` : ''"
       >
-        <div class="bg-gray-950/80 backdrop-blur-sm px-6 py-10 max-w-4xl mx-auto">
-          <h1 class="text-3xl sm:text-4xl font-bold font-display text-white mb-2">
+        <div
+          class="px-6 py-10 max-w-4xl mx-auto"
+          :class="train.cover_url ? 'bg-black/70 backdrop-blur-sm' : ''"
+        >
+          <!-- Eyebrow -->
+          <p class="text-[0.6rem] font-mono tracking-[0.5em] uppercase mb-3"
+             :class="train.cover_url ? 'text-white/60' : 'text-tx3'">
+            Niknax Train Station · Raid Train
+          </p>
+          <h1 class="font-display leading-tight mb-2"
+              :class="['text-3xl sm:text-5xl', train.cover_url ? 'text-white' : 'text-tx1']">
             {{ train.name }}
           </h1>
-          <p v-if="train.tagline" class="text-niknax-200 text-lg mb-3">{{ train.tagline }}</p>
-          <p v-if="train.description" class="text-gray-200 mb-4 max-w-2xl">{{ train.description }}</p>
+          <p v-if="train.tagline"
+             class="text-lg mb-3"
+             :class="train.cover_url ? 'text-white/80' : 'text-tx2'">
+            {{ train.tagline }}
+          </p>
+          <p v-if="train.description"
+             class="mb-5 max-w-2xl text-sm"
+             :class="train.cover_url ? 'text-white/70' : 'text-tx3'">
+            {{ train.description }}
+          </p>
 
           <div class="flex flex-wrap gap-3">
             <a
@@ -37,19 +65,23 @@
               @click="downloadGraphic"
               class="btn-secondary text-sm flex items-center gap-1.5"
             >
-              📥 Download Train Graphic
+              📥 Download Graphic
             </button>
           </div>
         </div>
       </div>
 
       <!-- Schedule -->
-      <main class="max-w-4xl mx-auto px-4 py-10">
+      <main class="max-w-4xl mx-auto px-4 py-10 flex-1">
         <div v-for="day in days" :key="day.id" class="mb-12">
-          <h2 class="text-xl font-bold text-tx1 mb-1">
-            {{ day.day_label ? `${day.day_label} — ` : '' }}{{ formatDate(day.day_date) }}
-          </h2>
-          <p class="text-tx3 text-sm mb-5">All times shown below — ET is primary</p>
+          <!-- 60s section header -->
+          <div class="flex items-center gap-4 mb-4">
+            <h2 class="font-display text-2xl sm:text-3xl text-tx1 shrink-0">
+              {{ day.day_label ? `${day.day_label} — ` : '' }}{{ formatDate(day.day_date) }}
+            </h2>
+            <div class="flex-1 h-[3px] bg-niknax-600 rounded-full"></div>
+          </div>
+          <p class="text-tx3 text-xs font-mono mb-5 tracking-widest">ALL TIMES SHOWN · ET IS PRIMARY</p>
 
           <div class="overflow-x-auto">
             <table class="w-full text-sm min-w-[560px]">
@@ -115,13 +147,16 @@
           </div>
         </div>
 
-        <p class="text-center text-tx3 text-xs mt-8">
-          Remember: do not remove anyone from their slot. Doing so may result in removal from the event.
+        <p class="text-center text-tx3 text-xs mt-8 font-mono tracking-wide">
+          Do not remove anyone from their slot — doing so may result in removal from the event.
         </p>
       </main>
     </template>
 
-    <div v-else class="text-center py-32 text-tx3">Event not found.</div>
+    <div v-else class="text-center py-32 text-tx3 flex-1">Event not found.</div>
+
+    <!-- ── Bottom accent stripe ── -->
+    <div class="h-3 bg-niknax-600 shrink-0 mt-auto"></div>
 
     <!-- ── Signup Modal ── -->
     <Teleport to="body">
@@ -217,9 +252,10 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { supabase } from '../../lib/supabase.js'
 import { allZones, formatDate, parseTime } from '../../lib/timeUtils.js'
-import PublicNav from '../../components/PublicNav.vue'
+import { useThemeStore } from '../../stores/theme.js'
 
 const route = useRoute()
+const theme = useThemeStore()
 
 const train   = ref(null)
 const days    = ref([])
