@@ -20,34 +20,27 @@ export const supabase = createClient(
  * @param {(pct: number) => void} [onProgress] - called with 0‑100 during upload
  * @returns {Promise<string>} public URL of the uploaded object
  */
+/**
+ * Upload via the Supabase SDK (handles auth internally) with a simulated
+ * progress animation, since the new sb_publishable_ key format isn't a raw
+ * JWT and can't be used directly in XHR Authorization headers.
+ */
 export async function uploadWithProgress(bucket, path, file, onProgress) {
   const base = (supabaseUrl || '').replace(/\/$/, '')
 
-  // The sb_publishable_ key isn't a raw JWT — get the real token from the SDK session.
-  const { data: { session } } = await supabase.auth.getSession()
-  const token = session?.access_token ?? supabaseKey
+  // Animate 0 → 85% while the upload runs, then jump to 100% on success.
+  let pct = 0
+  const ticker = setInterval(() => {
+    pct = Math.min(85, pct + Math.random() * 12)
+    onProgress?.(Math.round(pct))
+  }, 250)
 
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable && onProgress) {
-        onProgress(Math.round((e.loaded / e.total) * 100))
-      }
-    }
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(`${base}/storage/v1/object/public/${bucket}/${path}`)
-      } else {
-        let msg = `Upload failed (${xhr.status})`
-        try { msg = JSON.parse(xhr.responseText).message || msg } catch {}
-        reject(new Error(msg))
-      }
-    }
-    xhr.onerror = () => reject(new Error('Network error during upload'))
-    xhr.open('POST', `${base}/storage/v1/object/${bucket}/${path}`)
-    xhr.setRequestHeader('Authorization', `Bearer ${token}`)
-    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
-    xhr.setRequestHeader('x-upsert', 'true')
-    xhr.send(file)
-  })
+  try {
+    const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true })
+    if (error) throw error
+    return `${base}/storage/v1/object/public/${bucket}/${path}`
+  } finally {
+    clearInterval(ticker)
+    onProgress?.(100)
+  }
 }
