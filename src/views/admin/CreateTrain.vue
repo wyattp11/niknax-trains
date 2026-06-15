@@ -38,9 +38,22 @@
           <div>
             <label class="label">Train Graphic</label>
             <ImageUpload
-              @file-selected="coverFile = $event"
-              @cleared="coverFile = null"
+              @file-selected="coverFile = $event; uploadPct = 0; uploadStatus = ''"
+              @cleared="coverFile = null; uploadPct = 0; uploadStatus = ''"
             />
+            <!-- Upload progress (shown while saving) -->
+            <div v-if="uploadStatus" class="mt-2">
+              <div class="flex items-center justify-between text-xs text-gray-400 mb-1">
+                <span>{{ uploadStatus }}</span>
+                <span>{{ uploadPct }}%</span>
+              </div>
+              <div class="w-full bg-gray-700 rounded-full h-1.5">
+                <div
+                  class="bg-niknax-500 h-1.5 rounded-full transition-all duration-200"
+                  :style="{ width: uploadPct + '%' }"
+                />
+              </div>
+            </div>
           </div>
         </section>
 
@@ -128,13 +141,14 @@
           </div>
         </section>
 
-        <!-- Error -->
+        <!-- Error / warnings -->
         <p v-if="saveError" class="text-red-400 text-sm">{{ saveError }}</p>
+        <p v-if="uploadWarn" class="text-amber-400 text-sm">⚠️ {{ uploadWarn }}</p>
 
         <div class="flex gap-3 justify-end">
           <RouterLink to="/admin/dashboard" class="btn-secondary">Cancel</RouterLink>
           <button type="submit" :disabled="saving" class="btn-primary">
-            {{ saving ? 'Saving…' : 'Save Draft & Review →' }}
+            {{ uploadStatus && uploadPct < 100 ? uploadStatus : saving ? 'Saving…' : 'Save Draft & Review →' }}
           </button>
         </div>
       </form>
@@ -147,13 +161,16 @@ import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
-import { supabase } from '../../lib/supabase.js'
+import { supabase, uploadWithProgress } from '../../lib/supabase.js'
 import { generateSlotTimes, addMinutes } from '../../lib/timeUtils.js'
 
 const router = useRouter()
-const saving    = ref(false)
-const saveError = ref('')
-const coverFile = ref(null)   // File object selected via ImageUpload
+const saving        = ref(false)
+const saveError     = ref('')
+const uploadWarn    = ref('')   // non-fatal upload warning
+const coverFile     = ref(null) // File object selected via ImageUpload
+const uploadPct     = ref(0)    // 0-100 upload progress, -1 = done
+const uploadStatus  = ref('')   // status label shown below progress bar
 
 const form = ref({
   name: '',
@@ -167,12 +184,14 @@ async function uploadCover(trainId) {
   if (!coverFile.value) return null
   const ext  = coverFile.value.name.split('.').pop().toLowerCase()
   const path = `${trainId}/cover.${ext}`
-  const { error } = await supabase.storage
-    .from('train-graphics')
-    .upload(path, coverFile.value, { upsert: true })
-  if (error) throw error
-  const { data } = supabase.storage.from('train-graphics').getPublicUrl(path)
-  return data.publicUrl
+  uploadPct.value    = 0
+  uploadStatus.value = 'Uploading graphic…'
+  const url = await uploadWithProgress('train-graphics', path, coverFile.value, (pct) => {
+    uploadPct.value = pct
+  })
+  uploadPct.value    = 100
+  uploadStatus.value = 'Graphic uploaded ✓'
+  return url
 }
 
 function addDay() {
@@ -232,12 +251,16 @@ async function saveAndContinue() {
 
     if (trainErr) throw trainErr
 
-    // 2. Upload graphic and update cover_url
+    // 2. Upload graphic and update cover_url (non-fatal)
     if (coverFile.value) {
-      const url = await uploadCover(train.id)
-      if (url) {
-        await supabase.from('trains').update({ cover_url: url }).eq('id', train.id)
-        train.cover_url = url
+      try {
+        const url = await uploadCover(train.id)
+        if (url) {
+          await supabase.from('trains').update({ cover_url: url }).eq('id', train.id)
+          train.cover_url = url
+        }
+      } catch (uploadErr) {
+        uploadWarn.value = `Train saved, but graphic upload failed: ${uploadErr.message}. You can re-upload in Edit Details.`
       }
     }
 

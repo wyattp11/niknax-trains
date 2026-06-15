@@ -11,3 +11,38 @@ export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseKey || 'placeholder-key'
 )
+
+/**
+ * Upload a file to Supabase Storage using XHR so we get real upload progress.
+ * @param {string} bucket  - storage bucket name
+ * @param {string} path    - object path within the bucket
+ * @param {File}   file    - File object to upload
+ * @param {(pct: number) => void} [onProgress] - called with 0‑100 during upload
+ * @returns {Promise<string>} public URL of the uploaded object
+ */
+export function uploadWithProgress(bucket, path, file, onProgress) {
+  const base = (supabaseUrl || '').replace(/\/$/, '')
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100))
+      }
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(`${base}/storage/v1/object/public/${bucket}/${path}`)
+      } else {
+        let msg = `Upload failed (${xhr.status})`
+        try { msg = JSON.parse(xhr.responseText).message || msg } catch {}
+        reject(new Error(msg))
+      }
+    }
+    xhr.onerror = () => reject(new Error('Network error during upload'))
+    xhr.open('POST', `${base}/storage/v1/object/${bucket}/${path}`)
+    xhr.setRequestHeader('Authorization', `Bearer ${supabaseKey}`)
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
+    xhr.setRequestHeader('x-upsert', 'true')
+    xhr.send(file)
+  })
+}

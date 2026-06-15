@@ -98,9 +98,21 @@
                 <label class="label">Train Graphic</label>
                 <ImageUpload
                   :current-url="editForm.cover_url"
-                  @file-selected="editCoverFile = $event"
-                  @cleared="editForm.cover_url = null; editCoverFile = null"
+                  @file-selected="editCoverFile = $event; editUploadPct = 0; editUploadStatus = ''"
+                  @cleared="editForm.cover_url = null; editCoverFile = null; editUploadPct = 0; editUploadStatus = ''"
                 />
+                <div v-if="editUploadStatus" class="mt-2">
+                  <div class="flex items-center justify-between text-xs text-gray-400 mb-1">
+                    <span>{{ editUploadStatus }}</span>
+                    <span>{{ editUploadPct }}%</span>
+                  </div>
+                  <div class="w-full bg-gray-700 rounded-full h-1.5">
+                    <div
+                      class="bg-niknax-500 h-1.5 rounded-full transition-all duration-200"
+                      :style="{ width: editUploadPct + '%' }"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -126,7 +138,7 @@
             <div class="flex gap-3 justify-end">
               <button @click="showEdit = false" class="btn-secondary">Cancel</button>
               <button @click="saveDetails" :disabled="savingDetails" class="btn-primary">
-                {{ savingDetails ? 'Saving…' : 'Save Changes' }}
+                {{ editUploadStatus && editUploadPct < 100 ? editUploadStatus : savingDetails ? 'Saving…' : 'Save Changes' }}
               </button>
             </div>
             <p v-if="detailsSaved" class="text-green-400 text-sm text-right">✓ Saved</p>
@@ -306,7 +318,7 @@ import { ref, computed, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
-import { supabase } from '../../lib/supabase.js'
+import { supabase, uploadWithProgress } from '../../lib/supabase.js'
 import { allZones, formatDate } from '../../lib/timeUtils.js'
 
 const route  = useRoute()
@@ -326,18 +338,22 @@ const editDayDates  = ref({})
 const editDayLabels = ref({})
 const savingDetails = ref(false)
 const detailsSaved  = ref(false)
-const editCoverFile = ref(null)   // new image file selected in edit mode
+const editCoverFile   = ref(null)  // new image file selected in edit mode
+const editUploadPct   = ref(0)
+const editUploadStatus = ref('')
 
 async function uploadCover(trainId) {
   if (!editCoverFile.value) return null
   const ext  = editCoverFile.value.name.split('.').pop().toLowerCase()
   const path = `${trainId}/cover.${ext}`
-  const { error } = await supabase.storage
-    .from('train-graphics')
-    .upload(path, editCoverFile.value, { upsert: true })
-  if (error) throw error
-  const { data } = supabase.storage.from('train-graphics').getPublicUrl(path)
-  return data.publicUrl
+  editUploadPct.value    = 0
+  editUploadStatus.value = 'Uploading graphic…'
+  const url = await uploadWithProgress('train-graphics', path, editCoverFile.value, (pct) => {
+    editUploadPct.value = pct
+  })
+  editUploadPct.value    = 100
+  editUploadStatus.value = 'Graphic uploaded ✓'
+  return url
 }
 
 // Slot editing
@@ -463,10 +479,17 @@ async function load() {
 async function saveDetails() {
   savingDetails.value = true
 
-  // Upload new graphic if one was selected
+  // Upload new graphic if one was selected (non-fatal)
   if (editCoverFile.value) {
-    const url = await uploadCover(train.value.id)
-    if (url) editForm.value.cover_url = url
+    try {
+      const url = await uploadCover(train.value.id)
+      if (url) editForm.value.cover_url = url
+    } catch (uploadErr) {
+      // Show inline warning but don't abort the save
+      detailsSaved.value = false
+      console.error('Image upload failed:', uploadErr.message)
+      alert(`Graphic upload failed: ${uploadErr.message}\n\nMake sure the "train-graphics" bucket exists in Supabase Storage with public access and an anon INSERT policy.`)
+    }
     editCoverFile.value = null
   }
 
