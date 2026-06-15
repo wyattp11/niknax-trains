@@ -10,157 +10,262 @@
       <div v-if="loading" class="text-gray-400 text-center py-20">Loading…</div>
 
       <template v-else-if="train">
-        <!-- Header -->
-        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-          <div>
-            <div class="flex items-center gap-2 mb-1">
-              <span
-                :class="train.published ? 'bg-green-900 text-green-300' : 'bg-gray-700 text-gray-300'"
-                class="text-xs font-semibold px-2 py-0.5 rounded-full"
-              >
-                {{ train.published ? 'LIVE' : 'DRAFT' }}
-              </span>
-            </div>
-            <h2 class="text-2xl font-bold text-white">{{ train.name }}</h2>
-            <p v-if="train.tagline" class="text-gray-400 mt-1">{{ train.tagline }}</p>
-          </div>
 
-          <div class="flex gap-3 shrink-0">
-            <a
-              v-if="train.published"
-              :href="`/train/${train.id}`"
-              target="_blank"
-              class="btn-secondary text-sm"
-            >
-              View Public Page ↗
+        <!-- ── Status bar ── -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div class="flex items-center gap-3 flex-wrap">
+            <span :class="statusBadge.class" class="text-xs font-bold px-2.5 py-1 rounded-full">
+              {{ statusBadge.label }}
+            </span>
+            <h2 class="text-2xl font-bold text-white">{{ train.name }}</h2>
+          </div>
+          <div class="flex gap-2 shrink-0 flex-wrap">
+            <a v-if="train.published" :href="`/train/${train.id}`" target="_blank" class="btn-secondary text-sm">
+              View Public ↗
             </a>
-            <button
-              v-if="!train.published"
-              @click="publish"
-              :disabled="publishing"
-              class="btn-primary text-sm"
-            >
-              {{ publishing ? 'Publishing…' : '🚀 Publish' }}
+            <button v-if="!train.published" @click="publish" :disabled="publishing" class="btn-primary text-sm">
+              {{ publishing ? '…' : '🚀 Publish' }}
             </button>
-            <button
-              v-else
-              @click="unpublish"
-              :disabled="publishing"
-              class="btn-secondary text-sm"
-            >
+            <button v-else @click="unpublish" :disabled="publishing" class="btn-secondary text-sm">
               {{ publishing ? '…' : 'Unpublish' }}
             </button>
           </div>
         </div>
 
-        <!-- Public link -->
-        <div v-if="train.published" class="card mb-6 flex items-center gap-3">
-          <span class="text-green-400 text-lg">🔗</span>
-          <div class="flex-1 min-w-0">
-            <p class="text-xs text-gray-400 mb-1">Public signup link</p>
-            <p class="text-sm text-white font-mono truncate">{{ publicUrl }}</p>
-          </div>
+        <!-- ── Public link ── -->
+        <div v-if="train.published" class="card mb-4 flex items-center gap-3">
+          <span class="text-green-400">🔗</span>
+          <p class="text-sm font-mono text-white flex-1 truncate">{{ publicUrl }}</p>
           <button @click="copyLink" class="btn-secondary text-sm py-1.5 shrink-0">
             {{ copied ? 'Copied!' : 'Copy' }}
           </button>
         </div>
 
-        <!-- Schedule by day -->
+        <!-- ── Upcoming toggle (only for drafts) ── -->
+        <div v-if="!train.published" class="card mb-6 flex items-center justify-between gap-4">
+          <div>
+            <p class="font-medium text-white">Show as Upcoming Event</p>
+            <p class="text-sm text-gray-400 mt-0.5">
+              Displays this event on the public home page and calendar before it's fully live.
+              Sellers can see the dates but won't be able to sign up yet.
+            </p>
+          </div>
+          <button
+            @click="toggleUpcoming"
+            :class="train.is_upcoming
+              ? 'bg-amber-500 hover:bg-amber-400'
+              : 'bg-gray-700 hover:bg-gray-600'"
+            class="relative shrink-0 w-12 h-6 rounded-full transition-colors"
+          >
+            <span
+              :class="train.is_upcoming ? 'translate-x-6' : 'translate-x-1'"
+              class="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
+            />
+          </button>
+        </div>
+
+        <!-- ── Edit Details ── -->
+        <div class="card mb-6">
+          <button
+            @click="showEdit = !showEdit"
+            class="flex items-center justify-between w-full text-left"
+          >
+            <span class="font-semibold text-niknax-300">Edit Event Details</span>
+            <span class="text-gray-400 text-lg">{{ showEdit ? '▲' : '▼' }}</span>
+          </button>
+
+          <div v-if="showEdit" class="mt-5 space-y-5 border-t border-gray-700 pt-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="label">Event Name *</label>
+                <input v-model="editForm.name" class="input" />
+              </div>
+              <div>
+                <label class="label">Tagline</label>
+                <input v-model="editForm.tagline" class="input" />
+              </div>
+            </div>
+            <div>
+              <label class="label">Description</label>
+              <textarea v-model="editForm.description" class="input" rows="3" />
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="label">District Event Link</label>
+                <input v-model="editForm.district_link" class="input" type="url" />
+              </div>
+              <div>
+                <label class="label">Cover Image URL</label>
+                <input v-model="editForm.cover_url" class="input" type="url" />
+              </div>
+            </div>
+
+            <!-- Day dates -->
+            <div>
+              <label class="label">Event Dates</label>
+              <div class="space-y-2">
+                <div v-for="day in days" :key="day.id" class="flex items-center gap-3">
+                  <input
+                    v-model="editDayDates[day.id]"
+                    type="date"
+                    class="input w-44"
+                  />
+                  <input
+                    v-model="editDayLabels[day.id]"
+                    class="input flex-1"
+                    :placeholder="`Day ${day.day_order + 1} label (optional)`"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-3 justify-end">
+              <button @click="showEdit = false" class="btn-secondary">Cancel</button>
+              <button @click="saveDetails" :disabled="savingDetails" class="btn-primary">
+                {{ savingDetails ? 'Saving…' : 'Save Changes' }}
+              </button>
+            </div>
+            <p v-if="detailsSaved" class="text-green-400 text-sm text-right">✓ Saved</p>
+          </div>
+        </div>
+
+        <!-- ── Schedule ── -->
         <div v-for="day in days" :key="day.id" class="mb-10">
           <h3 class="text-lg font-semibold text-niknax-300 mb-4">
-            {{ day.day_label || formatDate(day.day_date) }} — {{ formatDate(day.day_date) }}
+            {{ day.day_label ? `${day.day_label} — ` : '' }}{{ formatDate(day.day_date) }}
           </h3>
 
           <div class="card overflow-x-auto p-0">
+            <p class="text-xs text-gray-600 px-4 pt-3 pb-1">Drag a row to move or swap sellers between slots.</p>
             <table class="w-full text-sm">
               <thead>
                 <tr class="bg-gray-800 text-gray-400">
-                  <th class="text-left px-4 py-3 w-8">#</th>
-                  <th class="text-left px-4 py-3">Username</th>
-                  <th class="text-left px-4 py-3">ET</th>
-                  <th class="text-left px-4 py-3">CT</th>
-                  <th class="text-left px-4 py-3">MT</th>
-                  <th class="text-left px-4 py-3">PT</th>
-                  <th class="text-left px-4 py-3">Duration</th>
-                  <th class="text-left px-4 py-3">Type</th>
-                  <th class="px-4 py-3 w-24"></th>
+                  <th class="px-3 py-3 w-6"></th>
+                  <th class="text-left px-3 py-3 w-8">#</th>
+                  <th class="text-left px-3 py-3">Username</th>
+                  <th class="text-left px-3 py-3">ET</th>
+                  <th class="text-left px-3 py-3">CT</th>
+                  <th class="text-left px-3 py-3">MT</th>
+                  <th class="text-left px-3 py-3">PT</th>
+                  <th class="text-left px-3 py-3">Dur.</th>
+                  <th class="text-left px-3 py-3">Type</th>
+                  <th class="px-3 py-3 w-20"></th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-800">
                 <tr
                   v-for="slot in slotsByDay[day.id] || []"
                   :key="slot.id"
-                  :class="slot.is_pre_assigned ? 'bg-niknax-950/40' : ''"
-                  class="hover:bg-gray-800/50 transition-colors"
+                  :draggable="true"
+                  @dragstart="onDragStart(slot, $event)"
+                  @dragend="onDragEnd"
+                  @dragover.prevent="onDragOver(slot)"
+                  @dragleave="onDragLeave(slot)"
+                  @drop.prevent="onDrop(slot)"
+                  :class="[
+                    slot.is_pre_assigned ? 'bg-niknax-950/40' : '',
+                    dragOver === slot.id && dragSource?.id !== slot.id
+                      ? 'bg-niknax-900/60 outline outline-2 outline-niknax-500' : '',
+                    dragSource?.id === slot.id ? 'opacity-40' : '',
+                  ]"
+                  class="hover:bg-gray-800/40 transition-colors cursor-grab active:cursor-grabbing"
                 >
-                  <td class="px-4 py-2.5 text-gray-500">{{ slot.slot_order + 1 }}</td>
-                  <td class="px-4 py-2.5">
+                  <!-- Drag handle -->
+                  <td class="px-3 py-2.5 text-gray-600 select-none text-base">⠿</td>
+                  <td class="px-3 py-2.5 text-gray-500 text-xs">{{ slot.slot_order + 1 }}</td>
+                  <td class="px-3 py-2.5">
                     <span v-if="editingSlot === slot.id">
                       <input
                         v-model="editUsername"
                         class="input py-1 text-sm"
                         @keyup.enter="saveSlotUsername(slot)"
                         @keyup.escape="editingSlot = null"
-                        placeholder="username"
                         autofocus
                       />
                     </span>
-                    <span v-else>
+                    <span v-else class="flex items-center gap-2">
                       <span v-if="slot.username" class="text-white font-medium">{{ slot.username }}</span>
-                      <span v-else class="text-gray-500 italic">— open —</span>
-                      <span v-if="slot.label" class="ml-2 text-xs text-niknax-400 bg-niknax-900/50 px-1.5 py-0.5 rounded">{{ slot.label }}</span>
+                      <span v-else class="text-gray-500 italic text-xs">— open —</span>
+                      <span v-if="slot.label" class="text-xs text-niknax-400 bg-niknax-900/50 px-1.5 py-0.5 rounded">{{ slot.label }}</span>
                     </span>
                   </td>
-                  <td class="px-4 py-2.5 text-gray-300">{{ zones(slot.start_time)[0].time }}</td>
-                  <td class="px-4 py-2.5 text-gray-300">{{ zones(slot.start_time)[1].time }}</td>
-                  <td class="px-4 py-2.5 text-gray-300">{{ zones(slot.start_time)[2].time }}</td>
-                  <td class="px-4 py-2.5 text-gray-300">{{ zones(slot.start_time)[3].time }}</td>
-                  <td class="px-4 py-2.5 text-gray-400">{{ slot.duration_min }} min</td>
-                  <td class="px-4 py-2.5">
+                  <td class="px-3 py-2.5 text-gray-300">{{ zones(slot.start_time)[0].time }}</td>
+                  <td class="px-3 py-2.5 text-gray-300">{{ zones(slot.start_time)[1].time }}</td>
+                  <td class="px-3 py-2.5 text-gray-300">{{ zones(slot.start_time)[2].time }}</td>
+                  <td class="px-3 py-2.5 text-gray-300">{{ zones(slot.start_time)[3].time }}</td>
+                  <td class="px-3 py-2.5 text-gray-500 text-xs">{{ slot.duration_min }}m</td>
+                  <td class="px-3 py-2.5">
                     <span v-if="slot.is_pre_assigned" class="text-xs text-niknax-400">Reserved</span>
                     <span v-else class="text-xs text-gray-500">Open</span>
                   </td>
-                  <td class="px-4 py-2.5 text-right">
+                  <td class="px-3 py-2.5 text-right">
                     <span v-if="editingSlot === slot.id" class="flex gap-1 justify-end">
-                      <button @click="saveSlotUsername(slot)" class="text-green-400 hover:text-green-300 text-xs font-medium">Save</button>
-                      <button @click="editingSlot = null" class="text-gray-500 hover:text-gray-300 text-xs">Cancel</button>
+                      <button @click="saveSlotUsername(slot)" class="text-green-400 text-xs font-medium">Save</button>
+                      <button @click="editingSlot = null" class="text-gray-500 text-xs">✕</button>
                     </span>
-                    <button
-                      v-else
-                      @click="startEdit(slot)"
-                      class="text-niknax-400 hover:text-niknax-300 text-xs"
-                    >
-                      Edit
-                    </button>
+                    <button v-else @click="startEdit(slot)" class="text-niknax-400 hover:text-niknax-300 text-xs">Edit</button>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-
-          <!-- Add slot to this day -->
-          <button
-            @click="addSlotToDay(day)"
-            class="mt-3 text-sm text-niknax-400 hover:text-niknax-300"
-          >
-            + Add slot to this day
+          <button @click="addSlotToDay(day)" class="mt-3 text-sm text-niknax-400 hover:text-niknax-300">
+            + Add slot
           </button>
         </div>
 
-        <!-- Danger zone -->
-        <div class="card border-red-800 mt-10 space-y-3">
-          <h4 class="text-red-400 font-semibold text-sm">Danger Zone</h4>
+        <!-- ── Danger zone ── -->
+        <div class="card border-red-900 mt-10">
+          <h4 class="text-red-400 font-semibold text-sm mb-3">Danger Zone</h4>
           <button @click="confirmDelete" class="btn-danger text-sm">Delete Train</button>
         </div>
       </template>
     </main>
+
+    <!-- ── Swap / Replace modal ── -->
+    <Teleport to="body">
+      <div v-if="dndModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" @click.self="dndModal = null">
+        <div class="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+          <h3 class="text-lg font-bold text-white">Move Seller</h3>
+
+          <div class="space-y-1 text-sm">
+            <p class="text-gray-400">
+              Moving <span class="text-white font-semibold">{{ dndModal.source.username || '(empty)' }}</span>
+              from <span class="text-gray-300">{{ zones(dndModal.source.start_time)[0].time }} ET</span>
+            </p>
+            <p class="text-gray-400">
+              to <span class="text-gray-300">{{ zones(dndModal.target.start_time)[0].time }} ET</span>
+              currently held by <span class="text-white font-semibold">{{ dndModal.target.username }}</span>
+            </p>
+          </div>
+
+          <div class="space-y-2 pt-1">
+            <button @click="doSwap" class="w-full btn-secondary text-left px-4">
+              <span class="font-semibold">↕ Swap</span>
+              <span class="block text-xs text-gray-400 mt-0.5 font-normal">
+                {{ dndModal.source.username }} → {{ zones(dndModal.target.start_time)[0].time }} ET &nbsp;·&nbsp;
+                {{ dndModal.target.username }} → {{ zones(dndModal.source.start_time)[0].time }} ET
+              </span>
+            </button>
+            <button @click="doReplace" class="w-full btn-danger text-left px-4">
+              <span class="font-semibold">✕ Replace &amp; Remove</span>
+              <span class="block text-xs text-red-300/70 mt-0.5 font-normal">
+                {{ dndModal.source.username }} takes the slot · {{ dndModal.target.username }} is removed from the train
+              </span>
+            </button>
+          </div>
+
+          <button @click="dndModal = null" class="w-full text-gray-500 hover:text-gray-300 text-sm">Cancel</button>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Add slot modal -->
     <div v-if="addSlotDay" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
       <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm space-y-4">
         <h4 class="font-semibold text-white">Add Slot</h4>
         <div>
-          <label class="label">Username (leave blank for open slot)</label>
+          <label class="label">Username (blank = open slot)</label>
           <input v-model="newSlot.username" class="input" placeholder="@username" />
         </div>
         <div class="grid grid-cols-2 gap-3">
@@ -179,12 +284,12 @@
         </div>
         <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
           <input v-model="newSlot.is_pre_assigned" type="checkbox" class="rounded" />
-          Reserved (cannot be claimed via public signup)
+          Reserved (cannot be claimed publicly)
         </label>
         <div class="flex gap-3 justify-end">
           <button @click="addSlotDay = null" class="btn-secondary">Cancel</button>
           <button @click="saveNewSlot" :disabled="savingSlot" class="btn-primary">
-            {{ savingSlot ? 'Saving…' : 'Add Slot' }}
+            {{ savingSlot ? '…' : 'Add Slot' }}
           </button>
         </div>
       </div>
@@ -202,20 +307,98 @@ import { allZones, formatDate } from '../../lib/timeUtils.js'
 const route  = useRoute()
 const router = useRouter()
 
-const train     = ref(null)
-const days      = ref([])
-const slots     = ref([])
-const loading   = ref(true)
+const train      = ref(null)
+const days       = ref([])
+const slots      = ref([])
+const loading    = ref(true)
 const publishing = ref(false)
-const copied    = ref(false)
+const copied     = ref(false)
 
+// Edit details
+const showEdit     = ref(false)
+const editForm     = ref({})
+const editDayDates = ref({})
+const editDayLabels = ref({})
+const savingDetails = ref(false)
+const detailsSaved  = ref(false)
+
+// Slot editing
 const editingSlot  = ref(null)
 const editUsername = ref('')
 const addSlotDay   = ref(null)
 const savingSlot   = ref(false)
 const newSlot = ref({ username: '', start_time: '12:00', duration_min: 30, label: '', is_pre_assigned: false })
 
+// Drag-and-drop
+const dragSource = ref(null)   // slot object being dragged
+const dragOver   = ref(null)   // slot id currently hovered over
+const dndModal   = ref(null)   // { source, target } when swap/replace needed
+
+function onDragStart(slot, event) {
+  dragSource.value = slot
+  event.dataTransfer.effectAllowed = 'move'
+}
+function onDragEnd() {
+  dragSource.value = null
+  dragOver.value   = null
+}
+function onDragOver(slot) {
+  if (dragSource.value && dragSource.value.id !== slot.id) {
+    dragOver.value = slot.id
+  }
+}
+function onDragLeave(slot) {
+  if (dragOver.value === slot.id) dragOver.value = null
+}
+
+async function onDrop(target) {
+  dragOver.value = null
+  const source = dragSource.value
+  dragSource.value = null
+  if (!source || source.id === target.id) return
+
+  // If target is empty, just move source there silently
+  if (!target.username) {
+    await applyMove(source, target.username ?? null, target, source.username)
+    return
+  }
+
+  // Both slots have users — ask swap or replace
+  dndModal.value = { source, target }
+}
+
+async function doSwap() {
+  const { source, target } = dndModal.value
+  dndModal.value = null
+  await applyMove(source, target.username, target, source.username)
+}
+
+async function doReplace() {
+  const { source, target } = dndModal.value
+  dndModal.value = null
+  await applyMove(source, null, target, source.username)
+}
+
+async function applyMove(source, newSourceUsername, target, newTargetUsername) {
+  // Update DB
+  await Promise.all([
+    supabase.from('slots').update({ username: newSourceUsername }).eq('id', source.id),
+    supabase.from('slots').update({ username: newTargetUsername }).eq('id', target.id),
+  ])
+  // Update local state
+  const srcSlot = slots.value.find(s => s.id === source.id)
+  const tgtSlot = slots.value.find(s => s.id === target.id)
+  if (srcSlot) srcSlot.username = newSourceUsername
+  if (tgtSlot) tgtSlot.username = newTargetUsername
+}
+
 const publicUrl = computed(() => `${location.origin}/train/${train.value?.id}`)
+
+const statusBadge = computed(() => {
+  if (train.value?.published)   return { label: 'LIVE',     class: 'bg-green-900 text-green-300' }
+  if (train.value?.is_upcoming) return { label: 'UPCOMING', class: 'bg-amber-900 text-amber-300' }
+  return { label: 'DRAFT', class: 'bg-gray-700 text-gray-300' }
+})
 
 const slotsByDay = computed(() => {
   const map = {}
@@ -235,25 +418,67 @@ async function load() {
   loading.value = true
   const id = route.params.id
 
-  const [{ data: t }, { data: d }, { data: s }] = await Promise.all([
-    supabase.from('trains').select('*').eq('id', id).single(),
-    supabase.from('train_days').select('*').eq('train_id', id).order('day_order'),
-    supabase.from('slots').select('*').in(
-      'train_day_id',
-      (await supabase.from('train_days').select('id').eq('train_id', id)).data?.map(r => r.id) || []
-    ).order('slot_order'),
-  ])
-
+  const { data: t } = await supabase.from('trains').select('*').eq('id', id).single()
   train.value = t
-  days.value  = d || []
-  slots.value = s || []
+
+  if (t) {
+    editForm.value = { name: t.name, tagline: t.tagline || '', description: t.description || '', district_link: t.district_link || '', cover_url: t.cover_url || '' }
+
+    const { data: d } = await supabase.from('train_days').select('*').eq('train_id', id).order('day_order')
+    days.value = d || []
+
+    // Initialise editable day dates/labels
+    for (const day of days.value) {
+      editDayDates.value[day.id]  = day.day_date
+      editDayLabels.value[day.id] = day.day_label || ''
+    }
+
+    if (days.value.length) {
+      const dayIds = days.value.map(d => d.id)
+      const { data: s } = await supabase.from('slots').select('*').in('train_day_id', dayIds).order('slot_order')
+      slots.value = s || []
+    }
+  }
   loading.value = false
+}
+
+async function saveDetails() {
+  savingDetails.value = true
+  await supabase.from('trains').update({
+    name: editForm.value.name,
+    tagline: editForm.value.tagline || null,
+    description: editForm.value.description || null,
+    district_link: editForm.value.district_link || null,
+    cover_url: editForm.value.cover_url || null,
+  }).eq('id', train.value.id)
+
+  // Update day dates + labels
+  for (const day of days.value) {
+    await supabase.from('train_days').update({
+      day_date: editDayDates.value[day.id],
+      day_label: editDayLabels.value[day.id] || null,
+    }).eq('id', day.id)
+    day.day_date  = editDayDates.value[day.id]
+    day.day_label = editDayLabels.value[day.id] || null
+  }
+
+  Object.assign(train.value, editForm.value)
+  savingDetails.value = false
+  detailsSaved.value = true
+  setTimeout(() => { detailsSaved.value = false; showEdit.value = false }, 1500)
+}
+
+async function toggleUpcoming() {
+  const val = !train.value.is_upcoming
+  await supabase.from('trains').update({ is_upcoming: val }).eq('id', train.value.id)
+  train.value.is_upcoming = val
 }
 
 async function publish() {
   publishing.value = true
-  await supabase.from('trains').update({ published: true }).eq('id', train.value.id)
-  train.value.published = true
+  await supabase.from('trains').update({ published: true, is_upcoming: false }).eq('id', train.value.id)
+  train.value.published   = true
+  train.value.is_upcoming = false
   publishing.value = false
 }
 
@@ -276,14 +501,8 @@ function startEdit(slot) {
 }
 
 async function saveSlotUsername(slot) {
-  const { error } = await supabase
-    .from('slots')
-    .update({ username: editUsername.value || null })
-    .eq('id', slot.id)
-  if (!error) {
-    slot.username = editUsername.value || null
-    editingSlot.value = null
-  }
+  const { error } = await supabase.from('slots').update({ username: editUsername.value || null }).eq('id', slot.id)
+  if (!error) { slot.username = editUsername.value || null; editingSlot.value = null }
 }
 
 function addSlotToDay(day) {
@@ -303,11 +522,7 @@ async function saveNewSlot() {
     is_pre_assigned: newSlot.value.is_pre_assigned,
     slot_order: maxOrder + 1,
   }).select().single()
-
-  if (!error) {
-    slots.value.push(data)
-    addSlotDay.value = null
-  }
+  if (!error) { slots.value.push(data); addSlotDay.value = null }
   savingSlot.value = false
 }
 
