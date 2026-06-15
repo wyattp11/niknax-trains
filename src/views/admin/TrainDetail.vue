@@ -55,11 +55,11 @@
             :class="train.is_upcoming
               ? 'bg-amber-500 hover:bg-amber-400'
               : 'bg-gray-700 hover:bg-gray-600'"
-            class="relative shrink-0 w-12 h-6 rounded-full transition-colors"
+            class="relative inline-flex items-center shrink-0 w-11 h-6 rounded-full transition-colors"
           >
             <span
               :class="train.is_upcoming ? 'translate-x-6' : 'translate-x-1'"
-              class="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
+              class="inline-block w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
             />
           </button>
         </div>
