@@ -2,61 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme tokens ────────────────────────────────────────────────────────── */
+/* ── Theme tokens — Vintage Train palette ───────────────────────────────── */
 :root {
-  /* Light theme surfaces */
-  --color-base:    #faf5ff;   /* niknax-50   — page background  */
-  --color-surface: #ffffff;   /* cards                          */
-  --color-sur2:    #f3e8ff;   /* niknax-100  — inputs, alt bg  */
-  --color-bd:      #e9d5ff;   /* niknax-200  — borders          */
-  --color-bd2:     #d8b4fe;   /* niknax-300  — stronger borders */
-
-  /* Light theme text */
-  --color-tx1:  #111827;   /* gray-900  — primary text   */
-  --color-tx2:  #581c87;   /* niknax-900 — secondary     */
-  --color-tx3:  #9ca3af;   /* gray-400   — muted         */
+  /* Light: aged parchment / railway timetable */
+  --color-base:    #fdf6e3;   /* warm parchment */
+  --color-surface: #fffef9;   /* cream white    */
+  --color-sur2:    #f0e6cc;   /* aged paper     */
+  --color-bd:      #d4b890;   /* brass line     */
+  --color-bd2:     #b89a6a;   /* deeper brass   */
+  --color-tx1:     #1a0a04;   /* near-black warm */
+  --color-tx2:     #5c2d14;   /* mahogany        */
+  --color-tx3:     #9c7852;   /* muted brown     */
 
   /* Status badges — colorblind-friendly (blue / orange / gray)
-     Blue  = LIVE, Orange = UPCOMING, Gray = DRAFT
-     These work for deuteranopia, protanopia, and tritanopia.        */
-  --badge-live-bg:       #dbeafe;  /* blue-100  */
-  --badge-live-text:     #1e40af;  /* blue-800  */
-  --badge-live-dot:      #3b82f6;  /* blue-500  */
+     Blue = LIVE, Orange = UPCOMING, Gray = DRAFT               */
+  --badge-live-bg:       #dbeafe;
+  --badge-live-text:     #1e40af;
+  --badge-live-dot:      #3b82f6;
 
-  --badge-upcoming-bg:   #ffedd5;  /* orange-100 */
-  --badge-upcoming-text: #7c2d12;  /* orange-900 */
-  --badge-upcoming-dot:  #f97316;  /* orange-500 */
+  --badge-upcoming-bg:   #ffedd5;
+  --badge-upcoming-text: #7c2d12;
+  --badge-upcoming-dot:  #f97316;
 
-  --badge-draft-bg:      #f3f4f6;  /* gray-100  */
-  --badge-draft-text:    #4b5563;  /* gray-600  */
-  --badge-draft-dot:     #9ca3af;  /* gray-400  */
+  --badge-draft-bg:      #f3f4f6;
+  --badge-draft-text:    #4b5563;
+  --badge-draft-dot:     #9ca3af;
 }
 
 .dark {
-  /* Dark theme surfaces */
-  --color-base:    #030712;   /* gray-950 */
-  --color-surface: #111827;   /* gray-900 */
-  --color-sur2:    #1f2937;   /* gray-800 */
-  --color-bd:      #374151;   /* gray-700 */
-  --color-bd2:     #4b5563;   /* gray-600 */
-
-  /* Dark theme text */
-  --color-tx1:  #f9fafb;   /* gray-50  */
-  --color-tx2:  #d1d5db;   /* gray-300 */
-  --color-tx3:  #6b7280;   /* gray-500 */
+  /* Dark: coal black / locomotive shed */
+  --color-base:    #0e0906;   /* near-black charcoal */
+  --color-surface: #1a100a;   /* dark mahogany        */
+  --color-sur2:    #281a0e;   /* slightly lighter     */
+  --color-bd:      #4a2d1a;   /* dark brown border    */
+  --color-bd2:     #6b4422;   /* medium brown         */
+  --color-tx1:     #f5edd8;   /* warm cream           */
+  --color-tx2:     #c9a96e;   /* antique brass        */
+  --color-tx3:     #7a6040;   /* muted brass          */
 
   /* Status badges — dark variants */
-  --badge-live-bg:       rgba(30, 58, 138, 0.55);   /* blue-900 */
-  --badge-live-text:     #93c5fd;                    /* blue-300 */
-  --badge-live-dot:      #60a5fa;                    /* blue-400 */
+  --badge-live-bg:       rgba(30, 58, 138, 0.55);
+  --badge-live-text:     #93c5fd;
+  --badge-live-dot:      #60a5fa;
 
-  --badge-upcoming-bg:   rgba(67, 20, 7, 0.65);     /* orange-950 */
-  --badge-upcoming-text: #fdba74;                    /* orange-300 */
-  --badge-upcoming-dot:  #fb923c;                    /* orange-400 */
+  --badge-upcoming-bg:   rgba(67, 20, 7, 0.65);
+  --badge-upcoming-text: #fdba74;
+  --badge-upcoming-dot:  #fb923c;
 
-  --badge-draft-bg:      #1f2937;   /* gray-800 */
-  --badge-draft-text:    #9ca3af;   /* gray-400 */
-  --badge-draft-dot:     #6b7280;   /* gray-500 */
+  --badge-draft-bg:      #281a0e;
+  --badge-draft-text:    #9ca3af;
+  --badge-draft-dot:     #6b7280;
 }
 
 /* ── Base ───────────────────────────────────────────────────────────────── */

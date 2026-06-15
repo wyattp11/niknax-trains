@@ -14,27 +14,31 @@ export default {
         tx1:     'var(--color-tx1)',
         tx2:     'var(--color-tx2)',
         tx3:     'var(--color-tx3)',
+        // ── Vintage train palette: Tuscan Red / Maroon ──
         niknax: {
-          50:  '#faf5ff',
-          100: '#f3e8ff',
-          200: '#e9d5ff',
-          300: '#d8b4fe',
-          400: '#c084fc',
-          500: '#a855f7',
-          600: '#9333ea',
-          700: '#7e22ce',
-          800: '#6b21a8',
-          900: '#581c87',
-          950: '#3b0764',
+          50:  '#fdf5f3',
+          100: '#fce8e4',
+          200: '#f8cdc5',
+          300: '#f29893',   // warm rose — headings in dark mode
+          400: '#e06b62',   // copper-rose — links
+          500: '#b83e2f',   // burnt sienna — hover state
+          600: '#8B2635',   // Tuscan Red — primary buttons
+          700: '#7a1f2d',
+          800: '#601820',
+          900: '#3d0f18',   // deep maroon — dark gradients
+          950: '#1f0a0e',
         },
+        // ── Antique Brass / Gold ──
         gold: {
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
+          300: '#e8c97d',
+          400: '#C9A227',   // antique gold accent
+          500: '#a07d0a',
+          600: '#7a5e08',
         }
       },
       fontFamily: {
-        display: ['Georgia', 'serif'],
+        display: ['Playfair Display', 'Georgia', 'serif'],
+        mono:    ['Courier Prime', 'Courier New', 'monospace'],
       }
     }
   },

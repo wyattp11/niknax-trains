@@ -2,13 +2,25 @@
   <div class="min-h-screen bg-base">
     <PublicNav />
 
-    <!-- Hero -->
-    <div class="bg-gradient-to-br from-niknax-900/30 via-base to-base border-b border-bd px-6 py-10 text-center">
-      <div class="text-5xl mb-3">🚂✨</div>
-      <h1 class="text-3xl sm:text-4xl font-bold font-display mb-2 bg-gradient-to-r from-niknax-400 to-gold-400 bg-clip-text text-transparent">
-        Niknax Raid Trains
-      </h1>
-      <p class="text-tx3 max-w-md mx-auto">Back-to-back live selling events on District. Hop on a train and ride the raid!</p>
+    <!-- Hero: vintage station board + ASCII animation -->
+    <div class="bg-gradient-to-b from-niknax-950 via-niknax-900/30 to-base border-b border-bd pt-10 pb-0">
+      <div class="text-center px-6 mb-5">
+        <p class="text-gold-400 dark:text-gold-300 text-xs font-mono tracking-[0.35em] uppercase mb-2 opacity-75">
+          ✦ &nbsp; All Aboard &nbsp; ✦
+        </p>
+        <h1 class="font-display font-black leading-none mb-3
+                   text-4xl sm:text-5xl lg:text-6xl
+                   bg-gradient-to-br from-niknax-200 via-gold-300 to-niknax-300
+                   bg-clip-text text-transparent">
+          Niknax Raid Trains
+        </h1>
+        <p class="text-niknax-200/60 dark:text-niknax-300/50 text-xs font-mono tracking-widest">
+          DISTRICT LIVE SELLING · BACK-TO-BACK SHOWS
+        </p>
+      </div>
+
+      <!-- ASCII locomotive animation -->
+      <TrainAnimation class="px-1 sm:px-4" />
     </div>
 
     <main class="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-12">
@@ -23,7 +35,7 @@
 
       <!-- Events list -->
       <section>
-        <h2 class="text-xl font-bold text-tx1 mb-4">Events</h2>
+        <h2 class="font-display text-2xl font-bold text-tx1 mb-4">Events</h2>
 
         <div v-if="loading" class="text-tx3 text-sm">Loading…</div>
 
@@ -41,7 +53,7 @@
             :class="ev.published ? 'group cursor-pointer hover:border-niknax-400' : 'opacity-80'"
           >
             <img v-if="ev.cover_url" :src="ev.cover_url" class="w-14 h-14 rounded-lg object-cover shrink-0" alt="" />
-            <div v-else class="w-14 h-14 rounded-lg bg-niknax-900/40 flex items-center justify-center text-2xl shrink-0">🚂</div>
+            <div v-else class="w-14 h-14 rounded-lg bg-niknax-900/30 border border-bd flex items-center justify-center font-mono text-xl text-niknax-600 shrink-0">🚂</div>
 
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-0.5 flex-wrap">
@@ -51,7 +63,7 @@
                 <h3 class="font-semibold text-tx1 group-hover:text-niknax-500 transition-colors truncate">{{ ev.name }}</h3>
               </div>
               <p v-if="ev.tagline" class="text-tx3 text-sm truncate">{{ ev.tagline }}</p>
-              <p v-if="ev.dateRange" class="text-tx3 text-xs mt-0.5">{{ ev.dateRange }}</p>
+              <p v-if="ev.dateRange" class="text-tx3 text-xs mt-0.5 font-mono">{{ ev.dateRange }}</p>
             </div>
 
             <span v-if="ev.published" class="text-niknax-500 group-hover:translate-x-1 transition-transform text-lg shrink-0">→</span>
@@ -62,7 +74,7 @@
 
       <!-- Calendar -->
       <section>
-        <h2 class="text-xl font-bold text-tx1 mb-4">Calendar</h2>
+        <h2 class="font-display text-2xl font-bold text-tx1 mb-4">Calendar</h2>
         <div class="card">
           <EventCalendar :events="calendarEvents" />
         </div>
@@ -79,6 +91,7 @@ import { supabase, isSupabaseConfigured } from '../../lib/supabase.js'
 import { formatDate } from '../../lib/timeUtils.js'
 import EventCalendar from '../../components/EventCalendar.vue'
 import PublicNav from '../../components/PublicNav.vue'
+import TrainAnimation from '../../components/TrainAnimation.vue'
 
 const rawTrains = ref([])
 const loading   = ref(true)
