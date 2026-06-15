@@ -95,8 +95,12 @@
                 <input v-model="editForm.district_link" class="input" type="url" />
               </div>
               <div>
-                <label class="label">Cover Image URL</label>
-                <input v-model="editForm.cover_url" class="input" type="url" />
+                <label class="label">Train Graphic</label>
+                <ImageUpload
+                  :current-url="editForm.cover_url"
+                  @file-selected="editCoverFile = $event"
+                  @cleared="editForm.cover_url = null; editCoverFile = null"
+                />
               </div>
             </div>
 
@@ -301,6 +305,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
+import ImageUpload from '../../components/ImageUpload.vue'
 import { supabase } from '../../lib/supabase.js'
 import { allZones, formatDate } from '../../lib/timeUtils.js'
 
@@ -315,12 +320,25 @@ const publishing = ref(false)
 const copied     = ref(false)
 
 // Edit details
-const showEdit     = ref(false)
-const editForm     = ref({})
-const editDayDates = ref({})
+const showEdit      = ref(false)
+const editForm      = ref({})
+const editDayDates  = ref({})
 const editDayLabels = ref({})
 const savingDetails = ref(false)
 const detailsSaved  = ref(false)
+const editCoverFile = ref(null)   // new image file selected in edit mode
+
+async function uploadCover(trainId) {
+  if (!editCoverFile.value) return null
+  const ext  = editCoverFile.value.name.split('.').pop().toLowerCase()
+  const path = `${trainId}/cover.${ext}`
+  const { error } = await supabase.storage
+    .from('train-graphics')
+    .upload(path, editCoverFile.value, { upsert: true })
+  if (error) throw error
+  const { data } = supabase.storage.from('train-graphics').getPublicUrl(path)
+  return data.publicUrl
+}
 
 // Slot editing
 const editingSlot  = ref(null)
@@ -444,6 +462,14 @@ async function load() {
 
 async function saveDetails() {
   savingDetails.value = true
+
+  // Upload new graphic if one was selected
+  if (editCoverFile.value) {
+    const url = await uploadCover(train.value.id)
+    if (url) editForm.value.cover_url = url
+    editCoverFile.value = null
+  }
+
   await supabase.from('trains').update({
     name: editForm.value.name,
     tagline: editForm.value.tagline || null,

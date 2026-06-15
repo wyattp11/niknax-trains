@@ -36,8 +36,11 @@
           </div>
 
           <div>
-            <label class="label">Cover Image URL</label>
-            <input v-model="form.cover_url" class="input" type="url" placeholder="https://…/image.jpg" />
+            <label class="label">Train Graphic</label>
+            <ImageUpload
+              @file-selected="coverFile = $event"
+              @cleared="coverFile = null"
+            />
           </div>
         </section>
 
@@ -143,21 +146,34 @@
 import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
+import ImageUpload from '../../components/ImageUpload.vue'
 import { supabase } from '../../lib/supabase.js'
 import { generateSlotTimes, addMinutes } from '../../lib/timeUtils.js'
 
 const router = useRouter()
-const saving   = ref(false)
+const saving    = ref(false)
 const saveError = ref('')
+const coverFile = ref(null)   // File object selected via ImageUpload
 
 const form = ref({
   name: '',
   tagline: '',
   description: '',
   district_link: '',
-  cover_url: '',
   days: [],
 })
+
+async function uploadCover(trainId) {
+  if (!coverFile.value) return null
+  const ext  = coverFile.value.name.split('.').pop().toLowerCase()
+  const path = `${trainId}/cover.${ext}`
+  const { error } = await supabase.storage
+    .from('train-graphics')
+    .upload(path, coverFile.value, { upsert: true })
+  if (error) throw error
+  const { data } = supabase.storage.from('train-graphics').getPublicUrl(path)
+  return data.publicUrl
+}
 
 function addDay() {
   form.value.days.push({
@@ -200,7 +216,7 @@ async function saveAndContinue() {
   saving.value = true
 
   try {
-    // 1. Insert train
+    // 1. Insert train (cover_url filled in after upload)
     const { data: train, error: trainErr } = await supabase
       .from('trains')
       .insert({
@@ -208,13 +224,22 @@ async function saveAndContinue() {
         tagline: form.value.tagline || null,
         description: form.value.description || null,
         district_link: form.value.district_link || null,
-        cover_url: form.value.cover_url || null,
+        cover_url: null,
         published: false,
       })
       .select()
       .single()
 
     if (trainErr) throw trainErr
+
+    // 2. Upload graphic and update cover_url
+    if (coverFile.value) {
+      const url = await uploadCover(train.id)
+      if (url) {
+        await supabase.from('trains').update({ cover_url: url }).eq('id', train.id)
+        train.cover_url = url
+      }
+    }
 
     // 2. Insert days + slots
     for (let di = 0; di < form.value.days.length; di++) {
