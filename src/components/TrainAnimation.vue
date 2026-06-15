@@ -39,12 +39,12 @@ const TRACKS = '═'.repeat(300)
 // the front of the boiler, using \ instead of /. Big ( O ) rear drivers on
 // the left, small (o) front pilots on the right.
 const LOCO_RAW = [
-  ` _______                                              `,  // cab roof (rises above boiler)
-  ` | [=] |                         \\==/               `,  // cab window + stack top (forward!)
-  ` |     |_________________________|__|________________`,  // boiler roof + stack base
-  ` | CAB |                         |  | ==BOILER== |=>`,  // body + boiler label + coupler
-  ` |_____|_________________________|__|___________|    `,  // underframe
-  `  -( O )=( O )=( O )=( O )--(o)-(o)-(o)-(o)-/=    `,  // big rear drivers + small front pilots
+  `                 ________                                              `,  // cab roof (rises above boiler)
+  `                   | || |          \\==//               `,  // cab window + stack top (forward!)
+  `                   |_||_|^___^____!_|__|_`,  // boiler roof + stack base
+  `  |#############|  |     | ~*NIKNAX*~  ___|`,  // body + boiler label + coupler
+  ` |_______________| |_____|______|    |____|`,  // underframe
+  `  (*)(*)--(*)(*)    (-*-)=(-*-)    (0)-(0)\\    `,  // big rear drivers + small front pilots
 ]
 
 // ── Five cargo car types (1 blank row prepended so wheels align with 6-row loco) ──
@@ -53,35 +53,35 @@ const CAR_TYPES_RAW = [
   [
     `               `,
     `  _____________`,
-    ` | (*)  (*) (*)|`,
-    ` |  OIL  LAMPS |>`,
+    ` | (*)      (*)|`,
+    ` |  | LAMPS  | |>`,
     ` |_____________|`,
-    `  -(o)-----(o)-`,
+    `  -(*)-----(*)-`,
   ],
   // 1: Glassware car — goblets /U\
   [
     `               `,
     `  _____________`,
-    ` |/U\\/U\\/U\\/U\\|`,
-    ` | GLASSWARE   |>`,
+    ` | /U\ /U\ /U\ |`,
+    ` |    GLASS    |>`,
     ` |_____________|`,
     `  -(o)-----(o)-`,
   ],
   // 2: Barrel car
   [
     `               `,
-    `  _____________`,
-    ` |(%)(%)(%)(%)|`,
-    ` | BARREL  CAR |>`,
-    ` |_____________|`,
+    `  ______________`,
+    ` |oooooooooooooo|`,
+    ` | PAPERWEIGHTS |>`,
+    ` |______________|`,
     `  -(o)-----(o)-`,
   ],
   // 3: Crate/box car
   [
     `               `,
     `  _____________`,
-    ` |[#][#][#][#] |`,
-    ` | CRATE   CAR |>`,
+    ` |[$][$][$][$] |`,
+    ` |   JEWELRY   |>`,
     ` |_____________|`,
     `  -(o)-----(o)-`,
   ],
@@ -89,21 +89,21 @@ const CAR_TYPES_RAW = [
   [
     `               `,
     `  _____________`,
-    ` | ~*NIKNAX*~  |`,
-    ` |  DISTRICT   |>`,
+    ` |* * * * * * *|`,
+    ` |     MCM     |>`,
     ` |_____________|`,
     `  -(o)-----(o)-`,
   ],
 ]
 
 const CABOOSE_RAW = [
-  `               `,
-  `  __________`,
-  ` |  /----\\  |`,
-  ` | | *  * ||>`,
-  ` |__|____|_|`,
-  `  -(o)--(o)-`,
-]
+    `   ________     `,
+    `  _| [ ]  |____`,
+    ` |             |`,
+    ` |  ~*NIKNAX*~ |>`,
+    ` |_____________|`,
+    `  -(o)-----(o)-`,
+  ]
 
 function artStr(lines) {
   const w = Math.max(...lines.map(l => l.length))
