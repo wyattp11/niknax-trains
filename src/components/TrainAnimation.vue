@@ -35,19 +35,23 @@ const FONT   = "'Space Mono', 'Courier New', monospace"
 const TRACKS = '═'.repeat(300)
 
 // ── 4-4-0 "American" locomotive (facing right: cab=left, cowcatcher=right) ─
-// Diamond smokestack, 4 large drivers + 4 small pilots, cowcatcher at front
+// Cab rises 1 row above the boiler. Smokestack moved forward (right) toward
+// the front of the boiler, using \ instead of /. Big ( O ) rear drivers on
+// the left, small (o) front pilots on the right.
 const LOCO_RAW = [
-  `           /=\\                     `,  // diamond smokestack top
-  `  _________|_|_____________________`,  // boiler top + smokestack base
-  ` | [CAB]   | |  ==BOILER==  (O) |=>`,  // cab + boiler body + headlight + coupler
-  ` |_________|_|___________________|  `,  // underframe
-  `  -(O)=(O)=(O)=(O)-(o)(o)(o)(o)/= `,  // 4 drivers + 4 pilots + cowcatcher
+  ` _______                                              `,  // cab roof (rises above boiler)
+  ` | [=] |                         \\==/               `,  // cab window + stack top (forward!)
+  ` |     |_________________________|__|________________`,  // boiler roof + stack base
+  ` | CAB |                         |  | ==BOILER== |=>`,  // body + boiler label + coupler
+  ` |_____|_________________________|__|___________|    `,  // underframe
+  `  -( O )=( O )=( O )=( O )--(o)-(o)-(o)-(o)-/=    `,  // big rear drivers + small front pilots
 ]
 
-// ── Five cargo car types ───────────────────────────────────────────────────
+// ── Five cargo car types (1 blank row prepended so wheels align with 6-row loco) ──
 const CAR_TYPES_RAW = [
   // 0: Oil lamp car
   [
+    `               `,
     `  _____________`,
     ` | (*)  (*) (*)|`,
     ` |  OIL  LAMPS |>`,
@@ -56,6 +60,7 @@ const CAR_TYPES_RAW = [
   ],
   // 1: Glassware car — goblets /U\
   [
+    `               `,
     `  _____________`,
     ` |/U\\/U\\/U\\/U\\|`,
     ` | GLASSWARE   |>`,
@@ -64,6 +69,7 @@ const CAR_TYPES_RAW = [
   ],
   // 2: Barrel car
   [
+    `               `,
     `  _____________`,
     ` |(%)(%)(%)(%)|`,
     ` | BARREL  CAR |>`,
@@ -72,6 +78,7 @@ const CAR_TYPES_RAW = [
   ],
   // 3: Crate/box car
   [
+    `               `,
     `  _____________`,
     ` |[#][#][#][#] |`,
     ` | CRATE   CAR |>`,
@@ -80,6 +87,7 @@ const CAR_TYPES_RAW = [
   ],
   // 4: Niknax signature car
   [
+    `               `,
     `  _____________`,
     ` | ~*NIKNAX*~  |`,
     ` |  DISTRICT   |>`,
@@ -89,6 +97,7 @@ const CAR_TYPES_RAW = [
 ]
 
 const CABOOSE_RAW = [
+  `               `,
   `  __________`,
   ` |  /----\\  |`,
   ` | | *  * ||>`,
@@ -114,7 +123,7 @@ const wrap  = ref(null)
 const fz    = ref(12)
 const lineH = ref(17)
 
-const totalH = computed(() => 5 * lineH.value + lineH.value + 4)
+const totalH = computed(() => 6 * lineH.value + lineH.value + 4)
 
 const locoX = ref(-2000)
 const cabX  = ref(-2000)
@@ -129,13 +138,13 @@ const carTypeIdx = Array.from({ length: MAX_CARS }, (_, i) => i % CAR_ARTS.lengt
 const cabVis  = ref(false)
 
 const isDark     = ref(false)
-const locoColor  = computed(() => isDark.value ? '#7fc4a2' : '#1A5C38')
-const cabColor   = computed(() => isDark.value ? '#D4A017' : '#8a5f0a')
-const trackColor = computed(() => isDark.value ? 'rgba(47,140,87,0.28)' : 'rgba(26,92,56,0.20)')
+const locoColor  = computed(() => isDark.value ? '#FF7A30' : '#D44400')
+const cabColor   = computed(() => isDark.value ? '#D44400' : '#AA3600')
+const trackColor = computed(() => isDark.value ? 'rgba(74,40,0,0.35)' : 'rgba(232,201,154,0.55)')
 
-// Alternating green shades for cars
-const carColors = ['#2E8B57', '#3a9e68', '#247a4a', '#3d9660', '#2a8050']
-const carColorsDark = ['#52a882', '#7fc4a2', '#4a9e78', '#6abd96', '#5ab58a']
+// Warm orange / teal alternating shades for cars
+const carColors     = ['#AA3600', '#007A70', '#C84000', '#005C55', '#B83800']
+const carColorsDark = ['#FF7A30', '#2BBFB4', '#FF9050', '#5CD6CC', '#FF6B20']
 
 const pieces = computed(() => [
   { key: 'loco', art: LOCO_ART, x: locoX.value, visible: true, color: locoColor.value },
