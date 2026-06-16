@@ -39,51 +39,51 @@ const TRACKS = '═'.repeat(300)
 // the front of the boiler, using \ instead of /. Big ( O ) rear drivers on
 // the left, small (o) front pilots on the right.
 const LOCO_RAW = [
-  `                 ________            ____                                  `,  // cab roof (rises above boiler)
-  `                   | || |          \\\==//               `,  // cab window + stack top (forward!)
-  `                   |_||_|^___^____!_|__|_`,  // boiler roof + stack base
-  `  |#############|  |     | ~*NIKNAX*~ ____|]`,  // body + boiler label + coupler
-  ` |_______________| |_____|______|    |____|`,  // underframe
-  `  (*)(*)--(*)(*)    (-*-)=(-*-)    (0)-(0)||\\\    `,  // big rear drivers + small front pilots
-]
+  `                ________            ____                                  `,  // cab roof (rises above boiler)
+  `                  | || |           \\\==/               `,  // cab window + stack top (forward!)
+  `                  |_||_|^___^____!_|__|_`,  // boiler roof + stack base
+  ` |#############|  |     | ~*NIKNAX*~ ____|]`,  // body + boiler label + coupler
+  `|_______________| |_____|______|    |____|`,  // underframe
+  ` (*)(*)--(*)(*)    (-*-)=(-*-)    (0)-(0)||\\\    `,  // big rear drivers + small front pilots
+].map(l => l.replace(/\s+$/, ''))  // trim dead trailing whitespace so the next car can sit flush against the cowcatcher
 
 // ── Four cargo car types (1 blank row prepended so wheels align with 6-row loco) ──
 const CAR_TYPES_RAW = [
   // 0: Oil lamp car
   [
     `               `,
-    `  _____________`,
-    ` | <3<3<3<3<3  |`,
-    ` |   VINTAGE   |`,
-    ` |_____________|>`,
-    `  -(*)-----(*)-`,
+    ` _____________`,
+    `| <3<3<3<3<3  |`,
+    `|   VINTAGE   |`,
+    `|_____________|>`,
+    ` -(*)-----(*)-`,
   ],
   // 1: Glassware car — goblets /U\
   [
     `               `,
-    `  ____________`,
-    ` |$$$$$$$$$$$$|`,
-    ` |  ANTIQUES  |`,
-    ` |____________|>`,
-    `  -(*)-----(*)-`,
+    ` ____________`,
+    `|$$$$$$$$$$$$|`,
+    `|  ANTIQUES  |`,
+    `|____________|>`,
+    ` -(*)-----(*)-`,
   ],
   // 2: Jewelry car
   [
     `               `,
-    `  ______________`,
-    ` | ************ |`,
-    ` | COLLECTIBLES |`,
-    ` |______________|>`,
-    `  -(*)-----(*)-`,
+    ` ______________`,
+    `| ************ |`,
+    `| COLLECTIBLES |`,
+    `|______________|>`,
+    ` -(*)-----(*)-`,
   ],
   // 3: MCM car
   [
     `               `,
-    `  ______________`,
-    ` |* * * * * * * |`,
-    ` | CONTEMPORARY |`,
-    ` |______________|>`,
-    `  -(*)-----(*)-`,
+    ` ______________`,
+    `|* * * * * * * |`,
+    `| CONTEMPORARY |`,
+    `|______________|>`,
+    ` -(*)-----(*)-`,
   ],
 ]
 
@@ -96,17 +96,21 @@ const CABOOSE_RAW = [
     `  -(*)-----(*)-`,
   ]
 
-function artStr(lines) {
-  const w = Math.max(...lines.map(l => l.length))
+function artStr(lines, width) {
+  const w = width ?? Math.max(...lines.map(l => l.length))
   return lines.map(l => l.padEnd(w, ' ')).join('\n')
 }
 
 const LOCO_ART     = artStr(LOCO_RAW)
-const CAR_ARTS     = CAR_TYPES_RAW.map(r => artStr(r))
+// All car types must share one width — otherwise a narrower car type (e.g.
+// the glassware car is 1 char narrower than the oil-lamp car) gets padded to
+// its own shorter width and ends up with a visible gap behind it once it's
+// coupled into the train using the shared CAR_W spacing.
+const CAR_W        = Math.max(...CAR_TYPES_RAW.flat().map(l => l.length))
+const CAR_ARTS     = CAR_TYPES_RAW.map(r => artStr(r, CAR_W))
 const CAB_ART      = artStr(CABOOSE_RAW)
 
 const LOCO_W = Math.max(...LOCO_RAW.map(l => l.length))
-const CAR_W  = Math.max(...CAR_TYPES_RAW[0].map(l => l.length))
 const CAB_W  = Math.max(...CABOOSE_RAW.map(l => l.length))
 
 // ── Piece state ───────────────────────────────────────────────────────────
@@ -159,18 +163,29 @@ let   stopCab  = 0
 
 function computeStops() {
   const W = wrap.value?.clientWidth || 900
-  // Center the whole train (caboose → loco) in the container
-  const totalW = LOCO_W * cw + numCars * CAR_W * cw + CAB_W * cw
-  const leftMargin = Math.max((W - totalW) / 2, 8)
+  // Center the whole train (caboose → loco) in the container, then nudge it
+  // right — the cowcatcher's empty space made the loco look off-center-left
+  // under the title, so shift the centered block toward the right edge.
+  // Small coupling gap between consecutive cars so they don't visually
+  // bump into each other.
+  const carGap = cw * 1.5
+  const gapsW  = Math.max(numCars - 1, 0) * carGap
+
+  const totalW = LOCO_W * cw + numCars * CAR_W * cw + gapsW + CAB_W * cw
+  const rightShift = Math.max(
+    Math.min(CAR_W * cw * 0.9, Math.max((W - totalW) / 2 - 8, 0)) - cw * 10,
+    0
+  )
+  const leftMargin = Math.max((W - totalW) / 2 + rightShift, 8)
 
   // Loco stops at the rightmost position of the centered train
-  stopLoco = leftMargin + CAB_W * cw + numCars * CAR_W * cw
+  stopLoco = leftMargin + CAB_W * cw + numCars * CAR_W * cw + gapsW
 
-  // Each arriving car stops to the left of the previous piece
-  // carPhase 0 → adjacent to loco, carPhase 1 → adjacent to car0, etc.
+  // Each arriving car stops to the left of the previous piece, with a
+  // coupling gap between cars (but not between loco and the first car).
   carStops.length = 0
   for (let i = 0; i < numCars; i++) {
-    carStops.push(stopLoco - (i + 1) * CAR_W * cw)
+    carStops.push(stopLoco - (i + 1) * CAR_W * cw - i * carGap)
   }
 
   // Caboose stops to the left of the last car
