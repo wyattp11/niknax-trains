@@ -14,27 +14,34 @@ export default {
         tx1:     'var(--color-tx1)',
         tx2:     'var(--color-tx2)',
         tx3:     'var(--color-tx3)',
-        // ── 60s Mod palette: Red / Hot Pink ──
+        // ── Mid-Century Modern palette: Eames Teal (brand) ──
         niknax: {
-          50:  '#fff0f4',
-          100: '#ffdde6',
-          200: '#ffb3c6',
-          300: '#ff80a3',
-          400: '#ff4d7e',
-          500: '#E8005A',   // hot pink — hover
-          600: '#C8002A',   // bold red — primary buttons / brand
-          700: '#9A001E',
-          800: '#6E0015',
-          900: '#3D000C',
-          950: '#1A0006',
+          50:  '#EAF6F3',
+          100: '#CFEAE3',
+          200: '#9DD4C6',
+          300: '#6CBDAA',
+          400: '#3FA28D',
+          500: '#1F8772',   // hover
+          600: '#156B59',   // primary buttons / brand
+          700: '#105146',
+          800: '#0B3A33',
+          900: '#06231F',
+          950: '#03110F',
         },
-        // ── Teal / Turquoise accent ──
+        // ── Burnt Orange / Coral accent ──
         teal: {
-          300: '#5CD6CC',
-          400: '#2BBFB4',
-          500: '#009B8F',
-          600: '#007A70',
-          700: '#005C55',
+          300: '#F2A77C',
+          400: '#EB8753',
+          500: '#E26A33',
+          600: '#C9531E',
+          700: '#9E3F16',
+        },
+        // ── Mustard — sparing highlight accent ──
+        mustard: {
+          300: '#F0CD7E',
+          400: '#E0B04E',
+          500: '#D29A2C',
+          600: '#B07F1F',
         },
       },
       fontFamily: {

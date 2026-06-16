@@ -2,55 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme tokens — 60s Mod / Red & Pink palette ────────────────────────── */
+/* ── Theme tokens — Mid-Century Modern (Teal / Coral / Mustard) ──────────── */
 :root {
-  /* Light: warm cream with pink tint */
-  --color-base:    #FFF5F7;   /* pink-tinted cream     */
-  --color-surface: #FFFFFF;   /* white card surface    */
-  --color-sur2:    #FFE8EE;   /* light rose input bg   */
-  --color-bd:      #F0C0CC;   /* rose border           */
-  --color-bd2:     #E090A0;   /* deeper rose border    */
-  --color-tx1:     #1A0006;   /* warm near-black       */
-  --color-tx2:     #C8002A;   /* brand red             */
-  --color-tx3:     #8C3040;   /* muted rose-brown      */
+  /* Light: warm cream paper */
+  --color-base:    #F5EFE1;   /* warm cream             */
+  --color-surface: #FFFBF2;   /* off-white card surface */
+  --color-sur2:    #EFE6D2;   /* light tan input bg     */
+  --color-bd:      #DACBA3;   /* tan border              */
+  --color-bd2:     #C2AD7C;   /* deeper tan border       */
+  --color-tx1:     #2B2420;   /* charcoal                */
+  --color-tx2:     #105146;   /* deep teal brand text    */
+  --color-tx3:     #6B5D4F;   /* muted warm brown        */
 
-  /* Status badges — colorblind-friendly (blue / red / gray) */
+  /* Status badges — colorblind-friendly (blue / orange / gray) */
   --badge-live-bg:       #dbeafe;
   --badge-live-text:     #1e40af;
   --badge-live-dot:      #3b82f6;
 
-  --badge-upcoming-bg:   #ffe4ea;
-  --badge-upcoming-text: #9A001E;
-  --badge-upcoming-dot:  #E8005A;
+  --badge-upcoming-bg:   #FBE3D2;
+  --badge-upcoming-text: #9E3F16;
+  --badge-upcoming-dot:  #E26A33;
 
-  --badge-draft-bg:      #f3f4f6;
-  --badge-draft-text:    #4b5563;
-  --badge-draft-dot:     #9ca3af;
+  --badge-draft-bg:      #EFE6D2;
+  --badge-draft-text:    #6B5D4F;
+  --badge-draft-dot:     #A99A82;
 }
 
 .dark {
-  /* Dark: deep near-black with red tint */
-  --color-base:    #0A0004;   /* deep dark             */
-  --color-surface: #180008;   /* dark surface          */
-  --color-sur2:    #280010;   /* slightly lighter      */
-  --color-bd:      #4A0018;   /* dark rose border      */
-  --color-bd2:     #6A0028;   /* medium rose border    */
-  --color-tx1:     #FFF0F4;   /* warm off-white        */
-  --color-tx2:     #FF4D7E;   /* bright pink text      */
-  --color-tx3:     #A04060;   /* muted rose            */
+  /* Dark: deep charcoal */
+  --color-base:    #1B1714;   /* deep charcoal          */
+  --color-surface: #241F1B;   /* dark surface           */
+  --color-sur2:    #2E2722;   /* slightly lighter       */
+  --color-bd:      #463C33;   /* dark tan border        */
+  --color-bd2:     #5C4F43;   /* medium tan border      */
+  --color-tx1:     #F5EFE1;   /* warm cream text        */
+  --color-tx2:     #6CBDAA;   /* bright teal text       */
+  --color-tx3:     #A0907D;   /* muted warm tan         */
 
   /* Status badges — dark variants */
   --badge-live-bg:       rgba(30, 58, 138, 0.55);
   --badge-live-text:     #93c5fd;
   --badge-live-dot:      #60a5fa;
 
-  --badge-upcoming-bg:   rgba(67, 0, 20, 0.65);
-  --badge-upcoming-text: #ff80a3;
-  --badge-upcoming-dot:  #ff4d7e;
+  --badge-upcoming-bg:   rgba(158, 63, 22, 0.45);
+  --badge-upcoming-text: #F2A77C;
+  --badge-upcoming-dot:  #EB8753;
 
-  --badge-draft-bg:      #180008;
-  --badge-draft-text:    #9ca3af;
-  --badge-draft-dot:     #6b7280;
+  --badge-draft-bg:      #2E2722;
+  --badge-draft-text:    #A0907D;
+  --badge-draft-dot:     #6B5D4F;
 }
 
 /* ── Base ───────────────────────────────────────────────────────────────── */
