@@ -39,12 +39,12 @@ const TRACKS = '═'.repeat(300)
 // the front of the boiler, using \ instead of /. Big ( O ) rear drivers on
 // the left, small (o) front pilots on the right.
 const LOCO_RAW = [
-  `                 ________                                              `,  // cab roof (rises above boiler)
+  `                 ________            ____                                  `,  // cab roof (rises above boiler)
   `                   | || |          \\\==//               `,  // cab window + stack top (forward!)
   `                   |_||_|^___^____!_|__|_`,  // boiler roof + stack base
-  `  |#############|  |     | ~*NIKNAX*~  ___|`,  // body + boiler label + coupler
+  `  |#############|  |     | ~*NIKNAX*~ ____|]`,  // body + boiler label + coupler
   ` |_______________| |_____|______|    |____|`,  // underframe
-  `  (*)(*)--(*)(*)    (-*-)=(-*-)    (0)-(0)\\\    `,  // big rear drivers + small front pilots
+  `  (*)(*)--(*)(*)    (-*-)=(-*-)    (0)-(0)||\\\    `,  // big rear drivers + small front pilots
 ]
 
 // ── Four cargo car types (1 blank row prepended so wheels align with 6-row loco) ──
@@ -53,36 +53,36 @@ const CAR_TYPES_RAW = [
   [
     `               `,
     `  _____________`,
-    ` | (*)      (*)|`,
-    ` |  | LAMPS  | |>`,
-    ` |_____________|`,
+    ` | <3<3<3<3<3  |`,
+    ` |   VINTAGE   |`,
+    ` |_____________|>`,
     `  -(*)-----(*)-`,
   ],
   // 1: Glassware car — goblets /U\
   [
     `               `,
-    `  _____________`,
-    ` |//U\\//U\\///U\\   |`,
-    ` |    GLASS    |>`,
-    ` |_____________|`,
+    `  ____________`,
+    ` |$$$$$$$$$$$$|`,
+    ` |  ANTIQUES  |`,
+    ` |____________|>`,
     `  -(*)-----(*)-`,
   ],
   // 2: Jewelry car
   [
     `               `,
-    `  _____________`,
-    ` |[$][$][$][$] |`,
-    ` |   JEWELRY   |>`,
-    ` |_____________|`,
+    `  ______________`,
+    ` | ************ |`,
+    ` | COLLECTIBLES |`,
+    ` |______________|>`,
     `  -(*)-----(*)-`,
   ],
   // 3: MCM car
   [
     `               `,
-    `  _____________`,
-    ` |* * * * * * *|`,
-    ` |     MCM     |>`,
-    ` |_____________|`,
+    `  ______________`,
+    ` |* * * * * * * |`,
+    ` | CONTEMPORARY |`,
+    ` |______________|>`,
     `  -(*)-----(*)-`,
   ],
 ]
@@ -91,8 +91,8 @@ const CABOOSE_RAW = [
     `   ________     `,
     `  _| [ ]  |____`,
     ` |             |`,
-    ` |  ~*NIKNAX*~ |>`,
-    ` |_____________|`,
+    ` |  ~*NIKNAX*~ |`,
+    ` |_____________|>`,
     `  -(*)-----(*)-`,
   ]
 
@@ -202,16 +202,31 @@ async function ensureCtx() {
   return ac
 }
 
+// Try to play real audio. Browsers block audio-with-sound autoplay until
+// there's been a user gesture on the page (click/touchstart) — the
+// `unlock()` listener below warms these elements up the moment that
+// happens, so the next call here plays normally. No mute tricks: some
+// browsers silently re-pause audio the instant you unmute it, which made
+// playback look "successful" while producing no sound at all.
+async function tryPlay(el) {
+  try {
+    el.currentTime = 0
+    await el.play()
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function playWhistle() {
   if (!whistleEl) return
-  try {
-    whistleEl.currentTime = 0
+  const ok = await tryPlay(whistleEl)
+  if (ok) {
     // Chain: caboose whistle plays immediately when the arrival whistle ends
     whistleEl.addEventListener('ended', () => playCabooseWhistle(), { once: true })
-    await whistleEl.play()
-  } catch {
-    // Fallback: synthesized whistle if audio is blocked; chain caboose after synth (~1.3s)
-    setTimeout(() => playCabooseWhistle(), 1400)
+    return
+  }
+  // Fully blocked — fall back to a synthesized whistle, then chain caboose after
     try {
       const ac = await ensureCtx()
       const t  = ac.currentTime
@@ -228,7 +243,7 @@ async function playWhistle() {
         osc.start(t); osc.stop(t + 1.3)
       })
     } catch {}
-  }
+  setTimeout(() => playCabooseWhistle(), 1400)
 }
 
 async function playClunk() {
@@ -252,12 +267,8 @@ async function playClunk() {
 // Fires when last car clunk ends — announces the caboose rolling in
 async function playCabooseWhistle() {
   if (!cabooseWhistleEl) return
-  try {
-    cabooseWhistleEl.currentTime = 0
-    await cabooseWhistleEl.play()
-  } catch {
-    pendingCaboose = true
-  }
+  const ok = await tryPlay(cabooseWhistleEl)
+  if (!ok) pendingCaboose = true
 }
 
 // "All aboard!" conductor call — fires when the whole train has stopped.
@@ -267,10 +278,7 @@ let allAboardEl = null
 
 async function playAllAboard() {
   if (!allAboardEl) return
-  try {
-    allAboardEl.currentTime = 0
-    await allAboardEl.play()
-  } catch {}
+  await tryPlay(allAboardEl)
 }
 
 // ── Animation state machine ───────────────────────────────────────────────
@@ -378,6 +386,13 @@ onMounted(async () => {
 
   computeStops()
   locoX.value = -LOCO_W * cw
+
+  // Best-effort: some browsers allow the AudioContext to start unsuspended
+  // (e.g. high media-engagement sites). Fire-and-forget — resume() can hang
+  // indefinitely without a user gesture on strict browsers, so we must NOT
+  // await it here or it can stall the rest of mount (and the train's
+  // arrival animation) forever.
+  webCtx().resume().catch(() => {})
 
   // Preload both real audio elements
   whistleEl = new Audio(WHISTLE_URL)
