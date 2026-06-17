@@ -123,8 +123,8 @@ const totalH = computed(() => 6 * lineH.value + lineH.value + 4)
 const locoX = ref(-2000)
 const cabX  = ref(-2000)
 
-// Up to 4 cars
-const MAX_CARS = 4
+// Up to 3 cars
+const MAX_CARS = 3
 const carXs   = Array.from({ length: MAX_CARS }, () => ref(-2000))
 const carVis  = Array.from({ length: MAX_CARS }, () => ref(false))
 // Which car art to use for each slot
@@ -261,21 +261,36 @@ async function playWhistle() {
   setTimeout(() => playCabooseWhistle(), 1400)
 }
 
+// Same noise-burst-through-a-bandpass-filter "bump" sound as before, just
+// shortened and brightened so it can repeat quickly as a rhythmic
+// "clickity-clack" of wheels crossing rail joints, rather than one slow
+// clunk per car arrival.
 async function playClunk() {
   try {
     const ac = await ensureCtx()
     const t  = ac.currentTime
-    const sr = ac.sampleRate, dur = 0.28
+    const sr = ac.sampleRate, dur = 0.16
     const buf = ac.createBuffer(1, Math.floor(sr * dur), sr)
     const d   = buf.getChannelData(0)
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sr * 0.055))
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sr * 0.035))
     const src = ac.createBufferSource(), filt = ac.createBiquadFilter(), g = ac.createGain()
-    filt.type = 'bandpass'; filt.frequency.value = 280; filt.Q.value = 1.2
+    filt.type = 'bandpass'; filt.frequency.value = 320; filt.Q.value = 1.2
     src.buffer = buf
     src.connect(filt); filt.connect(g); g.connect(ac.destination)
-    g.gain.value = 0.65
+    g.gain.value = 0.6
     src.start(t)
   } catch {}
+}
+
+// Clickity-clack: repeat playClunk() on a fast interval while the train is
+// rolling in, then stop the moment it comes to a stop.
+let clackTimer = null
+function startClickityClack() {
+  stopClickityClack()
+  clackTimer = setInterval(playClunk, 130)
+}
+function stopClickityClack() {
+  if (clackTimer) { clearInterval(clackTimer); clackTimer = null }
 }
 
 // Caboose whistle: real audio element (mike_stranks, CC0)
@@ -296,16 +311,20 @@ async function playAllAboard() {
   await tryPlay(allAboardEl)
 }
 
-// ── Animation state machine ───────────────────────────────────────────────
-const SPEED_LOCO = 400  // px/sec
-const SPEED_CAR  = 450
-const SPEED_CAB  = 340
+// ── Animation: the whole train (loco + cars + caboose) rolls in together ──
+// Every piece travels the exact same distance over the exact same duration,
+// so the gaps between them stay fixed throughout the motion — it reads as
+// one connected train arriving, not separate pieces arriving in sequence.
+const SPEED_TRAIN = 420  // px/sec, shared by every piece
 
-let phase      = 0
+let phase      = 0    // 0 = rolling in, -1 = stopped
 let phaseStart = null
 let rafId      = null
 let waitTimer  = null
-let carPhase   = 0   // 0-indexed: which car is currently animating
+
+let locoStart = -2000
+const carStarts = []
+let cabStart  = -2000
 
 function easeOut(t) { return 1 - Math.pow(1 - Math.min(t, 1), 3) }
 
@@ -316,25 +335,28 @@ function slide(xRef, fromPx, stopPx, elapsedMs, speedPxPerSec) {
   return elapsedMs / durMs >= 1
 }
 
-function startNextCar() {
-  if (carPhase >= numCars) {
-    // Clunk buffer is ~280ms. Start caboose rolling immediately after.
-    // (Caboose whistle already fired right after the arrival whistle ended.)
-    waitTimer = setTimeout(() => {
-      startCabPhase()
-    }, 290)
-    return
-  }
-  phase = 1
-  phaseStart = null
-  carVis[carPhase].value = true
-  carXs[carPhase].value  = -CAR_W * cw
-  rafId = requestAnimationFrame(tick)
+// Compute each piece's off-screen starting position so that every piece
+// travels the same distance (the loco's own off-screen travel distance),
+// which keeps the whole formation rigid while it slides in.
+function computeStarts() {
+  const travel = stopLoco + LOCO_W * cw
+  locoStart = stopLoco - travel
+  carStarts.length = 0
+  for (let i = 0; i < numCars; i++) carStarts.push(carStops[i] - travel)
+  cabStart = stopCab - travel
 }
 
-function startCabPhase() {
-  phase = 4; phaseStart = null
-  cabVis.value = true; cabX.value = -CAB_W * cw
+function startTrain() {
+  locoX.value = locoStart
+  for (let i = 0; i < numCars; i++) {
+    carVis[i].value = true
+    carXs[i].value  = carStarts[i]
+  }
+  cabVis.value = true
+  cabX.value   = cabStart
+
+  phase = 0; phaseStart = null
+  startClickityClack()
   rafId = requestAnimationFrame(tick)
 }
 
@@ -342,34 +364,20 @@ function tick(now) {
   if (phaseStart === null) phaseStart = now
   const el = now - phaseStart
 
-  if (phase === 0) {
-    if (slide(locoX, -LOCO_W * cw, stopLoco, el, SPEED_LOCO)) {
-      locoX.value = stopLoco
-      phase = -1
-      playWhistle()
-      waitTimer = setTimeout(() => { carPhase = 0; startNextCar() }, 600)
-      return
-    }
-  } else if (phase === 1) {
-    const stop = carStops[carPhase]
-    if (slide(carXs[carPhase], -CAR_W * cw, stop, el, SPEED_CAR)) {
-      carXs[carPhase].value = stop
-      phase = -1
-      playClunk()
-      carPhase++
-      // Rapid chaining — next car starts almost immediately after clunk
-      waitTimer = setTimeout(startNextCar, 80)
-      return
-    }
-  } else if (phase === 4) {
-    if (slide(cabX, -CAB_W * cw, stopCab, el, SPEED_CAB)) {
-      cabX.value = stopCab
-      phase = 99
-      // Train fully stopped — conductor calls "All aboard!"
-      playAllAboard()
-      return
-    }
-  } else {
+  const locoDone = slide(locoX, locoStart, stopLoco, el, SPEED_TRAIN)
+  for (let i = 0; i < numCars; i++) slide(carXs[i], carStarts[i], carStops[i], el, SPEED_TRAIN)
+  slide(cabX, cabStart, stopCab, el, SPEED_TRAIN)
+
+  if (locoDone) {
+    locoX.value = stopLoco
+    for (let i = 0; i < numCars; i++) carXs[i].value = carStops[i]
+    cabX.value = stopCab
+    phase = 99
+    stopClickityClack()
+    // Train fully stopped — arrival whistle (chains caboose whistle), then
+    // the conductor calls "All aboard!" once both have had time to play.
+    playWhistle()
+    waitTimer = setTimeout(() => playAllAboard(), 1800)
     return
   }
 
@@ -389,7 +397,7 @@ onMounted(async () => {
   else if (W < 900)  { fz.value = 11; lineH.value = 16 }
   else               { fz.value = 13; lineH.value = 18 }
 
-  numCars = W < 480 ? 1 : W < 700 ? 2 : W < 1000 ? 3 : 4
+  numCars = W < 480 ? 1 : W < 700 ? 2 : 3
 
   await document.fonts.ready
   const span = document.createElement('span')
@@ -400,7 +408,8 @@ onMounted(async () => {
   el.removeChild(span)
 
   computeStops()
-  locoX.value = -LOCO_W * cw
+  computeStarts()
+  locoX.value = locoStart
 
   // Best-effort: some browsers allow the AudioContext to start unsuspended
   // (e.g. high media-engagement sites). Fire-and-forget — resume() can hang
@@ -453,15 +462,13 @@ onMounted(async () => {
   document.addEventListener('touchstart', unlock, { once: true })
 
   // Short delay then start animation
-  waitTimer = setTimeout(() => {
-    phase = 0; phaseStart = null
-    rafId = requestAnimationFrame(tick)
-  }, 400)
+  waitTimer = setTimeout(startTrain, 400)
 })
 
 onUnmounted(() => {
   if (rafId)     cancelAnimationFrame(rafId)
   if (waitTimer) clearTimeout(waitTimer)
+  stopClickityClack()
   if (audioCtx)        { try { audioCtx.close() } catch {} }
   if (whistleEl)       { whistleEl.pause(); whistleEl.src = '' }
   if (cabooseWhistleEl){ cabooseWhistleEl.pause(); cabooseWhistleEl.src = '' }
