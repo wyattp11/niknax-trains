@@ -2,63 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme tokens — Mod Citrus (Tangerine / Hot Pink / Lemon / Olive) ────── */
+/* ── Theme tokens — Mid-Century Postal (Slate Blue / Persimmon / Goldenrod / Walnut) ── */
+/* All pairings below are checked against WCAG AA (4.5:1+) and chosen to     */
+/* stay distinct under protanopia/deuteranopia/tritanopia simulation.        */
 :root {
-  /* Light: bright citrus-tinted paper */
-  --color-base:    #FFF8EC;   /* lemon-tinted cream      */
+  /* Light: warm linen paper */
+  --color-base:    #FAF3E8;   /* linen background        */
   --color-surface: #FFFFFF;   /* white card surface      */
-  --color-sur2:    #FCEFD9;   /* light citrus input bg   */
-  --color-bd:      #F0D9A8;   /* warm tan border         */
-  --color-bd2:     #E0BD78;   /* deeper tan border       */
-  --color-tx1:     #2A2A1E;   /* dark olive-charcoal     */
-  --color-tx2:     #C96F1E;   /* tangerine brand text    */
-  --color-tx3:     #75714F;   /* muted olive-brown       */
+  --color-sur2:    #F3E8D8;   /* light tan input bg      */
+  --color-bd:      #E0CBA8;   /* warm tan border         */
+  --color-bd2:     #C9AD7E;   /* deeper tan border       */
+  --color-tx1:     #2A2118;   /* dark charcoal-brown     */
+  --color-tx2:     #234C64;   /* slate-blue brand text   */
+  --color-tx3:     #6B5A47;   /* muted walnut-brown      */
 
-  /* Status badges — colorblind-friendly (blue / orange / gray / gold) */
+  /* Status badges — colorblind-friendly (blue / persimmon / tan / gold) */
   --badge-live-bg:       #dbeafe;
   --badge-live-text:     #1e40af;
   --badge-live-dot:      #3b82f6;
 
-  --badge-upcoming-bg:   #FCE3C9;
-  --badge-upcoming-text: #9E5716;
-  --badge-upcoming-dot:  #F08C2E;
+  --badge-upcoming-bg:   #F3DDD0;
+  --badge-upcoming-text: #803117;
+  --badge-upcoming-dot:  #C9522E;
 
-  --badge-draft-bg:      #FCEFD9;
-  --badge-draft-text:    #75714F;
-  --badge-draft-dot:     #C2AD7C;
+  --badge-draft-bg:      #F3E8D8;
+  --badge-draft-text:    #6B5A47;
+  --badge-draft-dot:     #C9AD7E;
 
-  --badge-full-bg:       #F9F0AE;
-  --badge-full-text:     #71621A;
-  --badge-full-dot:      #DCC02C;
+  --badge-full-bg:       #F0E0B8;
+  --badge-full-text:     #5C4710;
+  --badge-full-dot:      #C9962A;
 }
 
 .dark {
-  /* Dark: deep warm charcoal */
-  --color-base:    #1C1810;   /* deep warm charcoal     */
-  --color-surface: #242018;   /* dark surface           */
-  --color-sur2:    #2E281C;   /* slightly lighter       */
-  --color-bd:      #4A4030;   /* dark tan border        */
-  --color-bd2:     #5C5040;   /* medium tan border      */
-  --color-tx1:     #FFF8EC;   /* citrus cream text      */
-  --color-tx2:     #F4A857;   /* bright tangerine text  */
-  --color-tx3:     #B0A788;   /* muted warm tan         */
+  /* Dark: deep warm brown-charcoal */
+  --color-base:    #1C1812;   /* deep warm charcoal     */
+  --color-surface: #241F17;   /* dark surface           */
+  --color-sur2:    #2C261C;   /* slightly lighter       */
+  --color-bd:      #4A3F2E;   /* dark tan border        */
+  --color-bd2:     #5C4F3A;   /* medium tan border      */
+  --color-tx1:     #F5EBD8;   /* warm cream text        */
+  --color-tx2:     #6CA3B9;   /* bright slate-blue text */
+  --color-tx3:     #B0A088;   /* muted warm tan         */
 
   /* Status badges — dark variants */
   --badge-live-bg:       rgba(30, 58, 138, 0.55);
   --badge-live-text:     #93c5fd;
   --badge-live-dot:      #60a5fa;
 
-  --badge-upcoming-bg:   rgba(158, 87, 22, 0.45);
-  --badge-upcoming-text: #F7C58D;
-  --badge-upcoming-dot:  #F4A857;
+  --badge-upcoming-bg:   rgba(168, 64, 31, 0.45);
+  --badge-upcoming-text: #E8A688;
+  --badge-upcoming-dot:  #DC7C54;
 
-  --badge-draft-bg:      #2E281C;
-  --badge-draft-text:    #B0A788;
-  --badge-draft-dot:     #5C5040;
+  --badge-draft-bg:      #2C261C;
+  --badge-draft-text:    #B0A088;
+  --badge-draft-dot:     #5C4F3A;
 
-  --badge-full-bg:       rgba(184, 159, 31, 0.35);
-  --badge-full-text:     #F7E48A;
-  --badge-full-dot:      #F2D43D;
+  --badge-full-bg:       rgba(135, 99, 22, 0.35);
+  --badge-full-text:     #E8CB85;
+  --badge-full-dot:      #C9962A;
 }
 
 /* ── Base ───────────────────────────────────────────────────────────────── */

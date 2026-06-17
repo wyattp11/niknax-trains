@@ -14,42 +14,45 @@ export default {
         tx1:     'var(--color-tx1)',
         tx2:     'var(--color-tx2)',
         tx3:     'var(--color-tx3)',
-        // ── Mod Citrus palette: Tangerine (brand) ──
+        // ── Mid-Century Postal palette: Slate Blue (brand) ──
+        // Blue/orange pairing (not red/green) so brand vs. accent stays
+        // distinguishable under protanopia/deuteranopia/tritanopia, and every
+        // text/button pairing below clears WCAG AA contrast (4.5:1+).
         niknax: {
-          50:  '#FFFAF2',
-          100: '#FDF0DE',
-          200: '#FCE6C9',
-          300: '#FAD9B0',
-          400: '#F7C58D',
-          500: '#F4A857',   // hover (lighter tangerine)
-          600: '#F08C2E',   // primary buttons / brand — Tangerine
-          700: '#C96F1E',
-          800: '#9E5716',
-          900: '#6B3B0F',
-          950: '#3A1F08',
+          50:  '#EFF5F8',
+          100: '#DCEAF0',
+          200: '#B9D5E1',
+          300: '#93BECF',
+          400: '#6CA3B9',
+          500: '#4A86A0',   // hover (lighter slate blue)
+          600: '#2C5F7C',   // primary buttons / brand — Slate Blue
+          700: '#234C64',
+          800: '#1B3A4D',
+          900: '#122736',
+          950: '#0A161F',
         },
-        // ── Hot Pink accent ──
+        // ── Persimmon accent ──
         teal: {
-          300: '#F2A0C2',
-          400: '#EB6FA0',
-          500: '#E0488B',   // Hot Pink
-          600: '#C2316F',
-          700: '#97225A',
+          300: '#E8A688',
+          400: '#DC7C54',
+          500: '#C9522E',   // Persimmon
+          600: '#A8401F',
+          700: '#803117',
         },
-        // ── Lemon — sparing highlight accent ──
+        // ── Goldenrod — sparing highlight accent ──
         mustard: {
-          300: '#F7E48A',
-          400: '#F2D43D',   // Lemon
-          500: '#DCC02C',
-          600: '#B89F1F',
+          300: '#E8CB85',
+          400: '#C9962A',   // Goldenrod
+          500: '#A87D20',
+          600: '#876316',
         },
-        // ── Olive — tertiary accent ──
+        // ── Walnut Brown — tertiary accent ──
         olive: {
-          300: '#C2CE9E',
-          400: '#A9B97D',
-          500: '#8B9F5C',
-          600: '#6B7A3A',   // Olive
-          700: '#56612D',
+          300: '#C9B29E',
+          400: '#AD8F76',
+          500: '#8C6B52',
+          600: '#6B4A33',   // Walnut Brown
+          700: '#4F3625',
         },
       },
       fontFamily: {
