@@ -26,6 +26,10 @@
   --badge-draft-bg:      #EFE6D2;
   --badge-draft-text:    #6B5D4F;
   --badge-draft-dot:     #A99A82;
+
+  --badge-full-bg:       #F8E9C7;
+  --badge-full-text:     #8A6512;
+  --badge-full-dot:      #D29A2C;
 }
 
 .dark {
@@ -51,6 +55,10 @@
   --badge-draft-bg:      #2E2722;
   --badge-draft-text:    #A0907D;
   --badge-draft-dot:     #6B5D4F;
+
+  --badge-full-bg:       rgba(176, 127, 31, 0.35);
+  --badge-full-text:     #F0CD7E;
+  --badge-full-dot:      #E0B04E;
 }
 
 /* ── Base ───────────────────────────────────────────────────────────────── */
@@ -123,6 +131,11 @@
     color: var(--badge-draft-text);
     @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
   }
+  .badge-full {
+    background-color: var(--badge-full-bg);
+    color: var(--badge-full-text);
+    @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
+  }
 
   /* Calendar event chips */
   .chip-live {
@@ -143,4 +156,10 @@
     @apply block text-xs px-1.5 py-0.5 rounded mb-0.5 truncate leading-tight transition-colors;
   }
   .chip-draft:hover { filter: brightness(0.92); }
+  .chip-full {
+    background-color: var(--badge-full-bg);
+    color: var(--badge-full-text);
+    @apply block text-xs px-1.5 py-0.5 rounded mb-0.5 truncate leading-tight transition-colors;
+  }
+  .chip-full:hover { filter: brightness(0.92); }
 }

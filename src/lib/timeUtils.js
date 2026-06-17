@@ -73,3 +73,31 @@ export function formatDate(dateStr) {
   const date = new Date(y, m - 1, d)
   return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 }
+
+/**
+ * Determine a train's rider-facing status badge.
+ *
+ * - Not published (draft or upcoming/announced)  → "pending"   "Arriving Soon"
+ * - Published, every slot filled                  → "full"      "All Aboard!"
+ * - Published, at least one open slot              → "boarding"  "Now Boarding"
+ *
+ * @param {{ published?: boolean }} train
+ * @param {number} totalSlots   total slot count across all days
+ * @param {number} filledSlots  slots with a non-null username
+ */
+export function trainStatus(train, totalSlots = 0, filledSlots = 0) {
+  if (!train?.published) {
+    return { key: 'pending', label: 'Arriving Soon' }
+  }
+  if (totalSlots > 0 && filledSlots >= totalSlots) {
+    return { key: 'full', label: 'All Aboard!' }
+  }
+  return { key: 'boarding', label: 'Now Boarding' }
+}
+
+/** Maps a trainStatus() key to its .badge-*/.chip-* CSS class suffix. */
+export const STATUS_BADGE_CLASS = {
+  pending:  'upcoming',
+  boarding: 'live',
+  full:     'full',
+}

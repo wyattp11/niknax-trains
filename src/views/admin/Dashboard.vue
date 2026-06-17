@@ -38,8 +38,8 @@
 
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1 flex-wrap">
-              <span :class="train.published ? 'badge-live' : train.is_upcoming ? 'badge-upcoming' : 'badge-draft'">
-                {{ train.published ? 'LIVE' : train.is_upcoming ? 'UPCOMING' : 'DRAFT' }}
+              <span :class="`badge-${statusBadgeClass(train)}`">
+                {{ status(train).label }}
               </span>
               <h3 class="font-semibold text-tx1 truncate">{{ train.name }}</h3>
             </div>
@@ -65,6 +65,7 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import { supabase } from '../../lib/supabase.js'
+import { trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
 
 const trains  = ref([])
 const loading = ref(true)
@@ -73,10 +74,24 @@ async function loadTrains() {
   loading.value = true
   const { data, error } = await supabase
     .from('trains')
-    .select('*')
+    .select('*, days:train_days(slots(id, username))')
     .order('created_at', { ascending: false })
   if (!error) trains.value = data
   loading.value = false
+}
+
+function slotCounts(train) {
+  const slots = (train.days || []).flatMap(d => d.slots || [])
+  return { total: slots.length, filled: slots.filter(s => s.username).length }
+}
+
+function status(train) {
+  const { total, filled } = slotCounts(train)
+  return trainStatus(train, total, filled)
+}
+
+function statusBadgeClass(train) {
+  return STATUS_BADGE_CLASS[status(train).key]
 }
 
 function formatDate(iso) {

@@ -90,8 +90,8 @@
 
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-0.5 flex-wrap">
-                <span :class="ev.published ? 'badge-live' : 'badge-upcoming'" class="shrink-0">
-                  {{ ev.published ? 'LIVE' : 'UPCOMING' }}
+                <span :class="`badge-${STATUS_BADGE_CLASS[ev.status.key]}`" class="shrink-0">
+                  {{ ev.status.label }}
                 </span>
                 <h3 class="font-semibold text-tx1 group-hover:text-niknax-600 dark:group-hover:text-niknax-400 transition-colors truncate">
                   {{ ev.name }}
@@ -129,7 +129,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { supabase, isSupabaseConfigured } from '../../lib/supabase.js'
-import { formatDate } from '../../lib/timeUtils.js'
+import { formatDate, trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
 import EventCalendar from '../../components/EventCalendar.vue'
 import TrainAnimation from '../../components/TrainAnimation.vue'
@@ -141,7 +141,7 @@ const loading   = ref(true)
 async function load() {
   const { data } = await supabase
     .from('trains')
-    .select('*, days:train_days(id, day_date)')
+    .select('*, days:train_days(id, day_date, slots(id, username))')
     .order('created_at', { ascending: false })
   rawTrains.value = data || []
   loading.value   = false
@@ -154,7 +154,9 @@ function enrich(t) {
       ? formatDate(dates[0])
       : `${formatDate(dates[0])} – ${formatDate(dates[dates.length - 1])}`
     : null
-  return { ...t, dates, dateRange }
+  const allSlots = (t.days || []).flatMap(d => d.slots || [])
+  const status = trainStatus(t, allSlots.length, allSlots.filter(s => s.username).length)
+  return { ...t, dates, dateRange, status }
 }
 
 const events = computed(() =>

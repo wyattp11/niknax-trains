@@ -32,6 +32,9 @@
              :class="train.cover_url ? 'text-white/60' : 'text-tx3'">
             Niknax Train Station · Raid Train
           </p>
+          <span :class="`badge-${STATUS_BADGE_CLASS[status.key]}`" class="inline-block mb-3">
+            {{ status.label }}
+          </span>
           <h1 class="font-display leading-tight mb-2"
               :class="['text-3xl sm:text-5xl', train.cover_url ? 'text-white' : 'text-tx1']">
             {{ train.name }}
@@ -251,7 +254,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { supabase } from '../../lib/supabase.js'
-import { allZones, formatDate, parseTime } from '../../lib/timeUtils.js'
+import { allZones, formatDate, parseTime, trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
 
 const route = useRoute()
@@ -300,6 +303,10 @@ const activeSlotId = computed(() => {
   }
   return null
 })
+
+const status = computed(() =>
+  trainStatus(train.value, slots.value.length, slots.value.filter(s => s.username).length)
+)
 
 const slotsByDay = computed(() => {
   const map = {}

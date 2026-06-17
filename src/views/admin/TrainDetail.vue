@@ -319,7 +319,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
-import { allZones, formatDate } from '../../lib/timeUtils.js'
+import { allZones, formatDate, trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
 
 const route  = useRoute()
 const router = useRouter()
@@ -429,9 +429,8 @@ async function applyMove(source, newSourceUsername, target, newTargetUsername) {
 const publicUrl = computed(() => `${location.origin}/train/${train.value?.id}`)
 
 const statusBadge = computed(() => {
-  if (train.value?.published)   return { label: 'LIVE',     class: 'badge-live' }
-  if (train.value?.is_upcoming) return { label: 'UPCOMING', class: 'badge-upcoming' }
-  return { label: 'DRAFT', class: 'badge-draft' }
+  const s = trainStatus(train.value, slots.value.length, slots.value.filter(sl => sl.username).length)
+  return { label: s.label, class: `badge-${STATUS_BADGE_CLASS[s.key]}` }
 })
 
 const slotsByDay = computed(() => {
