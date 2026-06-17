@@ -213,15 +213,35 @@
             </p>
 
             <div class="space-y-4">
-              <div>
+              <div class="relative">
                 <label class="label">Your District / Niknax Username *</label>
                 <input
                   v-model="signupUsername"
                   class="input"
                   placeholder="@YourUsername"
+                  autocomplete="off"
+                  @input="onUsernameInput"
                   @keyup.enter="submitSignup"
+                  @keydown.down.prevent="moveSuggestion(1)"
+                  @keydown.up.prevent="moveSuggestion(-1)"
+                  @blur="hideSuggestionsSoon"
+                  @focus="onUsernameInput"
                   autofocus
                 />
+                <ul
+                  v-if="usernameSuggestions.length"
+                  class="absolute z-10 left-0 right-0 mt-1 card p-1 max-h-48 overflow-y-auto shadow-lg"
+                >
+                  <li
+                    v-for="(s, i) in usernameSuggestions"
+                    :key="s"
+                    class="px-3 py-1.5 rounded-md text-sm cursor-pointer"
+                    :class="i === activeSuggestion ? 'bg-niknax-600 text-white' : 'text-tx1 hover:bg-sur2'"
+                    @mousedown.prevent="pickSuggestion(s)"
+                  >
+                    @{{ s }}
+                  </li>
+                </ul>
               </div>
               <div>
                 <label class="label">Your District Show Link (optional)</label>
@@ -272,6 +292,50 @@ const signupLink     = ref('')
 const signupError    = ref('')
 const signingUp      = ref(false)
 const pageLinkCopied = ref(false)
+
+// ── Username autocomplete (from members_signup_search view) ──────────────
+const usernameSuggestions = ref([])
+const activeSuggestion    = ref(-1)
+let usernameTimer = null
+
+function onUsernameInput() {
+  clearTimeout(usernameTimer)
+  const term = signupUsername.value.trim()
+  if (term.length < 2) {
+    usernameSuggestions.value = []
+    return
+  }
+  usernameTimer = setTimeout(async () => {
+    const { data, error } = await supabase
+      .from('members_signup_search')
+      .select('username')
+      .ilike('username', `%${term}%`)
+      .limit(8)
+    if (!error) {
+      usernameSuggestions.value = (data || []).map(r => r.username)
+      activeSuggestion.value = -1
+    }
+  }, 250)
+}
+
+function pickSuggestion(username) {
+  signupUsername.value = username
+  usernameSuggestions.value = []
+}
+
+function moveSuggestion(delta) {
+  if (!usernameSuggestions.value.length) return
+  const max = usernameSuggestions.value.length - 1
+  let next = activeSuggestion.value + delta
+  if (next < 0) next = max
+  if (next > max) next = 0
+  activeSuggestion.value = next
+  signupUsername.value = usernameSuggestions.value[next]
+}
+
+function hideSuggestionsSoon() {
+  setTimeout(() => { usernameSuggestions.value = [] }, 150)
+}
 
 function zones(t) { return allZones(t) }
 
@@ -372,6 +436,7 @@ function openSignup(slot, day) {
   signupUsername.value = ''
   signupLink.value     = ''
   signupError.value    = ''
+  usernameSuggestions.value = []
 }
 
 async function submitSignup() {

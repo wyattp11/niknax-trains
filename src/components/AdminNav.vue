@@ -22,6 +22,13 @@
       >
         + New Train
       </RouterLink>
+      <RouterLink
+        to="/admin/members"
+        class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+        :class="isActive('/admin/members') ? 'bg-niknax-600 text-white' : 'text-tx2 hover:bg-sur2 hover:text-tx1'"
+      >
+        Members
+      </RouterLink>
     </nav>
 
     <!-- Right side controls -->
