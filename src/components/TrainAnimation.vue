@@ -287,7 +287,7 @@ async function playClunk() {
 let clackTimer = null
 function startClickityClack() {
   stopClickityClack()
-  clackTimer = setInterval(playClunk, 195)
+  clackTimer = setInterval(playClunk, 290)
 }
 function stopClickityClack() {
   if (clackTimer) { clearInterval(clackTimer); clackTimer = null }
@@ -299,16 +299,6 @@ async function playCabooseWhistle() {
   if (!cabooseWhistleEl) return
   const ok = await tryPlay(cabooseWhistleEl)
   if (!ok) pendingCaboose = true
-}
-
-// "All aboard!" conductor call — fires when the whole train has stopped.
-// Download from: https://pixabay.com/sound-effects/people-quotall-aboardquot-train-conductor-177678/
-// Save as: niknax-trains/public/sounds/all-aboard.mp3
-let allAboardEl = null
-
-async function playAllAboard() {
-  if (!allAboardEl) return
-  await tryPlay(allAboardEl)
 }
 
 // ── Animation: the whole train (loco + cars + caboose) rolls in together ──
@@ -374,10 +364,8 @@ function tick(now) {
     cabX.value = stopCab
     phase = 99
     stopClickityClack()
-    // Train fully stopped — arrival whistle (chains caboose whistle), then
-    // the conductor calls "All aboard!" once both have had time to play.
+    // Train fully stopped — arrival whistle (chains caboose whistle).
     playWhistle()
-    waitTimer = setTimeout(() => playAllAboard(), 1800)
     return
   }
 
@@ -429,12 +417,6 @@ onMounted(async () => {
   cabooseWhistleEl.volume  = 0.85
   cabooseWhistleEl.load()
 
-  // "All aboard!" — loaded from local file; silently skipped if not present
-  allAboardEl = new Audio('/sounds/all-aboard.mp3')
-  allAboardEl.preload = 'auto'
-  allAboardEl.volume  = 0.9
-  allAboardEl.load()
-
   // Helper: warm up an Audio element silently to unlock playback
   async function warmUp(el) {
     try {
@@ -451,7 +433,6 @@ onMounted(async () => {
     try { await webCtx().resume() } catch {}
     await warmUp(whistleEl)
     await warmUp(cabooseWhistleEl)
-    if (allAboardEl) await warmUp(allAboardEl)
     // Play caboose whistle if it was blocked earlier
     if (pendingCaboose) {
       pendingCaboose = false
@@ -472,6 +453,5 @@ onUnmounted(() => {
   if (audioCtx)        { try { audioCtx.close() } catch {} }
   if (whistleEl)       { whistleEl.pause(); whistleEl.src = '' }
   if (cabooseWhistleEl){ cabooseWhistleEl.pause(); cabooseWhistleEl.src = '' }
-  if (allAboardEl)     { allAboardEl.pause();      allAboardEl.src = '' }
 })
 </script>
