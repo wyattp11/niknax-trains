@@ -72,7 +72,7 @@
             v-for="ev in events"
             :key="ev.id"
             :to="ev.published ? `/train/${ev.id}` : undefined"
-            class="flex items-center gap-4 card transition-all"
+            class="flex items-stretch gap-4 card transition-all"
             :class="ev.published
               ? 'group cursor-pointer hover:border-niknax-600 hover:shadow-md hover:-translate-y-0.5'
               : 'opacity-70'"
@@ -80,12 +80,12 @@
             <img
               v-if="ev.cover_url"
               :src="ev.cover_url"
-              class="w-28 h-28 rounded-lg object-cover shrink-0"
+              class="w-28 h-full min-h-28 rounded-lg object-cover shrink-0"
               alt=""
             />
             <div
               v-else
-              class="w-28 h-28 rounded-lg bg-niknax-100 dark:bg-niknax-950 border border-bd
+              class="w-28 h-full min-h-28 rounded-lg bg-niknax-100 dark:bg-niknax-950 border border-bd
                      flex items-center justify-center font-mono text-5xl shrink-0"
               aria-hidden="true"
             >🚂</div>
