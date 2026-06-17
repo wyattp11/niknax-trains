@@ -53,8 +53,8 @@
 
           <div class="flex flex-wrap gap-3">
             <a
-              v-if="train.district_link"
-              :href="train.district_link"
+              v-if="effectiveDistrictLink"
+              :href="effectiveDistrictLink"
               target="_blank"
               rel="noopener"
               class="btn-primary text-sm"
@@ -102,7 +102,7 @@
               </thead>
               <tbody class="divide-y divide-bd">
                 <tr
-                  v-for="slot in slotsByDay[day.id] || []"
+                  v-for="(slot, slotIdx) in slotsByDay[day.id] || []"
                   :key="slot.id"
                   :id="`slot-${slot.id}`"
                   :class="[
@@ -114,7 +114,7 @@
                   ]"
                   class="transition-colors"
                 >
-                  <td class="px-4 py-3 text-tx3 text-xs">{{ slot.slot_order + 1 }}</td>
+                  <td class="px-4 py-3 text-tx3 text-xs">{{ slotIdx + 1 }}</td>
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-2 flex-wrap">
                       <span v-if="slot.username" class="font-medium text-tx1">{{ slot.username }}</span>
@@ -428,6 +428,44 @@ const slotsByDay = computed(() => {
     map[k].sort((a, b) => a.slot_order - b.slot_order || a.start_time.localeCompare(b.start_time))
   }
   return map
+})
+
+// ── Dynamic "Watch on District" link ──────────────────────────────────────
+// Always points at whichever seller should currently have eyes on them:
+// the slot live right now, or — if nothing's live yet/anymore today — the
+// next slot chronologically (which naturally rolls over to the next day's
+// slot #1 once today's slots have all ended). If that anchor slot hasn't
+// had its show link filled in yet, we walk forward to the next slot that
+// has one. Falls back to the admin-set generic event link if nothing else
+// is available (e.g. the whole event has wrapped).
+const flatSlotsChrono = computed(() => {
+  const list = []
+  for (const day of days.value) {
+    for (const slot of (slotsByDay.value[day.id] || [])) {
+      list.push({ day, slot })
+    }
+  }
+  return list
+})
+
+function slotEndsAt(day, slot) {
+  const [y, m, d] = day.day_date.split('-').map(Number)
+  const { hours, minutes } = parseTime(slot.start_time)
+  const start = new Date(y, m - 1, d, hours, minutes)
+  return new Date(start.getTime() + (slot.duration_min || 30) * 60000)
+}
+
+const effectiveDistrictLink = computed(() => {
+  const now = nowET.value
+  const list = flatSlotsChrono.value
+  const anchorIdx = list.findIndex(({ day, slot }) => slotEndsAt(day, slot) > now)
+  if (anchorIdx === -1) return train.value?.district_link || null
+
+  for (let i = anchorIdx; i < list.length; i++) {
+    const link = list[i].slot.seller_link
+    if (link) return link
+  }
+  return train.value?.district_link || null
 })
 
 async function load() {

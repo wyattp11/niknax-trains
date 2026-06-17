@@ -170,7 +170,7 @@
               </thead>
               <tbody class="divide-y divide-gray-800">
                 <tr
-                  v-for="slot in slotsByDay[day.id] || []"
+                  v-for="(slot, slotIdx) in slotsByDay[day.id] || []"
                   :key="slot.id"
                   :draggable="true"
                   @dragstart="onDragStart(slot, $event)"
@@ -188,7 +188,7 @@
                 >
                   <!-- Drag handle -->
                   <td class="px-3 py-2.5 text-tx3 select-none text-base">⠿</td>
-                  <td class="px-3 py-2.5 text-tx3 text-xs">{{ slot.slot_order + 1 }}</td>
+                  <td class="px-3 py-2.5 text-tx3 text-xs">{{ slotIdx + 1 }}</td>
                   <td class="px-3 py-2.5">
                     <span v-if="editingSlot === slot.id">
                       <input
