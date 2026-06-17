@@ -3,7 +3,7 @@
     <AdminNav />
 
     <main class="max-w-3xl mx-auto px-6 py-10">
-      <RouterLink to="/admin/dashboard" class="text-niknax-400 hover:text-niknax-300 text-sm mb-6 inline-block">
+      <RouterLink to="/admin/dashboard" class="text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300 text-sm mb-6 inline-block">
         ← Back to dashboard
       </RouterLink>
 
@@ -13,7 +13,7 @@
 
         <!-- ── Event details ── -->
         <section class="card space-y-5">
-          <h3 class="text-lg font-semibold text-niknax-300">Event Details</h3>
+          <h3 class="text-lg font-semibold text-niknax-600 dark:text-niknax-300">Event Details</h3>
 
           <div>
             <label class="label">Event Name *</label>
@@ -60,7 +60,7 @@
         <!-- ── Days ── -->
         <section class="card space-y-5">
           <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-niknax-300">Event Days</h3>
+            <h3 class="text-lg font-semibold text-niknax-600 dark:text-niknax-300">Event Days</h3>
             <button type="button" @click="addDay" class="btn-secondary text-sm py-1.5">+ Add Day</button>
           </div>
 
@@ -75,7 +75,7 @@
           >
             <div class="flex items-center justify-between">
               <span class="font-medium text-tx2">Day {{ di + 1 }}</span>
-              <button type="button" @click="removeDay(di)" class="text-red-400 hover:text-red-300 text-sm">Remove</button>
+              <button type="button" @click="removeDay(di)" class="text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300 text-sm">Remove</button>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -117,7 +117,7 @@
             <div class="space-y-3">
               <div class="flex items-center justify-between">
                 <p class="text-sm text-tx2 font-medium">Pre-Assigned Slots</p>
-                <button type="button" @click="addPreAssigned(di)" class="text-niknax-400 hover:text-niknax-300 text-xs">
+                <button type="button" @click="addPreAssigned(di)" class="text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300 text-xs">
                   + Add
                 </button>
               </div>
@@ -135,15 +135,15 @@
                 <input v-model="slot.time" type="time" class="input col-span-2" />
                 <input v-model.number="slot.duration_min" type="number" min="5" max="120" class="input col-span-2" placeholder="30 min" />
                 <input v-model="slot.label" class="input col-span-4" placeholder='Label (e.g. "Kickoff")' />
-                <button type="button" @click="removePreAssigned(di, si)" class="text-red-400 hover:text-red-300 col-span-1 pt-2 text-lg leading-none">×</button>
+                <button type="button" @click="removePreAssigned(di, si)" class="text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300 col-span-1 pt-2 text-lg leading-none" aria-label="Remove pre-assigned slot">×</button>
               </div>
             </div>
           </div>
         </section>
 
         <!-- Error / warnings -->
-        <p v-if="saveError" class="text-red-400 text-sm">{{ saveError }}</p>
-        <p v-if="uploadWarn" class="text-amber-400 text-sm">⚠️ {{ uploadWarn }}</p>
+        <p v-if="saveError" class="text-red-600 dark:text-red-400 text-sm">{{ saveError }}</p>
+        <p v-if="uploadWarn" class="text-amber-700 dark:text-amber-400 text-sm"><span aria-hidden="true">⚠️</span> {{ uploadWarn }}</p>
 
         <div class="flex gap-3 justify-end">
           <RouterLink to="/admin/dashboard" class="btn-secondary">Cancel</RouterLink>

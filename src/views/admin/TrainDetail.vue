@@ -3,7 +3,7 @@
     <AdminNav />
 
     <main class="max-w-5xl mx-auto px-6 py-10">
-      <RouterLink to="/admin/dashboard" class="text-niknax-400 hover:text-niknax-300 text-sm mb-6 inline-block">
+      <RouterLink to="/admin/dashboard" class="text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300 text-sm mb-6 inline-block">
         ← Back to dashboard
       </RouterLink>
 
@@ -70,7 +70,7 @@
             @click="showEdit = !showEdit"
             class="flex items-center justify-between w-full text-left"
           >
-            <span class="font-semibold text-niknax-300">Edit Event Details</span>
+            <span class="font-semibold text-niknax-600 dark:text-niknax-300">Edit Event Details</span>
             <span class="text-tx3 text-lg">{{ showEdit ? '▲' : '▼' }}</span>
           </button>
 
@@ -147,7 +147,7 @@
 
         <!-- ── Schedule ── -->
         <div v-for="day in days" :key="day.id" class="mb-10">
-          <h3 class="text-lg font-semibold text-niknax-300 mb-4">
+          <h3 class="text-lg font-semibold text-niknax-600 dark:text-niknax-300 mb-4">
             {{ day.day_label ? `${day.day_label} — ` : '' }}{{ formatDate(day.day_date) }}
           </h3>
 
@@ -211,28 +211,28 @@
                   <td class="px-3 py-2.5 text-tx2">{{ zones(slot.start_time)[3].time }}</td>
                   <td class="px-3 py-2.5 text-tx3 text-xs">{{ slot.duration_min }}m</td>
                   <td class="px-3 py-2.5">
-                    <span v-if="slot.is_pre_assigned" class="text-xs text-niknax-400">Reserved</span>
+                    <span v-if="slot.is_pre_assigned" class="text-xs text-niknax-600 dark:text-niknax-400">Reserved</span>
                     <span v-else class="text-xs text-tx3">Open</span>
                   </td>
                   <td class="px-3 py-2.5 text-right">
                     <span v-if="editingSlot === slot.id" class="flex gap-1 justify-end">
-                      <button @click="saveSlotUsername(slot)" class="text-green-400 text-xs font-medium">Save</button>
+                      <button @click="saveSlotUsername(slot)" class="text-green-700 dark:text-green-400 text-xs font-medium">Save</button>
                       <button @click="editingSlot = null" class="text-tx3 text-xs">✕</button>
                     </span>
-                    <button v-else @click="startEdit(slot)" class="text-niknax-400 hover:text-niknax-300 text-xs">Edit</button>
+                    <button v-else @click="startEdit(slot)" class="text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300 text-xs">Edit</button>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <button @click="addSlotToDay(day)" class="mt-3 text-sm text-niknax-400 hover:text-niknax-300">
+          <button @click="addSlotToDay(day)" class="mt-3 text-sm text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300">
             + Add slot
           </button>
         </div>
 
         <!-- ── Danger zone ── -->
         <div class="card border-red-900 mt-10">
-          <h4 class="text-red-400 font-semibold text-sm mb-3">Danger Zone</h4>
+          <h4 class="text-red-600 dark:text-red-400 font-semibold text-sm mb-3">Danger Zone</h4>
           <button @click="confirmDelete" class="btn-danger text-sm">Delete Train</button>
         </div>
       </template>
@@ -241,8 +241,15 @@
     <!-- ── Swap / Replace modal ── -->
     <Teleport to="body">
       <div v-if="dndModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" @click.self="dndModal = null">
-        <div class="bg-surface border border-bd rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
-          <h3 class="text-lg font-bold text-tx1">Move Seller</h3>
+        <div
+          ref="dndModalRef"
+          class="bg-surface border border-bd rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="move-seller-title"
+          tabindex="-1"
+        >
+          <h3 id="move-seller-title" class="text-lg font-bold text-tx1">Move Seller</h3>
 
           <div class="space-y-1 text-sm">
             <p class="text-tx3">
@@ -265,7 +272,7 @@
             </button>
             <button @click="doReplace" class="w-full btn-danger text-left px-4">
               <span class="font-semibold">✕ Replace &amp; Remove</span>
-              <span class="block text-xs text-red-300/70 mt-0.5 font-normal">
+              <span class="block text-xs text-red-50 mt-0.5 font-normal">
                 {{ dndModal.source.username }} takes the slot · {{ dndModal.target.username }} is removed from the train
               </span>
             </button>
@@ -277,26 +284,33 @@
     </Teleport>
 
     <!-- Add slot modal -->
-    <div v-if="addSlotDay" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-      <div class="bg-surface border border-bd rounded-xl p-6 w-full max-w-sm space-y-4">
-        <h4 class="font-semibold text-tx1">Add Slot</h4>
+    <div v-if="addSlotDay" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" @click.self="addSlotDay = null">
+      <div
+        ref="addSlotModalRef"
+        class="bg-surface border border-bd rounded-xl p-6 w-full max-w-sm space-y-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-slot-title"
+        tabindex="-1"
+      >
+        <h4 id="add-slot-title" class="font-semibold text-tx1">Add Slot</h4>
         <div>
-          <label class="label">Username (blank = open slot)</label>
-          <input v-model="newSlot.username" class="input" placeholder="@username" />
+          <label class="label" for="add-slot-username">Username (blank = open slot)</label>
+          <input id="add-slot-username" v-model="newSlot.username" class="input" placeholder="@username" />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="label">Start Time (ET)</label>
-            <input v-model="newSlot.start_time" type="time" class="input" />
+            <label class="label" for="add-slot-start">Start Time (ET)</label>
+            <input id="add-slot-start" v-model="newSlot.start_time" type="time" class="input" />
           </div>
           <div>
-            <label class="label">Duration (min)</label>
-            <input v-model.number="newSlot.duration_min" type="number" min="5" max="120" class="input" />
+            <label class="label" for="add-slot-duration">Duration (min)</label>
+            <input id="add-slot-duration" v-model.number="newSlot.duration_min" type="number" min="5" max="120" class="input" />
           </div>
         </div>
         <div>
-          <label class="label">Label (optional)</label>
-          <input v-model="newSlot.label" class="input" placeholder="Kickoff, Boost…" />
+          <label class="label" for="add-slot-label">Label (optional)</label>
+          <input id="add-slot-label" v-model="newSlot.label" class="input" placeholder="Kickoff, Boost…" />
         </div>
         <label class="flex items-center gap-2 text-sm text-tx2 cursor-pointer">
           <input v-model="newSlot.is_pre_assigned" type="checkbox" class="rounded" />
@@ -320,6 +334,7 @@ import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
 import { allZones, formatDate, trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
+import { useModalA11y } from '../../composables/useModalA11y.js'
 
 const route  = useRoute()
 const router = useRouter()
@@ -360,6 +375,10 @@ async function uploadCover(trainId) {
 const editingSlot  = ref(null)
 const editUsername = ref('')
 const addSlotDay   = ref(null)
+const { modalRef: addSlotModalRef } = useModalA11y(
+  () => !!addSlotDay.value,
+  () => { addSlotDay.value = null }
+)
 const savingSlot   = ref(false)
 const newSlot = ref({ username: '', start_time: '12:00', duration_min: 30, label: '', is_pre_assigned: false })
 
@@ -367,6 +386,10 @@ const newSlot = ref({ username: '', start_time: '12:00', duration_min: 30, label
 const dragSource = ref(null)   // slot object being dragged
 const dragOver   = ref(null)   // slot id currently hovered over
 const dndModal   = ref(null)   // { source, target } when swap/replace needed
+const { modalRef: dndModalRef } = useModalA11y(
+  () => !!dndModal.value,
+  () => { dndModal.value = null }
+)
 
 function onDragStart(slot, event) {
   dragSource.value = slot

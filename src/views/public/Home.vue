@@ -32,7 +32,8 @@
         @click="theme.toggle()"
         class="absolute top-5 right-5 text-tx3 hover:text-tx1 transition-colors text-lg"
         :title="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-      >{{ theme.isDark ? '☀' : '◑' }}</button>
+        :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+      ><span aria-hidden="true">{{ theme.isDark ? '☀' : '◑' }}</span></button>
     </header>
 
     <!-- ── ASCII locomotive animation ── -->
@@ -86,6 +87,7 @@
               v-else
               class="w-28 h-28 rounded-lg bg-niknax-100 dark:bg-niknax-950 border border-bd
                      flex items-center justify-center font-mono text-5xl shrink-0"
+              aria-hidden="true"
             >🚂</div>
 
             <div class="flex-1 min-w-0">

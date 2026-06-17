@@ -41,10 +41,11 @@
       <button
         @click="theme.toggle()"
         :title="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+        :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
         class="w-9 h-9 flex items-center justify-center rounded-lg text-tx2 hover:bg-sur2 hover:text-tx1 transition-colors"
       >
-        <span v-if="theme.isDark" class="text-lg">☀️</span>
-        <span v-else class="text-lg">🌙</span>
+        <span v-if="theme.isDark" class="text-lg" aria-hidden="true">☀️</span>
+        <span v-else class="text-lg" aria-hidden="true">🌙</span>
       </button>
 
       <button

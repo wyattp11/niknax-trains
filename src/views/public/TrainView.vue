@@ -10,8 +10,9 @@
       <button
         @click="theme.toggle()"
         class="text-tx3 hover:text-tx1 transition-colors text-base"
-        :title="theme.isDark ? 'Light mode' : 'Dark mode'"
-      >{{ theme.isDark ? '☀' : '◑' }}</button>
+        :title="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+        :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+      ><span aria-hidden="true">{{ theme.isDark ? '☀' : '◑' }}</span></button>
     </div>
 
     <div v-if="loading" class="text-center py-32 text-tx3">Loading…</div>
@@ -60,7 +61,7 @@
             >
               Watch on District ↗
             </a>
-            <button @click="copyPageLink" class="btn-secondary text-sm">
+            <button @click="copyPageLink" class="btn-secondary text-sm" aria-live="polite">
               {{ pageLinkCopied ? '✓ Copied!' : '🔗 Share Event' }}
             </button>
             <button
@@ -168,13 +169,20 @@
         class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4"
         @click.self="signupModal = null"
       >
-        <div class="bg-surface border border-bd rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+        <div
+          ref="modalRef"
+          class="bg-surface border border-bd rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="signupSuccess ? 'Signup confirmed' : 'Sign up for this slot'"
+          tabindex="-1"
+        >
 
           <!-- ── Success state ── -->
           <template v-if="signupSuccess">
             <div class="text-center mb-5">
-              <div class="text-5xl mb-3">🎉</div>
-              <h3 class="text-xl font-bold text-white mb-1">You're on the train!</h3>
+              <div class="text-5xl mb-3" aria-hidden="true">🎉</div>
+              <h3 ref="successHeadingRef" tabindex="-1" class="text-xl font-bold text-white mb-1">You're on the train!</h3>
               <p class="text-gray-400 text-sm">
                 {{ signupSuccess.username }} · {{ zones(signupSuccess.slot.start_time)[0].time }} ET
                 · {{ formatDate(signupSuccess.day.day_date) }}
@@ -183,7 +191,7 @@
 
             <!-- Graphic download card -->
             <div v-if="train.cover_url" class="bg-gray-800 rounded-xl overflow-hidden mb-5">
-              <img :src="train.cover_url" class="w-full object-cover max-h-48" alt="Train graphic" />
+              <img :src="train.cover_url" class="w-full object-cover max-h-48" :alt="`${train.name} promotional graphic`" />
               <div class="p-3 flex items-center justify-between gap-3">
                 <div>
                   <p class="text-white text-sm font-semibold">Train Graphic</p>
@@ -214,27 +222,39 @@
 
             <div class="space-y-4">
               <div class="relative">
-                <label class="label">Your District / Niknax Username *</label>
+                <label class="label" id="signup-username-label">Your District / Niknax Username *</label>
                 <input
                   v-model="signupUsername"
                   class="input"
                   placeholder="@YourUsername"
                   autocomplete="off"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-haspopup="listbox"
+                  :aria-expanded="usernameSuggestions.length > 0"
+                  aria-controls="username-suggestions-list"
+                  :aria-activedescendant="activeSuggestion >= 0 ? `username-suggestion-${activeSuggestion}` : undefined"
+                  aria-labelledby="signup-username-label"
                   @input="onUsernameInput"
                   @keyup.enter="submitSignup"
                   @keydown.down.prevent="moveSuggestion(1)"
                   @keydown.up.prevent="moveSuggestion(-1)"
+                  @keydown.esc="onUsernameEscape"
                   @blur="hideSuggestionsSoon"
                   @focus="onUsernameInput"
-                  autofocus
                 />
                 <ul
                   v-if="usernameSuggestions.length"
+                  id="username-suggestions-list"
+                  role="listbox"
                   class="absolute z-10 left-0 right-0 mt-1 card p-1 max-h-48 overflow-y-auto shadow-lg"
                 >
                   <li
                     v-for="(s, i) in usernameSuggestions"
+                    :id="`username-suggestion-${i}`"
                     :key="s"
+                    role="option"
+                    :aria-selected="i === activeSuggestion"
                     class="px-3 py-1.5 rounded-md text-sm cursor-pointer"
                     :class="i === activeSuggestion ? 'bg-niknax-600 text-white' : 'text-tx1 hover:bg-sur2'"
                     @mousedown.prevent="pickSuggestion(s)"
@@ -254,7 +274,7 @@
               </div>
             </div>
 
-            <p v-if="signupError" class="text-red-400 text-sm mt-3">{{ signupError }}</p>
+            <p class="text-red-600 dark:text-red-400 text-sm mt-3 min-h-[1.25rem]" aria-live="polite">{{ signupError }}</p>
 
             <div class="flex gap-3 mt-6">
               <button @click="signupModal = null" class="btn-secondary flex-1">Cancel</button>
@@ -271,11 +291,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { supabase } from '../../lib/supabase.js'
 import { allZones, formatDate, parseTime, trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
+import { useModalA11y } from '../../composables/useModalA11y.js'
 
 const route = useRoute()
 const theme = useThemeStore()
@@ -292,6 +313,20 @@ const signupLink     = ref('')
 const signupError    = ref('')
 const signingUp      = ref(false)
 const pageLinkCopied = ref(false)
+
+const successHeadingRef = ref(null)
+
+const { modalRef } = useModalA11y(
+  () => !!signupModal.value,
+  () => { signupModal.value = null }
+)
+
+watch(signupSuccess, async (val) => {
+  if (val) {
+    await nextTick()
+    successHeadingRef.value?.focus?.()
+  }
+})
 
 // ── Username autocomplete (from members_signup_search view) ──────────────
 const usernameSuggestions = ref([])
@@ -321,6 +356,17 @@ function onUsernameInput() {
 function pickSuggestion(username) {
   signupUsername.value = username
   usernameSuggestions.value = []
+}
+
+function onUsernameEscape(e) {
+  // If the suggestion list is open, Escape should dismiss just the list
+  // (not the whole signup modal). Stop it from bubbling to the modal's
+  // document-level Escape-to-close handler.
+  if (usernameSuggestions.value.length) {
+    e.stopPropagation()
+    usernameSuggestions.value = []
+    activeSuggestion.value = -1
+  }
 }
 
 function moveSuggestion(delta) {

@@ -32,7 +32,7 @@
             class="w-28 h-28 rounded-lg object-cover shrink-0"
             alt=""
           />
-          <div v-else class="w-28 h-28 rounded-lg bg-niknax-900/40 flex items-center justify-center text-5xl shrink-0">
+          <div v-else class="w-28 h-28 rounded-lg bg-niknax-900/40 flex items-center justify-center text-5xl shrink-0" aria-hidden="true">
             🚂
           </div>
 

@@ -26,7 +26,7 @@
           <input type="checkbox" v-model="onlyCanGoLive" class="accent-niknax-600" />
           Can go live only
         </label>
-        <span v-if="saveError" class="text-sm text-teal-600">{{ saveError }}</span>
+        <span v-if="saveError" class="text-sm text-teal-600 dark:text-teal-400">{{ saveError }}</span>
       </div>
 
       <!-- Table -->
@@ -80,7 +80,7 @@
                 />
               </td>
               <td class="px-4 py-2 text-right whitespace-nowrap">
-                <button class="text-teal-600 hover:text-teal-700 text-xs font-medium" @click="confirmDelete(row)">
+                <button class="text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 text-xs font-medium" @click="confirmDelete(row)">
                   Delete
                 </button>
               </td>
@@ -101,25 +101,32 @@
 
     <!-- Add member modal -->
     <div v-if="showAdd" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @click.self="showAdd = false">
-      <div class="card max-w-md w-full space-y-4">
-        <h3 class="text-lg font-bold text-tx1">Add Member</h3>
+      <div
+        ref="addModalRef"
+        class="card max-w-md w-full space-y-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-member-title"
+        tabindex="-1"
+      >
+        <h3 id="add-member-title" class="text-lg font-bold text-tx1">Add Member</h3>
         <div>
-          <label class="label">Username *</label>
-          <input v-model="newMember.username" class="input" placeholder="@username" />
+          <label class="label" for="add-member-username">Username *</label>
+          <input id="add-member-username" v-model="newMember.username" class="input" placeholder="@username" />
         </div>
         <div>
-          <label class="label">Full name</label>
-          <input v-model="newMember.full_name" class="input" />
+          <label class="label" for="add-member-name">Full name</label>
+          <input id="add-member-name" v-model="newMember.full_name" class="input" />
         </div>
         <div>
-          <label class="label">Email</label>
-          <input v-model="newMember.email" type="email" class="input" />
+          <label class="label" for="add-member-email">Email</label>
+          <input id="add-member-email" v-model="newMember.email" type="email" class="input" />
         </div>
         <label class="flex items-center gap-2 text-sm text-tx2 select-none cursor-pointer">
           <input type="checkbox" v-model="newMember.can_go_live" class="accent-niknax-600" />
           Can go live
         </label>
-        <p v-if="addError" class="text-sm text-teal-600">{{ addError }}</p>
+        <p class="text-sm text-teal-600 dark:text-teal-400 min-h-[1.25rem]" aria-live="polite">{{ addError }}</p>
         <div class="flex justify-end gap-2 pt-2">
           <button class="btn-secondary" @click="showAdd = false">Cancel</button>
           <button class="btn-primary" :disabled="adding" @click="addMember">
@@ -131,8 +138,15 @@
 
     <!-- Upload CSV modal -->
     <div v-if="showUpload" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @click.self="closeUpload">
-      <div class="card max-w-lg w-full space-y-4">
-        <h3 class="text-lg font-bold text-tx1">Upload Members CSV</h3>
+      <div
+        ref="uploadModalRef"
+        class="card max-w-lg w-full space-y-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="upload-csv-title"
+        tabindex="-1"
+      >
+        <h3 id="upload-csv-title" class="text-lg font-bold text-tx1">Upload Members CSV</h3>
         <p class="text-sm text-tx3">
           Header row required. Recognized columns (any order, case-insensitive): <span class="font-mono text-xs">username</span> (required),
           <span class="font-mono text-xs">full_name</span> / <span class="font-mono text-xs">name</span>,
@@ -145,7 +159,9 @@
           Existing usernames are updated; new usernames are added.
         </p>
 
+        <label class="sr-only" for="upload-csv-file">CSV file</label>
         <input
+          id="upload-csv-file"
           ref="fileInput"
           type="file"
           accept=".csv,text/csv"
@@ -161,11 +177,11 @@
               :style="{ width: uploadTotal ? (100 * uploadDone / uploadTotal) + '%' : '0%' }"
             ></div>
           </div>
-          <p class="text-xs text-tx3">Uploading {{ uploadDone.toLocaleString() }} / {{ uploadTotal.toLocaleString() }}…</p>
+          <p class="text-xs text-tx3" aria-live="polite">Uploading {{ uploadDone.toLocaleString() }} / {{ uploadTotal.toLocaleString() }}…</p>
         </div>
 
-        <p v-if="uploadError" class="text-sm text-teal-600">{{ uploadError }}</p>
-        <p v-if="uploadSummary" class="text-sm text-tx2">{{ uploadSummary }}</p>
+        <p class="text-sm text-teal-600 dark:text-teal-400 min-h-[1.25rem]" aria-live="polite">{{ uploadError }}</p>
+        <p class="text-sm text-tx2 min-h-[1.25rem]" aria-live="polite">{{ uploadSummary }}</p>
 
         <div class="flex justify-end gap-2 pt-2">
           <button class="btn-secondary" :disabled="uploading" @click="closeUpload">
@@ -181,6 +197,7 @@
 import { ref, watch, computed, onMounted } from 'vue'
 import AdminNav from '../../components/AdminNav.vue'
 import { supabase } from '../../lib/supabase.js'
+import { useModalA11y } from '../../composables/useModalA11y.js'
 
 const PAGE_SIZE = 50
 
@@ -281,6 +298,11 @@ const adding   = ref(false)
 const addError = ref('')
 const newMember = ref({ username: '', full_name: '', email: '', can_go_live: false })
 
+const { modalRef: addModalRef } = useModalA11y(
+  () => showAdd.value,
+  () => { showAdd.value = false }
+)
+
 function openAdd() {
   newMember.value = { username: '', full_name: '', email: '', can_go_live: false }
   addError.value = ''
@@ -326,6 +348,11 @@ const uploadDone     = ref(0)
 const uploadTotal    = ref(0)
 const fileInput      = ref(null)
 const BATCH_SIZE = 500
+
+const { modalRef: uploadModalRef } = useModalA11y(
+  () => showUpload.value,
+  closeUpload
+)
 
 function openUpload() {
   uploadError.value = ''

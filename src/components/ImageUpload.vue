@@ -10,6 +10,7 @@
       <button
         type="button"
         @click="clear"
+        aria-label="Remove image"
         class="absolute top-2 right-2 bg-surface/90 hover:bg-sur2 text-tx1 rounded-full w-7 h-7 flex items-center justify-center text-sm transition-colors shadow"
       >×</button>
     </div>
@@ -33,14 +34,14 @@
         class="hidden"
         @change="onSelect"
       />
-      <div class="text-3xl mb-2">🖼️</div>
+      <div class="text-3xl mb-2" aria-hidden="true">🖼️</div>
       <p class="text-tx2 text-sm font-medium">
         {{ preview || currentUrl ? 'Replace image' : 'Upload train graphic' }}
       </p>
       <p class="text-tx3 text-xs mt-1">Click or drag & drop · PNG, JPG, GIF · max 10 MB</p>
     </label>
 
-    <p v-if="sizeError" class="text-red-400 text-xs mt-2">{{ sizeError }}</p>
+    <p v-if="sizeError" class="text-red-600 dark:text-red-400 text-xs mt-2">{{ sizeError }}</p>
   </div>
 </template>
 
