@@ -40,7 +40,7 @@ const TRACKS = '═'.repeat(300)
 // the left, small (o) front pilots on the right.
 const LOCO_RAW = [
   `                ________           _____                                  `,  // cab roof (rises above boiler)
-  `                  | || |  _        \\\==/               `,  // cab window + stack top (forward!)
+  `                  | || |  _         \\\==/               `,  // cab window + stack top (forward!)
   `                  |_||_|_| |______!_|__|__`,  // boiler roof + stack base
   ` |#############|  |     | ~*NIKNAX*~ ____|]`,  // body + boiler label + coupler
   `|_______________| |_____|______|    |____|`,  // underframe
