@@ -39,9 +39,9 @@ const TRACKS = '═'.repeat(300)
 // the front of the boiler, using \ instead of /. Big ( O ) rear drivers on
 // the left, small (o) front pilots on the right.
 const LOCO_RAW = [
-  `                ________            ____                                  `,  // cab roof (rises above boiler)
-  `                  | || |           \\\==/               `,  // cab window + stack top (forward!)
-  `                  |_||_|^___^____!_|__|_`,  // boiler roof + stack base
+  `                ________           _____                                  `,  // cab roof (rises above boiler)
+  `                  | || |  _        \\\==/               `,  // cab window + stack top (forward!)
+  `                  |_||_|_| |______!_|__|__`,  // boiler roof + stack base
   ` |#############|  |     | ~*NIKNAX*~ ____|]`,  // body + boiler label + coupler
   `|_______________| |_____|______|    |____|`,  // underframe
   ` (*)(*)--(*)(*)    (-*-)=(-*-)    (0)-(0)||\\\    `,  // big rear drivers + small front pilots

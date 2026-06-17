@@ -205,10 +205,10 @@
                       <span v-if="slot.label" class="text-xs text-niknax-400 bg-niknax-900/50 px-1.5 py-0.5 rounded">{{ slot.label }}</span>
                     </span>
                   </td>
-                  <td class="px-3 py-2.5 text-tx2">{{ zones(slot.start_time)[0].time }}</td>
-                  <td class="px-3 py-2.5 text-tx2">{{ zones(slot.start_time)[1].time }}</td>
-                  <td class="px-3 py-2.5 text-tx2">{{ zones(slot.start_time)[2].time }}</td>
-                  <td class="px-3 py-2.5 text-tx2">{{ zones(slot.start_time)[3].time }}</td>
+                  <td class="px-3 py-2.5 text-tx1 font-bold text-base">{{ zones(slot.start_time)[0].time }}</td>
+                  <td class="px-3 py-2.5 text-tx2 font-semibold">{{ zones(slot.start_time)[1].time }}</td>
+                  <td class="px-3 py-2.5 text-tx2 font-semibold">{{ zones(slot.start_time)[2].time }}</td>
+                  <td class="px-3 py-2.5 text-tx2 font-semibold">{{ zones(slot.start_time)[3].time }}</td>
                   <td class="px-3 py-2.5 text-tx3 text-xs">{{ slot.duration_min }}m</td>
                   <td class="px-3 py-2.5">
                     <span v-if="slot.is_pre_assigned" class="text-xs text-niknax-600 dark:text-niknax-400">Reserved</span>

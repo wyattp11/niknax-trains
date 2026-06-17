@@ -132,10 +132,10 @@
                       >{{ slot.label }}</span>
                     </div>
                   </td>
-                  <td class="px-4 py-3 text-tx1 font-medium">{{ zones(slot.start_time)[0].time }}</td>
-                  <td class="px-4 py-3 text-tx2">{{ zones(slot.start_time)[1].time }}</td>
-                  <td class="px-4 py-3 text-tx2">{{ zones(slot.start_time)[2].time }}</td>
-                  <td class="px-4 py-3 text-tx2">{{ zones(slot.start_time)[3].time }}</td>
+                  <td class="px-4 py-3 text-tx1 font-bold text-base">{{ zones(slot.start_time)[0].time }}</td>
+                  <td class="px-4 py-3 text-tx2 font-semibold">{{ zones(slot.start_time)[1].time }}</td>
+                  <td class="px-4 py-3 text-tx2 font-semibold">{{ zones(slot.start_time)[2].time }}</td>
+                  <td class="px-4 py-3 text-tx2 font-semibold">{{ zones(slot.start_time)[3].time }}</td>
                   <td class="px-4 py-3 text-right">
                     <button
                       v-if="!slot.username && !slot.is_pre_assigned"

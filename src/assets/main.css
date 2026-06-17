@@ -117,26 +117,28 @@
     @apply rounded-xl p-6;
   }
 
-  /* Status badges — colorblind-friendly */
+  /* Status badges — colorblind-friendly, solid "postal stamp" fills.       */
+  /* Solid (non-translucent) so contrast holds identically in light & dark; */
+  /* every pairing below clears WCAG AA (4.5:1+) for white text on the fill. */
   .badge-live {
-    background-color: var(--badge-live-bg);
-    color: var(--badge-live-text);
-    @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
+    background-color: #2C5F7C; /* niknax-600 — Slate Blue */
+    color: #FFFFFF;
+    @apply text-xs font-extrabold uppercase tracking-wide px-3 py-1 rounded-full shadow-sm;
   }
   .badge-upcoming {
-    background-color: var(--badge-upcoming-bg);
-    color: var(--badge-upcoming-text);
-    @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
+    background-color: #A8401F; /* teal-600 — Persimmon (deep) */
+    color: #FFFFFF;
+    @apply text-xs font-extrabold uppercase tracking-wide px-3 py-1 rounded-full shadow-sm;
   }
   .badge-draft {
-    background-color: var(--badge-draft-bg);
-    color: var(--badge-draft-text);
-    @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
+    background-color: #6B4A33; /* olive-600 — Walnut Brown */
+    color: #FFFFFF;
+    @apply text-xs font-extrabold uppercase tracking-wide px-3 py-1 rounded-full shadow-sm;
   }
   .badge-full {
-    background-color: var(--badge-full-bg);
-    color: var(--badge-full-text);
-    @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
+    background-color: #876316; /* mustard-600 — Goldenrod (deep) */
+    color: #FFFFFF;
+    @apply text-xs font-extrabold uppercase tracking-wide px-3 py-1 rounded-full shadow-sm;
   }
 
   /* Calendar event chips */
