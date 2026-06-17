@@ -2,63 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme tokens — Mid-Century Modern (Teal / Coral / Mustard) ──────────── */
+/* ── Theme tokens — Mod Citrus (Tangerine / Hot Pink / Lemon / Olive) ────── */
 :root {
-  /* Light: warm cream paper */
-  --color-base:    #F5EFE1;   /* warm cream             */
-  --color-surface: #FFFBF2;   /* off-white card surface */
-  --color-sur2:    #EFE6D2;   /* light tan input bg     */
-  --color-bd:      #DACBA3;   /* tan border              */
-  --color-bd2:     #C2AD7C;   /* deeper tan border       */
-  --color-tx1:     #2B2420;   /* charcoal                */
-  --color-tx2:     #105146;   /* deep teal brand text    */
-  --color-tx3:     #6B5D4F;   /* muted warm brown        */
+  /* Light: bright citrus-tinted paper */
+  --color-base:    #FFF8EC;   /* lemon-tinted cream      */
+  --color-surface: #FFFFFF;   /* white card surface      */
+  --color-sur2:    #FCEFD9;   /* light citrus input bg   */
+  --color-bd:      #F0D9A8;   /* warm tan border         */
+  --color-bd2:     #E0BD78;   /* deeper tan border       */
+  --color-tx1:     #2A2A1E;   /* dark olive-charcoal     */
+  --color-tx2:     #C96F1E;   /* tangerine brand text    */
+  --color-tx3:     #75714F;   /* muted olive-brown       */
 
-  /* Status badges — colorblind-friendly (blue / orange / gray) */
+  /* Status badges — colorblind-friendly (blue / orange / gray / gold) */
   --badge-live-bg:       #dbeafe;
   --badge-live-text:     #1e40af;
   --badge-live-dot:      #3b82f6;
 
-  --badge-upcoming-bg:   #FBE3D2;
-  --badge-upcoming-text: #9E3F16;
-  --badge-upcoming-dot:  #E26A33;
+  --badge-upcoming-bg:   #FCE3C9;
+  --badge-upcoming-text: #9E5716;
+  --badge-upcoming-dot:  #F08C2E;
 
-  --badge-draft-bg:      #EFE6D2;
-  --badge-draft-text:    #6B5D4F;
-  --badge-draft-dot:     #A99A82;
+  --badge-draft-bg:      #FCEFD9;
+  --badge-draft-text:    #75714F;
+  --badge-draft-dot:     #C2AD7C;
 
-  --badge-full-bg:       #F8E9C7;
-  --badge-full-text:     #8A6512;
-  --badge-full-dot:      #D29A2C;
+  --badge-full-bg:       #F9F0AE;
+  --badge-full-text:     #71621A;
+  --badge-full-dot:      #DCC02C;
 }
 
 .dark {
-  /* Dark: deep charcoal */
-  --color-base:    #1B1714;   /* deep charcoal          */
-  --color-surface: #241F1B;   /* dark surface           */
-  --color-sur2:    #2E2722;   /* slightly lighter       */
-  --color-bd:      #463C33;   /* dark tan border        */
-  --color-bd2:     #5C4F43;   /* medium tan border      */
-  --color-tx1:     #F5EFE1;   /* warm cream text        */
-  --color-tx2:     #6CBDAA;   /* bright teal text       */
-  --color-tx3:     #A0907D;   /* muted warm tan         */
+  /* Dark: deep warm charcoal */
+  --color-base:    #1C1810;   /* deep warm charcoal     */
+  --color-surface: #242018;   /* dark surface           */
+  --color-sur2:    #2E281C;   /* slightly lighter       */
+  --color-bd:      #4A4030;   /* dark tan border        */
+  --color-bd2:     #5C5040;   /* medium tan border      */
+  --color-tx1:     #FFF8EC;   /* citrus cream text      */
+  --color-tx2:     #F4A857;   /* bright tangerine text  */
+  --color-tx3:     #B0A788;   /* muted warm tan         */
 
   /* Status badges — dark variants */
   --badge-live-bg:       rgba(30, 58, 138, 0.55);
   --badge-live-text:     #93c5fd;
   --badge-live-dot:      #60a5fa;
 
-  --badge-upcoming-bg:   rgba(158, 63, 22, 0.45);
-  --badge-upcoming-text: #F2A77C;
-  --badge-upcoming-dot:  #EB8753;
+  --badge-upcoming-bg:   rgba(158, 87, 22, 0.45);
+  --badge-upcoming-text: #F7C58D;
+  --badge-upcoming-dot:  #F4A857;
 
-  --badge-draft-bg:      #2E2722;
-  --badge-draft-text:    #A0907D;
-  --badge-draft-dot:     #6B5D4F;
+  --badge-draft-bg:      #2E281C;
+  --badge-draft-text:    #B0A788;
+  --badge-draft-dot:     #5C5040;
 
-  --badge-full-bg:       rgba(176, 127, 31, 0.35);
-  --badge-full-text:     #F0CD7E;
-  --badge-full-dot:      #E0B04E;
+  --badge-full-bg:       rgba(184, 159, 31, 0.35);
+  --badge-full-text:     #F7E48A;
+  --badge-full-dot:      #F2D43D;
 }
 
 /* ── Base ───────────────────────────────────────────────────────────────── */
