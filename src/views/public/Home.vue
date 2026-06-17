@@ -79,13 +79,13 @@
             <img
               v-if="ev.cover_url"
               :src="ev.cover_url"
-              class="w-14 h-14 rounded-lg object-cover shrink-0"
+              class="w-28 h-28 rounded-lg object-cover shrink-0"
               alt=""
             />
             <div
               v-else
-              class="w-14 h-14 rounded-lg bg-niknax-100 dark:bg-niknax-950 border border-bd
-                     flex items-center justify-center font-mono text-2xl shrink-0"
+              class="w-28 h-28 rounded-lg bg-niknax-100 dark:bg-niknax-950 border border-bd
+                     flex items-center justify-center font-mono text-5xl shrink-0"
             >🚂</div>
 
             <div class="flex-1 min-w-0">

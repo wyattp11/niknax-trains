@@ -95,7 +95,7 @@ export function trainStatus(train, totalSlots = 0, filledSlots = 0) {
   return { key: 'boarding', label: 'Now Boarding' }
 }
 
-/** Maps a trainStatus() key to its .badge-*/.chip-* CSS class suffix. */
+/** Maps a trainStatus() key to its .badge- (or .chip-) CSS class suffix. */
 export const STATUS_BADGE_CLASS = {
   pending:  'upcoming',
   boarding: 'live',
