@@ -2,6 +2,13 @@
 export default {
   content: ['./index.html', './src/**/*.{vue,js,ts}'],
   darkMode: 'class',
+  // Status badge/chip classes are built dynamically (`badge-${...}`), so
+  // Tailwind's content scanner never sees the literal class names and would
+  // otherwise purge these hand-written @layer components rules in production.
+  safelist: [
+    'badge-live', 'badge-upcoming', 'badge-draft', 'badge-full',
+    'chip-live', 'chip-upcoming', 'chip-draft', 'chip-full',
+  ],
   theme: {
     extend: {
       colors: {
