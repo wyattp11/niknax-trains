@@ -168,7 +168,7 @@ function computeStops() {
   // under the title, so shift the centered block toward the right edge.
   // Small coupling gap between consecutive cars so they don't visually
   // bump into each other.
-  const carGap = cw * 1.5
+  const carGap = cw * 0.4
   const gapsW  = Math.max(numCars - 1, 0) * carGap
 
   const totalW = LOCO_W * cw + numCars * CAR_W * cw + gapsW + CAB_W * cw
