@@ -151,13 +151,13 @@
                         :href="slot.seller_link"
                         target="_blank"
                         rel="noopener"
-                        class="inline-block bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                        class="inline-block bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                       >Show Link ↗</a>
 
                       <button
                         v-else-if="linkEditSlotId !== slot.id"
                         @click="startAddLink(slot)"
-                        class="bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                        class="bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                       >+ Add Show Link</button>
 
                       <div v-else class="flex items-center gap-1.5 justify-end">
