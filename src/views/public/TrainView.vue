@@ -130,6 +130,34 @@
                         v-if="slot.label"
                         class="text-xs font-semibold text-niknax-500 bg-niknax-500/15 px-1.5 py-0.5 rounded"
                       >{{ slot.label }}</span>
+
+                      <!-- Show link — only offered once the slot is claimed -->
+                      <template v-if="slot.username">
+                        <a
+                          v-if="slot.seller_link"
+                          :href="slot.seller_link"
+                          target="_blank"
+                          rel="noopener"
+                          class="text-xs font-semibold text-niknax-600 dark:text-niknax-400 hover:underline"
+                        >Show link ↗</a>
+                        <button
+                          v-else-if="linkEditSlotId !== slot.id"
+                          @click="startAddLink(slot)"
+                          class="text-xs text-tx3 hover:text-niknax-600 dark:hover:text-niknax-400 underline"
+                        >+ Add show link</button>
+                        <span v-else class="flex items-center gap-1.5 basis-full mt-1">
+                          <input
+                            v-model="linkEditValue"
+                            type="url"
+                            placeholder="https://districtapp.tv/…"
+                            class="input text-xs py-1 px-2 flex-1 min-w-0"
+                            @keyup.enter="saveLink(slot)"
+                            @keyup.esc="cancelAddLink"
+                          />
+                          <button @click="saveLink(slot)" class="text-xs font-semibold text-niknax-600 dark:text-niknax-400 shrink-0">Save</button>
+                          <button @click="cancelAddLink" class="text-xs text-tx3 shrink-0">✕</button>
+                        </span>
+                      </template>
                     </div>
                   </td>
                   <td class="px-4 py-3 text-tx1 font-bold text-base">{{ zones(slot.start_time)[0].time }}</td>
@@ -263,15 +291,6 @@
                   </li>
                 </ul>
               </div>
-              <div>
-                <label class="label">Your District Show Link (optional)</label>
-                <input
-                  v-model="signupLink"
-                  class="input"
-                  type="url"
-                  placeholder="https://districtapp.tv/…"
-                />
-              </div>
             </div>
 
             <p class="text-red-600 dark:text-red-400 text-sm mt-3 min-h-[1.25rem]" aria-live="polite">{{ signupError }}</p>
@@ -309,10 +328,36 @@ const loading = ref(true)
 const signupModal    = ref(null)
 const signupSuccess  = ref(null)   // { username, slot, day } after successful claim
 const signupUsername = ref('')
-const signupLink     = ref('')
 const signupError    = ref('')
 const signingUp      = ref(false)
 const pageLinkCopied = ref(false)
+
+// ── Inline "add show link" editing for already-claimed slots ─────────────
+const linkEditSlotId = ref(null)
+const linkEditValue  = ref('')
+
+function startAddLink(slot) {
+  linkEditSlotId.value = slot.id
+  linkEditValue.value  = slot.seller_link || ''
+}
+
+function cancelAddLink() {
+  linkEditSlotId.value = null
+  linkEditValue.value  = ''
+}
+
+async function saveLink(slot) {
+  const value = linkEditValue.value.trim()
+  const { error } = await supabase
+    .from('slots')
+    .update({ seller_link: value || null })
+    .eq('id', slot.id)
+  if (!error) {
+    const idx = slots.value.findIndex(s => s.id === slot.id)
+    if (idx !== -1) slots.value[idx].seller_link = value || null
+  }
+  cancelAddLink()
+}
 
 const successHeadingRef = ref(null)
 
@@ -518,7 +563,6 @@ function openSignup(slot, day) {
   signupSuccess.value  = null
   signupModal.value    = { slot, day }
   signupUsername.value = ''
-  signupLink.value     = ''
   signupError.value    = ''
   usernameSuggestions.value = []
 }
@@ -548,7 +592,6 @@ async function submitSignup() {
     .from('slots')
     .update({
       username: signupUsername.value.trim(),
-      seller_link: signupLink.value.trim() || null,
     })
     .eq('id', slot.id)
     .is('username', null)
@@ -558,8 +601,7 @@ async function submitSignup() {
   } else {
     const idx = slots.value.findIndex(s => s.id === slot.id)
     if (idx !== -1) {
-      slots.value[idx].username    = signupUsername.value.trim()
-      slots.value[idx].seller_link = signupLink.value.trim() || null
+      slots.value[idx].username = signupUsername.value.trim()
     }
     // Show success screen with graphic download
     signupSuccess.value = { username: signupUsername.value.trim(), slot, day }
