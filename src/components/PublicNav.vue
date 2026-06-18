@@ -19,6 +19,18 @@
         <span v-else class="text-lg" aria-hidden="true">🌙</span>
       </button>
 
+      <!-- Palm Springs theme toggle -->
+      <button
+        @click="theme.togglePalm()"
+        :title="theme.isPalm ? 'Turn off Palm Springs theme' : 'Turn on Palm Springs theme'"
+        :aria-label="theme.isPalm ? 'Turn off Palm Springs theme' : 'Turn on Palm Springs theme'"
+        :aria-pressed="theme.isPalm"
+        class="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
+        :class="theme.isPalm ? 'bg-niknax-600 text-white' : 'text-tx2 hover:bg-sur2'"
+      >
+        <span class="text-lg" aria-hidden="true">🌴</span>
+      </button>
+
       <RouterLink to="/admin" class="text-tx3 hover:text-tx2 text-xs px-2 py-1 rounded transition-colors">
         Admin
       </RouterLink>

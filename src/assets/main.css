@@ -32,6 +32,19 @@
   --badge-full-bg:       #F0E0B8;
   --badge-full-text:     #5C4710;
   --badge-full-dot:      #C9962A;
+
+  /* Brand scale — Slate Blue (same in light & dark; overridden by .palm) */
+  --brand-50:  #EFF5F8;
+  --brand-100: #DCEAF0;
+  --brand-200: #B9D5E1;
+  --brand-300: #93BECF;
+  --brand-400: #6CA3B9;
+  --brand-500: #4A86A0;
+  --brand-600: #2C5F7C;
+  --brand-700: #234C64;
+  --brand-800: #1B3A4D;
+  --brand-900: #122736;
+  --brand-950: #0A161F;
 }
 
 .dark {
@@ -61,6 +74,78 @@
   --badge-full-bg:       rgba(135, 99, 22, 0.35);
   --badge-full-text:     #E8CB85;
   --badge-full-dot:      #C9962A;
+}
+
+/* ── Palm Springs accent theme (toggle, independent of light/dark) ──────── */
+/* Palette: #FCCDBD peach, #3F7F8B teal, #5FC3D5 sky, #FEA0CE pink,         */
+/* #F9927C coral, #D4E7E8 pale aqua. Text/border shades are derived from   */
+/* the teal hue to hold WCAG AA contrast; all pairings checked at 4.5:1+   */
+/* for body text (large/decorative elements relaxed to 3:1, same bar used  */
+/* in the Mid-Century Postal audit).                                      */
+.palm {
+  --color-base:    #FCEFE9;   /* light peach-cream */
+  --color-surface: #FFFFFF;
+  --color-sur2:    #FCCDBD;   /* peach input bg     */
+  --color-bd:      #E8A08C;   /* warm peach border  */
+  --color-bd2:     #D98870;
+  --color-tx1:     #1B3338;   /* deep teal — body text, ~11:1 on base */
+  --color-tx2:     #3F7F8B;   /* teal — headings/links, ~4.55:1 on white */
+  --color-tx3:     #6E8E91;   /* muted teal-gray */
+
+  --badge-live-bg:       #D9F0F3;
+  --badge-live-text:     #1F5C68;
+  --badge-live-dot:      #3F7F8B;
+
+  --badge-upcoming-bg:   #FCE3DC;
+  --badge-upcoming-text: #7A3420;
+  --badge-upcoming-dot:  #F9927C;
+
+  --badge-draft-bg:      #F1E6E2;
+  --badge-draft-text:    #6B5A52;
+  --badge-draft-dot:     #B79C8F;
+
+  --badge-full-bg:       #FCE2F0;
+  --badge-full-text:     #9A1763;
+  --badge-full-dot:      #FEA0CE;
+
+  --brand-50:  #EAF6F8;
+  --brand-100: #D4E7E8;   /* pale aqua, from palette */
+  --brand-200: #A9D8DE;
+  --brand-300: #7FC9D3;
+  --brand-400: #5FC3D5;   /* sky, from palette */
+  --brand-500: #4F97A3;
+  --brand-600: #3F7F8B;   /* teal, from palette */
+  --brand-700: #2D5C65;
+  --brand-800: #1D3338;
+  --brand-900: #16282B;
+  --brand-950: #0E1B1D;
+}
+
+.palm.dark {
+  --color-base:    #16282B;
+  --color-surface: #1D3338;
+  --color-sur2:    #234048;
+  --color-bd:      #3F7F8B;
+  --color-bd2:     #5FC3D5;
+  --color-tx1:     #F6EDE7;
+  --color-tx2:     #5FC3D5;
+  --color-tx3:     #9FB9BC;
+
+  --badge-live-bg:       rgba(63, 127, 139, 0.45);
+  --badge-live-text:     #9FE3EC;
+  --badge-live-dot:      #5FC3D5;
+
+  --badge-upcoming-bg:   rgba(249, 146, 124, 0.35);
+  --badge-upcoming-text: #FBC2AE;
+  --badge-upcoming-dot:  #F9927C;
+
+  --badge-draft-bg:      #234048;
+  --badge-draft-text:    #9FB9BC;
+  --badge-draft-dot:     #3F7F8B;
+
+  --badge-full-bg:       rgba(254, 160, 206, 0.30);
+  --badge-full-text:     #FBC3DF;
+  --badge-full-dot:      #FEA0CE;
 }
 
 /* ── Base ───────────────────────────────────────────────────────────────── */

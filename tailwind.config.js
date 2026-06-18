@@ -25,18 +25,20 @@ export default {
         // Blue/orange pairing (not red/green) so brand vs. accent stays
         // distinguishable under protanopia/deuteranopia/tritanopia, and every
         // text/button pairing below clears WCAG AA contrast (4.5:1+).
+        // Driven by CSS variables so the Palm Springs theme can reskin
+        // brand buttons/links without touching component markup.
         niknax: {
-          50:  '#EFF5F8',
-          100: '#DCEAF0',
-          200: '#B9D5E1',
-          300: '#93BECF',
-          400: '#6CA3B9',
-          500: '#4A86A0',   // hover (lighter slate blue)
-          600: '#2C5F7C',   // primary buttons / brand — Slate Blue
-          700: '#234C64',
-          800: '#1B3A4D',
-          900: '#122736',
-          950: '#0A161F',
+          50:  'var(--brand-50)',
+          100: 'var(--brand-100)',
+          200: 'var(--brand-200)',
+          300: 'var(--brand-300)',
+          400: 'var(--brand-400)',
+          500: 'var(--brand-500)',   // hover
+          600: 'var(--brand-600)',   // primary buttons / brand
+          700: 'var(--brand-700)',
+          800: 'var(--brand-800)',
+          900: 'var(--brand-900)',
+          950: 'var(--brand-950)',
         },
         // ── Persimmon accent ──
         teal: {
