@@ -130,34 +130,6 @@
                         v-if="slot.label"
                         class="text-xs font-semibold text-niknax-500 bg-niknax-500/15 px-1.5 py-0.5 rounded"
                       >{{ slot.label }}</span>
-
-                      <!-- Show link — only offered once the slot is claimed -->
-                      <template v-if="slot.username">
-                        <a
-                          v-if="slot.seller_link"
-                          :href="slot.seller_link"
-                          target="_blank"
-                          rel="noopener"
-                          class="text-xs font-semibold text-niknax-600 dark:text-niknax-400 hover:underline"
-                        >Show link ↗</a>
-                        <button
-                          v-else-if="linkEditSlotId !== slot.id"
-                          @click="startAddLink(slot)"
-                          class="text-xs text-tx3 hover:text-niknax-600 dark:hover:text-niknax-400 underline"
-                        >+ Add show link</button>
-                        <span v-else class="flex items-center gap-1.5 basis-full mt-1">
-                          <input
-                            v-model="linkEditValue"
-                            type="url"
-                            placeholder="https://districtapp.tv/…"
-                            class="input text-xs py-1 px-2 flex-1 min-w-0"
-                            @keyup.enter="saveLink(slot)"
-                            @keyup.esc="cancelAddLink"
-                          />
-                          <button @click="saveLink(slot)" class="text-xs font-semibold text-niknax-600 dark:text-niknax-400 shrink-0">Save</button>
-                          <button @click="cancelAddLink" class="text-xs text-tx3 shrink-0">✕</button>
-                        </span>
-                      </template>
                     </div>
                   </td>
                   <td class="px-4 py-3 text-tx1 font-bold text-base">{{ zones(slot.start_time)[0].time }}</td>
@@ -172,6 +144,35 @@
                     >
                       Sign Up
                     </button>
+
+                    <template v-else-if="slot.username">
+                      <a
+                        v-if="slot.seller_link"
+                        :href="slot.seller_link"
+                        target="_blank"
+                        rel="noopener"
+                        class="btn-secondary inline-block text-xs px-3 py-1.5"
+                      >Show Link ↗</a>
+
+                      <button
+                        v-else-if="linkEditSlotId !== slot.id"
+                        @click="startAddLink(slot)"
+                        class="btn-secondary text-xs px-3 py-1.5"
+                      >+ Add Show Link</button>
+
+                      <div v-else class="flex items-center gap-1.5 justify-end">
+                        <input
+                          v-model="linkEditValue"
+                          type="url"
+                          placeholder="https://districtapp.tv/…"
+                          class="input text-xs py-1 px-2 w-40"
+                          @keyup.enter="saveLink(slot)"
+                          @keyup.esc="cancelAddLink"
+                        />
+                        <button @click="saveLink(slot)" class="text-xs font-semibold text-niknax-600 dark:text-niknax-400 shrink-0">Save</button>
+                        <button @click="cancelAddLink" class="text-xs text-tx3 shrink-0">✕</button>
+                      </div>
+                    </template>
                   </td>
                 </tr>
               </tbody>
