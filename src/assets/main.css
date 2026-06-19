@@ -221,8 +221,8 @@
     @apply text-xs font-extrabold uppercase tracking-wide px-3 py-1 rounded-full shadow-sm;
   }
   .badge-full {
-    background-color: #876316; /* mustard-600 — Goldenrod (deep) */
-    color: #FFFFFF;
+    background-color: #40E0D0; /* Turquoise — "All Aboard!" */
+    color: #0F2A28; /* dark teal text — white fails contrast on turquoise */
     @apply text-xs font-extrabold uppercase tracking-wide px-3 py-1 rounded-full shadow-sm;
   }
 

@@ -27,13 +27,23 @@
         class="absolute top-5 left-5 text-tx3 hover:text-tx1 transition-colors text-xs font-mono uppercase tracking-widest"
       >Admin</RouterLink>
 
-      <!-- Dark mode toggle — subtle, floating top-right -->
-      <button
-        @click="theme.toggle()"
-        class="absolute top-5 right-5 text-tx3 hover:text-tx1 transition-colors text-lg"
-        :title="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-        :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-      ><span aria-hidden="true">{{ theme.isDark ? '☀' : '◑' }}</span></button>
+      <!-- Dark mode + Palm Springs toggles — subtle, floating top-right -->
+      <div class="absolute top-5 right-5 flex items-center gap-3">
+        <button
+          @click="theme.toggle()"
+          class="text-tx3 hover:text-tx1 transition-colors text-lg"
+          :title="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+        ><span aria-hidden="true">{{ theme.isDark ? '☀' : '◑' }}</span></button>
+        <button
+          @click="theme.togglePalm()"
+          class="text-lg transition-colors"
+          :class="theme.isPalm ? 'text-niknax-600 dark:text-niknax-400' : 'text-tx3 hover:text-tx1'"
+          :title="theme.isPalm ? 'Turn off Palm Springs theme' : 'Turn on Palm Springs theme'"
+          :aria-label="theme.isPalm ? 'Turn off Palm Springs theme' : 'Turn on Palm Springs theme'"
+          :aria-pressed="theme.isPalm"
+        ><span aria-hidden="true">🌴</span></button>
+      </div>
     </header>
 
     <!-- ── ASCII locomotive animation ── -->
@@ -144,6 +154,7 @@ async function load() {
   const { data } = await supabase
     .from('trains')
     .select('*, days:train_days(id, day_date, slots(id, username))')
+    .or('published.eq.true,is_upcoming.eq.true')
     .order('created_at', { ascending: false })
   rawTrains.value = data || []
   loading.value   = false

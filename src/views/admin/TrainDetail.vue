@@ -211,8 +211,17 @@
                   <td class="px-3 py-2.5 text-tx2 font-semibold">{{ zones(slot.start_time)[3].time }}</td>
                   <td class="px-3 py-2.5 text-tx3 text-xs">{{ slot.duration_min }}m</td>
                   <td class="px-3 py-2.5">
-                    <span v-if="slot.is_pre_assigned" class="text-xs text-niknax-600 dark:text-niknax-400">Reserved</span>
-                    <span v-else class="text-xs text-tx3">Open</span>
+                    <button
+                      type="button"
+                      @click="toggleSlotReserved(slot)"
+                      class="text-xs font-medium px-2 py-1 rounded-full border transition-colors"
+                      :class="slot.is_pre_assigned
+                        ? 'border-niknax-500 text-niknax-600 dark:text-niknax-300 bg-niknax-500/10 hover:bg-niknax-500/20'
+                        : 'border-bd text-tx3 hover:text-tx1 hover:bg-sur2'"
+                      :title="slot.is_pre_assigned ? 'Make this slot open for public signup' : 'Reserve this slot so it cannot be claimed publicly'"
+                    >
+                      {{ slot.is_pre_assigned ? 'Reserved' : 'Open' }}
+                    </button>
                   </td>
                   <td class="px-3 py-2.5 text-right">
                     <span v-if="editingSlot === slot.id" class="flex gap-1 justify-end">
@@ -359,7 +368,9 @@ const editUploadStatus = ref('')
 
 async function uploadCover(trainId) {
   if (!editCoverFile.value) return null
-  const ext  = editCoverFile.value.name.split('.').pop().toLowerCase()
+  const extByType = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' }
+  const ext  = extByType[editCoverFile.value.type]
+  if (!ext) throw new Error('Unsupported image type.')
   const path = `${trainId}/cover.${ext}`
   editUploadPct.value    = 0
   editUploadStatus.value = 'Uploading graphic…'
@@ -510,7 +521,7 @@ async function saveDetails() {
       // Show inline warning but don't abort the save
       detailsSaved.value = false
       console.error('Image upload failed:', uploadErr.message)
-      alert(`Graphic upload failed: ${uploadErr.message}\n\nMake sure the "train-graphics" bucket exists in Supabase Storage with public access and an anon INSERT policy.`)
+      alert(`Graphic upload failed: ${uploadErr.message}\n\nMake sure the "train-graphics" bucket exists in Supabase Storage and the admin storage policies are installed.`)
     }
     editCoverFile.value = null
   }
@@ -574,6 +585,23 @@ function startEdit(slot) {
 async function saveSlotUsername(slot) {
   const { error } = await supabase.from('slots').update({ username: editUsername.value || null }).eq('id', slot.id)
   if (!error) { slot.username = editUsername.value || null; editingSlot.value = null }
+}
+
+async function toggleSlotReserved(slot) {
+  const makeReserved = !slot.is_pre_assigned
+  const patch = { is_pre_assigned: makeReserved }
+
+  if (!makeReserved && slot.username) {
+    const ok = confirm(`Make this slot open and remove "${slot.username}" from it?`)
+    if (!ok) return
+    patch.username = null
+  }
+
+  const { error } = await supabase.from('slots').update(patch).eq('id', slot.id)
+  if (!error) {
+    slot.is_pre_assigned = makeReserved
+    if ('username' in patch) slot.username = null
+  }
 }
 
 function addSlotToDay(day) {

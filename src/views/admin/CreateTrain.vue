@@ -182,7 +182,9 @@ const form = ref({
 
 async function uploadCover(trainId) {
   if (!coverFile.value) return null
-  const ext  = coverFile.value.name.split('.').pop().toLowerCase()
+  const extByType = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' }
+  const ext  = extByType[coverFile.value.type]
+  if (!ext) throw new Error('Unsupported image type.')
   const path = `${trainId}/cover.${ext}`
   uploadPct.value    = 0
   uploadStatus.value = 'Uploading graphic…'

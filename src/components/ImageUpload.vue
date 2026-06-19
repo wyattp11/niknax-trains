@@ -30,7 +30,7 @@
       <input
         ref="fileInput"
         type="file"
-        accept="image/*"
+        accept="image/png,image/jpeg,image/gif,image/webp"
         class="hidden"
         @change="onSelect"
       />
@@ -59,6 +59,7 @@ const dragging   = ref(false)
 const sizeError  = ref('')
 
 const MAX_MB = 10
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
 
 function onSelect(e) {
   handleFile(e.target.files[0])
@@ -74,6 +75,10 @@ function handleFile(file) {
   sizeError.value = ''
   if (file.size > MAX_MB * 1024 * 1024) {
     sizeError.value = `File is too large (max ${MAX_MB} MB).`
+    return
+  }
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    sizeError.value = 'Please upload a PNG, JPG, GIF, or WebP image.'
     return
   }
   if (preview.value) URL.revokeObjectURL(preview.value)

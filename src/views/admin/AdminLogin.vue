@@ -14,26 +14,38 @@
       <div class="text-center mb-8">
         <div class="text-5xl mb-3" aria-hidden="true">✨</div>
         <h1 class="text-2xl font-bold text-tx1 font-display">Niknax Train Admin</h1>
-        <p class="text-tx3 mt-1">Enter your admin PIN to continue</p>
+        <p class="text-tx3 mt-1">Sign in with your admin account</p>
       </div>
 
       <form @submit.prevent="handleLogin" class="card space-y-4">
         <div>
-          <label class="label" for="admin-pin">Admin PIN</label>
+          <label class="label" for="admin-email">Email</label>
           <input
-            id="admin-pin"
-            v-model="pin"
+            id="admin-email"
+            v-model="email"
+            type="email"
+            class="input"
+            autocomplete="username"
+            required
+          />
+        </div>
+
+        <div>
+          <label class="label" for="admin-password">Password</label>
+          <input
+            id="admin-password"
+            v-model="password"
             type="password"
             class="input"
-            placeholder="••••••••"
             autocomplete="current-password"
+            required
           />
         </div>
 
         <p class="text-red-600 dark:text-red-400 text-sm min-h-[1.25rem]" aria-live="polite">{{ error }}</p>
 
-        <button type="submit" class="btn-primary w-full">
-          Sign In
+        <button type="submit" class="btn-primary w-full" :disabled="auth.loading">
+          {{ auth.loading ? 'Signing in...' : 'Sign In' }}
         </button>
       </form>
 
@@ -55,16 +67,18 @@ import { useThemeStore } from '../../stores/theme.js'
 const auth   = useAuthStore()
 const theme  = useThemeStore()
 const router = useRouter()
-const pin    = ref('')
+const email  = ref('')
+const password = ref('')
 const error  = ref('')
 
-function handleLogin() {
+async function handleLogin() {
   error.value = ''
-  if (auth.login(pin.value)) {
+  const result = await auth.login(email.value.trim(), password.value)
+  if (result.ok) {
     router.push('/admin/dashboard')
   } else {
-    error.value = 'Incorrect PIN. Please try again.'
-    pin.value = ''
+    error.value = result.message || 'Unable to sign in.'
+    password.value = ''
   }
 }
 </script>

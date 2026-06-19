@@ -7,12 +7,22 @@
       <RouterLink to="/" class="font-display text-niknax-600 dark:text-niknax-400 hover:text-niknax-500 text-sm tracking-wide transition-colors">
         ← Niknax Train Station
       </RouterLink>
-      <button
-        @click="theme.toggle()"
-        class="text-tx3 hover:text-tx1 transition-colors text-base"
-        :title="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-        :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-      ><span aria-hidden="true">{{ theme.isDark ? '☀' : '◑' }}</span></button>
+      <div class="flex items-center gap-3">
+        <button
+          @click="theme.toggle()"
+          class="text-tx3 hover:text-tx1 transition-colors text-base"
+          :title="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+        ><span aria-hidden="true">{{ theme.isDark ? '☀' : '◑' }}</span></button>
+        <button
+          @click="theme.togglePalm()"
+          class="text-base transition-colors"
+          :class="theme.isPalm ? 'text-niknax-600 dark:text-niknax-400' : 'text-tx3 hover:text-tx1'"
+          :title="theme.isPalm ? 'Turn off Palm Springs theme' : 'Turn on Palm Springs theme'"
+          :aria-label="theme.isPalm ? 'Turn off Palm Springs theme' : 'Turn on Palm Springs theme'"
+          :aria-pressed="theme.isPalm"
+        ><span aria-hidden="true">🌴</span></button>
+      </div>
     </div>
 
     <div v-if="loading" class="text-center py-32 text-tx3">Loading…</div>
@@ -138,7 +148,7 @@
                   <td class="px-4 py-3 text-tx2 font-semibold">{{ zones(slot.start_time)[3].time }}</td>
                   <td class="px-4 py-3 text-right">
                     <button
-                      v-if="!slot.username && !slot.is_pre_assigned"
+                      v-if="train.published && !slot.username && !slot.is_pre_assigned"
                       @click="openSignup(slot, day)"
                       class="bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                     >
@@ -148,7 +158,7 @@
                     <template v-else-if="slot.username">
                       <a
                         v-if="slot.seller_link"
-                        :href="slot.seller_link"
+                        :href="safeUrl(slot.seller_link)"
                         target="_blank"
                         rel="noopener"
                         class="inline-block bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
@@ -348,14 +358,19 @@ function cancelAddLink() {
 }
 
 async function saveLink(slot) {
-  const value = linkEditValue.value.trim()
-  const { error } = await supabase
-    .from('slots')
-    .update({ seller_link: value || null })
-    .eq('id', slot.id)
+  const value = normalizePublicUrl(linkEditValue.value)
+  if (linkEditValue.value.trim() && !value) {
+    signupError.value = 'Please enter a valid https:// District link.'
+    return
+  }
+
+  const { data, error } = await supabase.rpc('set_slot_seller_link', {
+    slot_id: slot.id,
+    link: value,
+  })
   if (!error) {
     const idx = slots.value.findIndex(s => s.id === slot.id)
-    if (idx !== -1) slots.value[idx].seller_link = value || null
+    if (idx !== -1) slots.value[idx].seller_link = data?.seller_link || null
   }
   cancelAddLink()
 }
@@ -431,6 +446,24 @@ function hideSuggestionsSoon() {
 
 function zones(t) { return allZones(t) }
 
+function normalizePublicUrl(raw) {
+  const value = raw.trim()
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    const host = url.hostname.toLowerCase()
+    if (url.protocol !== 'https:') return null
+    if (host !== 'districtapp.tv' && !host.endsWith('.districtapp.tv')) return null
+    return url.toString()
+  } catch {
+    return null
+  }
+}
+
+function safeUrl(raw) {
+  return normalizePublicUrl(raw) || '#'
+}
+
 // ── Live-now tracking ─────────────────────────────────────────────────────
 function getCurrentET() {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }))
@@ -505,13 +538,13 @@ const effectiveDistrictLink = computed(() => {
   const now = nowET.value
   const list = flatSlotsChrono.value
   const anchorIdx = list.findIndex(({ day, slot }) => slotEndsAt(day, slot) > now)
-  if (anchorIdx === -1) return train.value?.district_link || null
+  if (anchorIdx === -1) return normalizePublicUrl(train.value?.district_link || '')
 
   for (let i = anchorIdx; i < list.length; i++) {
-    const link = list[i].slot.seller_link
+    const link = normalizePublicUrl(list[i].slot.seller_link || '')
     if (link) return link
   }
-  return train.value?.district_link || null
+  return normalizePublicUrl(train.value?.district_link || '')
 })
 
 async function load() {
@@ -522,6 +555,7 @@ async function load() {
     .from('trains')
     .select('*')
     .eq('id', id)
+    .or('published.eq.true,is_upcoming.eq.true')
     .single()
 
   if (!t) { loading.value = false; return }
@@ -578,34 +612,20 @@ async function submitSignup() {
 
   const { slot, day } = signupModal.value
 
-  // Re-check slot is still open
-  const { data: fresh } = await supabase
-    .from('slots').select('username').eq('id', slot.id).single()
-
-  if (fresh?.username) {
-    signupError.value = 'Sorry — this slot was just claimed! Please pick another.'
-    signingUp.value = false
-    await load()
-    return
-  }
-
-  const { error } = await supabase
-    .from('slots')
-    .update({
-      username: signupUsername.value.trim(),
-    })
-    .eq('id', slot.id)
-    .is('username', null)
+  const { data, error } = await supabase.rpc('claim_slot', {
+    slot_id: slot.id,
+    claimant_username: signupUsername.value.trim(),
+  })
 
   if (error) {
-    signupError.value = 'Could not claim slot. Please try again.'
+    signupError.value = error.message || 'Could not claim slot. Please try again.'
   } else {
     const idx = slots.value.findIndex(s => s.id === slot.id)
     if (idx !== -1) {
-      slots.value[idx].username = signupUsername.value.trim()
+      slots.value[idx].username = data.username
     }
     // Show success screen with graphic download
-    signupSuccess.value = { username: signupUsername.value.trim(), slot, day }
+    signupSuccess.value = { username: data.username, slot, day }
   }
   signingUp.value = false
 }

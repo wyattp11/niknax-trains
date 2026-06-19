@@ -44,9 +44,15 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
+  const auth = useAuthStore()
+  await auth.initialize()
+
+  if (to.path === '/admin' && auth.isAdmin) {
+    return '/admin/dashboard'
+  }
+
   if (to.meta.requiresAdmin) {
-    const auth = useAuthStore()
     if (!auth.isAdmin) return '/admin'
   }
 })

@@ -52,19 +52,19 @@ const CAR_TYPES_RAW = [
   // 0: Oil lamp car
   [
     `               `,
-    ` _____________`,
-    `| <3<3<3<3<3  |`,
-    `|   VINTAGE   |`,
-    `|_____________|>`,
+    ` ______________`,
+    `| <3<3<3<3<3   | `,
+    `|   VINTAGE    | `,
+    `|______________|>`,
     ` -(*)-----(*)-`,
   ],
   // 1: Glassware car — goblets /U\
   [
     `               `,
-    ` ____________`,
-    `|$$$$$$$$$$$$|`,
-    `|  ANTIQUES  |`,
-    `|____________|>`,
+    ` ______________`,
+    `| $$$$$$$$$$$$ | `,
+    `|   ANTIQUES   | `,
+    `|______________|>`,
     ` -(*)-----(*)-`,
   ],
   // 2: Jewelry car
@@ -90,8 +90,8 @@ const CAR_TYPES_RAW = [
 const CABOOSE_RAW = [
     `   ________     `,
     `  _| [ ]  |____`,
-    ` |             |`,
-    ` |  ~*NIKNAX*~ |`,
+    ` | <3<3<3<3<3  |`,
+    ` |  HANDMADE   |`,
     ` |_____________|>`,
     `  -(*)-----(*)-`,
   ]
@@ -102,10 +102,8 @@ function artStr(lines, width) {
 }
 
 const LOCO_ART     = artStr(LOCO_RAW)
-// All car types must share one width — otherwise a narrower car type (e.g.
-// the glassware car is 1 char narrower than the oil-lamp car) gets padded to
-// its own shorter width and ends up with a visible gap behind it once it's
-// coupled into the train using the shared CAR_W spacing.
+// All car types share one visible width so their couplers sit flush when
+// positioned on the shared CAR_W spacing grid.
 const CAR_W        = Math.max(...CAR_TYPES_RAW.flat().map(l => l.length))
 const CAR_ARTS     = CAR_TYPES_RAW.map(r => artStr(r, CAR_W))
 const CAB_ART      = artStr(CABOOSE_RAW)

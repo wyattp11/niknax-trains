@@ -84,8 +84,8 @@ function isActive(path) {
   return route.path === path || (path !== '/admin/dashboard' && route.path.startsWith(path))
 }
 
-function logout() {
-  auth.logout()
+async function logout() {
+  await auth.logout()
   router.push('/admin')
 }
 </script>
