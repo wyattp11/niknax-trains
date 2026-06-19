@@ -61,13 +61,13 @@
             {{ train.description }}
           </p>
 
-          <div class="flex flex-wrap gap-3">
+          <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3">
             <a
               v-if="effectiveDistrictLink"
               :href="effectiveDistrictLink"
               target="_blank"
               rel="noopener"
-              class="btn-primary text-sm"
+              class="btn-primary text-sm text-center"
             >
               Watch on District ↗
             </a>
@@ -77,7 +77,7 @@
             <button
               v-if="train.cover_url"
               @click="downloadGraphic"
-              class="btn-secondary text-sm flex items-center gap-1.5"
+              class="btn-secondary text-sm flex items-center justify-center gap-1.5"
             >
               📥 Download Graphic
             </button>
@@ -97,7 +97,115 @@
           </div>
           <p class="text-tx3 text-xs font-mono mb-5 tracking-widest">ALL TIMES SHOWN · ET IS PRIMARY</p>
 
-          <div class="overflow-x-auto">
+          <!-- Mobile slot list -->
+          <div class="md:hidden space-y-3">
+            <div
+              v-for="(slot, slotIdx) in slotsByDay[day.id] || []"
+              :key="slot.id"
+              :id="`slot-mobile-${slot.id}`"
+              :class="[
+                slot.id === activeSlotId
+                  ? 'bg-[var(--badge-live-bg)] ring-1 ring-inset ring-[var(--badge-live-dot)]'
+                  : slot.is_pre_assigned
+                    ? 'bg-niknax-500/10'
+                    : '',
+              ]"
+              class="border border-bd rounded-xl p-4 transition-colors"
+            >
+              <div class="flex items-start justify-between gap-3 mb-3">
+                <div class="min-w-0">
+                  <p class="text-xs text-tx3 mb-1">Slot {{ slotIdx + 1 }}</p>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span v-if="slot.username" class="font-medium text-tx1 break-words">{{ slot.username }}</span>
+                    <span v-else class="text-tx3 italic text-sm">— available —</span>
+                    <span
+                      v-if="slot.id === activeSlotId"
+                      class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-[var(--badge-live-bg)] text-[var(--badge-live-text)]"
+                    >
+                      <span class="w-1.5 h-1.5 rounded-full bg-[var(--badge-live-dot)] animate-pulse inline-block"></span>
+                      LIVE NOW
+                    </span>
+                    <span
+                      v-if="slot.label"
+                      class="text-xs font-semibold text-niknax-500 bg-niknax-500/15 px-1.5 py-0.5 rounded"
+                    >{{ slot.label }}</span>
+                  </div>
+                </div>
+                <p class="text-tx1 font-bold text-lg shrink-0">{{ zones(slot.start_time)[0].time }}</p>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 text-sm mb-4">
+                <div>
+                  <p class="text-xs text-tx3">CT</p>
+                  <p class="font-semibold text-tx2">{{ zones(slot.start_time)[1].time }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-tx3">MT</p>
+                  <p class="font-semibold text-tx2">{{ zones(slot.start_time)[2].time }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-tx3">PT</p>
+                  <p class="font-semibold text-tx2">{{ zones(slot.start_time)[3].time }}</p>
+                </div>
+              </div>
+
+              <button
+                v-if="train.published && !slot.username && !slot.is_pre_assigned"
+                @click="openSignup(slot, day)"
+                class="w-full bg-niknax-600 hover:bg-niknax-500 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+              >
+                Sign Up
+              </button>
+
+              <template v-else-if="slot.username">
+                <a
+                  v-if="slot.seller_link"
+                  :href="safeUrl(slot.seller_link)"
+                  target="_blank"
+                  rel="noopener"
+                  class="block w-full text-center bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                >Show Link ↗</a>
+
+                <button
+                  v-else-if="linkEditSlotId !== slot.id"
+                  @click="startAddLink(slot)"
+                  class="w-full bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                >+ Add Show Link</button>
+
+                <div v-else class="space-y-2">
+                  <input
+                    v-model="linkEditValue"
+                    type="url"
+                    placeholder="https://districtapp.tv/…"
+                    class="input text-sm"
+                    :disabled="linkSavingSlotId === slot.id"
+                    @keyup.enter="saveLink(slot)"
+                    @keyup.esc="cancelAddLink"
+                  />
+                  <div class="flex flex-col-reverse sm:flex-row gap-2">
+                    <button
+                      @click="cancelAddLink"
+                      :disabled="linkSavingSlotId === slot.id"
+                      class="btn-secondary text-sm w-full disabled:opacity-50"
+                    >Cancel</button>
+                    <button
+                      @click="saveLink(slot)"
+                      :disabled="linkSavingSlotId === slot.id"
+                      class="btn-primary text-sm w-full disabled:opacity-50"
+                    >
+                      {{ linkSavingSlotId === slot.id ? 'Saving…' : 'Save' }}
+                    </button>
+                  </div>
+                  <p v-if="linkEditError" class="text-red-600 dark:text-red-400 text-xs">
+                    {{ linkEditError }}
+                  </p>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- Desktop schedule table -->
+          <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-sm min-w-[560px]">
               <thead>
                 <tr class="bg-sur2 text-tx3">
@@ -114,7 +222,7 @@
                 <tr
                   v-for="(slot, slotIdx) in slotsByDay[day.id] || []"
                   :key="slot.id"
-                  :id="`slot-${slot.id}`"
+                  :id="`slot-desktop-${slot.id}`"
                   :class="[
                     slot.id === activeSlotId
                       ? 'bg-[var(--badge-live-bg)] ring-1 ring-inset ring-[var(--badge-live-dot)]'
@@ -170,17 +278,33 @@
                         class="bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                       >+ Add Show Link</button>
 
-                      <div v-else class="flex items-center gap-1.5 justify-end">
-                        <input
-                          v-model="linkEditValue"
-                          type="url"
-                          placeholder="https://districtapp.tv/…"
-                          class="input text-xs py-1 px-2 w-40"
-                          @keyup.enter="saveLink(slot)"
-                          @keyup.esc="cancelAddLink"
-                        />
-                        <button @click="saveLink(slot)" class="text-xs font-semibold text-niknax-600 dark:text-niknax-400 shrink-0">Save</button>
-                        <button @click="cancelAddLink" class="text-xs text-tx3 shrink-0">✕</button>
+                      <div v-else class="space-y-1">
+                        <div class="flex items-center gap-1.5 justify-end">
+                          <input
+                            v-model="linkEditValue"
+                            type="url"
+                            placeholder="https://districtapp.tv/…"
+                            class="input text-xs py-1 px-2 w-40"
+                            :disabled="linkSavingSlotId === slot.id"
+                            @keyup.enter="saveLink(slot)"
+                            @keyup.esc="cancelAddLink"
+                          />
+                          <button
+                            @click="saveLink(slot)"
+                            :disabled="linkSavingSlotId === slot.id"
+                            class="text-xs font-semibold text-niknax-600 dark:text-niknax-400 shrink-0 disabled:opacity-50"
+                          >
+                            {{ linkSavingSlotId === slot.id ? 'Saving…' : 'Save' }}
+                          </button>
+                          <button
+                            @click="cancelAddLink"
+                            :disabled="linkSavingSlotId === slot.id"
+                            class="text-xs text-tx3 shrink-0 disabled:opacity-50"
+                          >✕</button>
+                        </div>
+                        <p v-if="linkEditError" class="text-red-600 dark:text-red-400 text-xs text-right">
+                          {{ linkEditError }}
+                        </p>
                       </div>
                     </template>
                   </td>
@@ -306,9 +430,9 @@
 
             <p class="text-red-600 dark:text-red-400 text-sm mt-3 min-h-[1.25rem]" aria-live="polite">{{ signupError }}</p>
 
-            <div class="flex gap-3 mt-6">
-              <button @click="signupModal = null" class="btn-secondary flex-1">Cancel</button>
-              <button @click="submitSignup" :disabled="signingUp" class="btn-primary flex-1">
+            <div class="flex flex-col-reverse sm:flex-row gap-3 mt-6">
+              <button @click="signupModal = null" class="btn-secondary sm:flex-1">Cancel</button>
+              <button @click="submitSignup" :disabled="signingUp" class="btn-primary sm:flex-1">
                 {{ signingUp ? 'Saving…' : 'Claim Slot ✓' }}
               </button>
             </div>
@@ -346,33 +470,48 @@ const pageLinkCopied = ref(false)
 // ── Inline "add show link" editing for already-claimed slots ─────────────
 const linkEditSlotId = ref(null)
 const linkEditValue  = ref('')
+const linkEditError  = ref('')
+const linkSavingSlotId = ref(null)
 
 function startAddLink(slot) {
   linkEditSlotId.value = slot.id
   linkEditValue.value  = slot.seller_link || ''
+  linkEditError.value  = ''
 }
 
 function cancelAddLink() {
   linkEditSlotId.value = null
   linkEditValue.value  = ''
+  linkEditError.value  = ''
 }
 
 async function saveLink(slot) {
   const value = normalizePublicUrl(linkEditValue.value)
   if (linkEditValue.value.trim() && !value) {
-    signupError.value = 'Please enter a valid https:// District link.'
+    linkEditError.value = 'Please enter a valid https:// District link.'
     return
   }
 
-  const { data, error } = await supabase.rpc('set_slot_seller_link', {
-    slot_id: slot.id,
-    link: value,
-  })
-  if (!error) {
+  linkSavingSlotId.value = slot.id
+  linkEditError.value = ''
+
+  try {
+    const { data, error } = await supabase.rpc('set_slot_seller_link', {
+      slot_id: slot.id,
+      link: value,
+    })
+    if (error) throw error
+
+    const savedLink = data?.seller_link || value || null
     const idx = slots.value.findIndex(s => s.id === slot.id)
-    if (idx !== -1) slots.value[idx].seller_link = data?.seller_link || null
+    if (idx !== -1) slots.value[idx].seller_link = savedLink
+    slot.seller_link = savedLink
+    cancelAddLink()
+  } catch (err) {
+    linkEditError.value = err?.message || 'Could not save show link.'
+  } finally {
+    linkSavingSlotId.value = null
   }
-  cancelAddLink()
 }
 
 const successHeadingRef = ref(null)
@@ -658,7 +797,8 @@ async function loadAndScroll() {
   clockInterval = setInterval(() => { nowET.value = getCurrentET() }, 30_000)
   await nextTick()
   if (activeSlotId.value) {
-    document.getElementById(`slot-${activeSlotId.value}`)
+    const slotPrefix = window.matchMedia('(min-width: 768px)').matches ? 'slot-desktop' : 'slot-mobile'
+    document.getElementById(`${slotPrefix}-${activeSlotId.value}`)
       ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 }

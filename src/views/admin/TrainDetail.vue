@@ -19,30 +19,30 @@
             </span>
             <h2 class="text-2xl font-bold text-tx1">{{ train.name }}</h2>
           </div>
-          <div class="flex gap-2 shrink-0 flex-wrap">
-            <a v-if="train.published" :href="`/train/${train.id}`" target="_blank" class="btn-secondary text-sm">
+          <div class="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
+            <a v-if="train.published" :href="`/train/${train.id}`" target="_blank" class="btn-secondary text-sm text-center whitespace-nowrap">
               View Public ↗
             </a>
-            <button v-if="!train.published" @click="publish" :disabled="publishing" class="btn-primary text-sm">
+            <button v-if="!train.published" @click="publish" :disabled="publishing" class="btn-primary text-sm whitespace-nowrap">
               {{ publishing ? '…' : '🚀 Publish' }}
             </button>
-            <button v-else @click="unpublish" :disabled="publishing" class="btn-secondary text-sm">
+            <button v-else @click="unpublish" :disabled="publishing" class="btn-secondary text-sm whitespace-nowrap">
               {{ publishing ? '…' : 'Unpublish' }}
             </button>
           </div>
         </div>
 
         <!-- ── Public link ── -->
-        <div v-if="train.published" class="card mb-4 flex items-center gap-3">
+        <div v-if="train.published" class="card mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <span class="text-green-400">🔗</span>
-          <p class="text-sm font-mono text-tx1 flex-1 truncate">{{ publicUrl }}</p>
-          <button @click="copyLink" class="btn-secondary text-sm py-1.5 shrink-0">
+          <p class="text-sm font-mono text-tx1 w-full sm:flex-1 truncate">{{ publicUrl }}</p>
+          <button @click="copyLink" class="btn-secondary text-sm py-1.5 shrink-0 w-full sm:w-auto">
             {{ copied ? 'Copied!' : 'Copy' }}
           </button>
         </div>
 
         <!-- ── Upcoming toggle (only for drafts) ── -->
-        <div v-if="!train.published" class="card mb-6 flex items-center justify-between gap-4">
+        <div v-if="!train.published" class="card mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p class="font-medium text-tx1">Show as Upcoming Event</p>
             <p class="text-sm text-tx3 mt-0.5">
@@ -135,9 +135,9 @@
               </div>
             </div>
 
-            <div class="flex gap-3 justify-end">
-              <button @click="showEdit = false" class="btn-secondary">Cancel</button>
-              <button @click="saveDetails" :disabled="savingDetails" class="btn-primary">
+            <div class="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+              <button @click="showEdit = false" class="btn-secondary w-full sm:w-auto">Cancel</button>
+              <button @click="saveDetails" :disabled="savingDetails" class="btn-primary w-full sm:w-auto">
                 {{ editUploadStatus && editUploadPct < 100 ? editUploadStatus : savingDetails ? 'Saving…' : 'Save Changes' }}
               </button>
             </div>
@@ -234,7 +234,7 @@
               </tbody>
             </table>
           </div>
-          <button @click="addSlotToDay(day)" class="mt-3 text-sm text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300">
+          <button @click="addSlotToDay(day)" class="mt-3 w-full sm:w-auto text-sm text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300">
             + Add slot
           </button>
         </div>
@@ -242,7 +242,7 @@
         <!-- ── Danger zone ── -->
         <div class="card border-red-900 mt-10">
           <h4 class="text-red-600 dark:text-red-400 font-semibold text-sm mb-3">Danger Zone</h4>
-          <button @click="confirmDelete" class="btn-danger text-sm">Delete Train</button>
+          <button @click="confirmDelete" class="btn-danger text-sm w-full sm:w-auto">Delete Train</button>
         </div>
       </template>
     </main>
@@ -325,9 +325,9 @@
           <input v-model="newSlot.is_pre_assigned" type="checkbox" class="rounded" />
           Reserved (cannot be claimed publicly)
         </label>
-        <div class="flex gap-3 justify-end">
-          <button @click="addSlotDay = null" class="btn-secondary">Cancel</button>
-          <button @click="saveNewSlot" :disabled="savingSlot" class="btn-primary">
+        <div class="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+          <button @click="addSlotDay = null" class="btn-secondary w-full sm:w-auto">Cancel</button>
+          <button @click="saveNewSlot" :disabled="savingSlot" class="btn-primary w-full sm:w-auto">
             {{ savingSlot ? '…' : 'Add Slot' }}
           </button>
         </div>

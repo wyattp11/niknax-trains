@@ -145,9 +145,9 @@
         <p v-if="saveError" class="text-red-600 dark:text-red-400 text-sm">{{ saveError }}</p>
         <p v-if="uploadWarn" class="text-amber-700 dark:text-amber-400 text-sm"><span aria-hidden="true">⚠️</span> {{ uploadWarn }}</p>
 
-        <div class="flex gap-3 justify-end">
-          <RouterLink to="/admin/dashboard" class="btn-secondary">Cancel</RouterLink>
-          <button type="submit" :disabled="saving" class="btn-primary">
+        <div class="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+          <RouterLink to="/admin/dashboard" class="btn-secondary text-center w-full sm:w-auto">Cancel</RouterLink>
+          <button type="submit" :disabled="saving" class="btn-primary w-full sm:w-auto">
             {{ uploadStatus && uploadPct < 100 ? uploadStatus : saving ? 'Saving…' : 'Save Draft & Review →' }}
           </button>
         </div>

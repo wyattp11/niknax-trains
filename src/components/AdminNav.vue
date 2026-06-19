@@ -1,30 +1,30 @@
 <template>
-  <header class="bg-surface border-b border-bd px-4 py-3 flex items-center gap-3">
+  <header class="bg-surface border-b border-bd px-4 py-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start sm:gap-3 overflow-x-hidden">
     <!-- Brand -->
-    <RouterLink to="/admin/dashboard" class="flex items-center gap-2 mr-4 hover:opacity-80 transition-opacity shrink-0">
+    <RouterLink to="/admin/dashboard" class="order-1 flex items-center gap-2 sm:mr-4 hover:opacity-80 transition-opacity shrink-0">
       <span class="text-xl">✨</span>
       <span class="font-bold text-tx1 font-display hidden sm:block">Niknax Admin</span>
     </RouterLink>
 
     <!-- Primary nav -->
-    <nav class="flex items-center gap-1 flex-1">
+    <nav class="order-3 sm:order-2 flex items-center gap-1 w-full sm:w-auto sm:flex-1 min-w-0 overflow-x-auto pb-0.5 sm:pb-0">
       <RouterLink
         to="/admin/dashboard"
-        class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+        class="px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors shrink-0"
         :class="isActive('/admin/dashboard') ? 'bg-niknax-600 text-white' : 'text-tx2 hover:bg-sur2 hover:text-tx1'"
       >
         Dashboard
       </RouterLink>
       <RouterLink
         to="/admin/trains/new"
-        class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+        class="px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors shrink-0"
         :class="isActive('/admin/trains/new') ? 'bg-niknax-600 text-white' : 'text-tx2 hover:bg-sur2 hover:text-tx1'"
       >
         + New Train
       </RouterLink>
       <RouterLink
         to="/admin/members"
-        class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+        class="px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors shrink-0"
         :class="isActive('/admin/members') ? 'bg-niknax-600 text-white' : 'text-tx2 hover:bg-sur2 hover:text-tx1'"
       >
         Members
@@ -32,8 +32,8 @@
     </nav>
 
     <!-- Right side controls -->
-    <div class="flex items-center gap-2 shrink-0">
-      <a href="/" target="_blank" class="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-tx2 hover:bg-sur2 hover:text-tx1 transition-colors">
+    <div class="order-2 sm:order-3 flex items-center justify-center gap-1.5 sm:ml-auto sm:justify-end sm:gap-2 shrink-0">
+      <a href="/" target="_blank" class="hidden lg:flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap text-tx2 hover:bg-sur2 hover:text-tx1 transition-colors">
         Public ↗
       </a>
 
@@ -42,10 +42,10 @@
         @click="theme.toggle()"
         :title="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
         :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-        class="w-9 h-9 flex items-center justify-center rounded-lg text-tx2 hover:bg-sur2 hover:text-tx1 transition-colors"
+        class="w-9 h-9 flex items-center justify-center rounded-lg text-tx2 hover:bg-sur2 hover:text-tx1 transition-colors shrink-0"
       >
-        <span v-if="theme.isDark" class="text-lg" aria-hidden="true">☀️</span>
-        <span v-else class="text-lg" aria-hidden="true">🌙</span>
+        <span v-if="theme.isDark" class="text-lg leading-none" aria-hidden="true">☀️</span>
+        <span v-else class="text-lg leading-none" aria-hidden="true">🌙</span>
       </button>
 
       <!-- Palm Springs theme toggle -->
@@ -54,15 +54,15 @@
         :title="theme.isPalm ? 'Turn off Palm Springs theme' : 'Turn on Palm Springs theme'"
         :aria-label="theme.isPalm ? 'Turn off Palm Springs theme' : 'Turn on Palm Springs theme'"
         :aria-pressed="theme.isPalm"
-        class="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
+        class="w-9 h-9 flex items-center justify-center rounded-lg transition-colors shrink-0"
         :class="theme.isPalm ? 'bg-niknax-600 text-white' : 'text-tx2 hover:bg-sur2 hover:text-tx1'"
       >
-        <span class="text-lg" aria-hidden="true">🌴</span>
+        <span class="text-lg leading-none" aria-hidden="true">🌴</span>
       </button>
 
       <button
         @click="logout"
-        class="px-3 py-1.5 rounded-lg text-sm font-medium text-tx3 hover:text-tx1 hover:bg-sur2 transition-colors"
+        class="px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap text-tx3 hover:text-tx1 hover:bg-sur2 transition-colors"
       >
         Sign out
       </button>

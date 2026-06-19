@@ -23,7 +23,7 @@
         <div
           v-for="train in trains"
           :key="train.id"
-          class="card flex items-center gap-4"
+          class="card flex flex-col sm:flex-row sm:items-center gap-4"
         >
           <!-- Thumbnail -->
           <img
@@ -46,11 +46,11 @@
             <p class="text-sm text-tx3">Created {{ formatDate(train.created_at) }}</p>
           </div>
 
-          <div class="flex gap-2 shrink-0">
-            <RouterLink :to="`/train/${train.id}`" target="_blank" class="btn-secondary text-sm py-1.5">
+          <div class="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
+            <RouterLink :to="`/train/${train.id}`" target="_blank" class="btn-secondary text-sm py-1.5 text-center whitespace-nowrap">
               View
             </RouterLink>
-            <RouterLink :to="`/admin/trains/${train.id}`" class="btn-primary text-sm py-1.5">
+            <RouterLink :to="`/admin/trains/${train.id}`" class="btn-primary text-sm py-1.5 text-center whitespace-nowrap">
               Manage
             </RouterLink>
           </div>
