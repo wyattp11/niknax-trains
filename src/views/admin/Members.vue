@@ -29,8 +29,61 @@
         <span v-if="saveError" class="text-sm text-teal-600 dark:text-teal-400">{{ saveError }}</span>
       </div>
 
-      <!-- Table -->
-      <div class="card overflow-x-auto p-0">
+      <!-- Mobile list -->
+      <div class="md:hidden space-y-3">
+        <div v-if="loading" class="card text-center py-10 text-tx3">Loading…</div>
+        <div v-else-if="rows.length === 0" class="card text-center py-10 text-tx3">No members match.</div>
+        <template v-else>
+          <div
+            v-for="row in rows"
+            :key="row.id"
+            class="card space-y-4"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <p class="font-semibold text-tx1 min-w-0 break-words">{{ row.username }}</p>
+              <button class="text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 text-xs font-medium shrink-0" @click="confirmDelete(row)">
+                Delete
+              </button>
+            </div>
+
+            <div>
+              <label class="label" :for="`member-name-${row.id}`">Full name</label>
+              <input
+                :id="`member-name-${row.id}`"
+                v-model="row.full_name"
+                class="input"
+                @blur="saveField(row, 'full_name')"
+                @keyup.enter="saveField(row, 'full_name')"
+              />
+            </div>
+
+            <div>
+              <label class="label" :for="`member-email-${row.id}`">Email</label>
+              <input
+                :id="`member-email-${row.id}`"
+                v-model="row.email"
+                type="email"
+                class="input"
+                @blur="saveField(row, 'email')"
+                @keyup.enter="saveField(row, 'email')"
+              />
+            </div>
+
+            <label class="flex items-center justify-between gap-3 text-sm text-tx2 select-none cursor-pointer">
+              <span>Can go live</span>
+              <input
+                type="checkbox"
+                class="accent-niknax-600 w-4 h-4"
+                :checked="row.can_go_live"
+                @change="toggleCanGoLive(row, $event.target.checked)"
+              />
+            </label>
+          </div>
+        </template>
+      </div>
+
+      <!-- Desktop table -->
+      <div class="card overflow-x-auto p-0 hidden md:block">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-bd text-left text-tx3">
