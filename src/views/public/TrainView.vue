@@ -314,9 +314,6 @@
           </div>
         </div>
 
-        <p class="text-center text-tx3 text-xs mt-8 font-mono tracking-wide">
-          Do not remove anyone from their slot — doing so may result in removal from the event.
-        </p>
       </main>
     </template>
 
