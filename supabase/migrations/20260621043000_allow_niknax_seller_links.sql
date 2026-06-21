@@ -20,13 +20,14 @@ begin
     and s.username is not null
     and exists (
       select 1
-      from public.trains t
-      where t.id = s.train_id
+      from public.train_days d
+      join public.trains t on t.id = d.train_id
+      where d.id = s.train_day_id
         and t.published = true
     )
   returning s.* into updated_slot;
 
-  if updated_slot.id is null then
+  if not found then
     raise exception 'Show links can only be added to claimed slots on published trains.' using errcode = 'P0001';
   end if;
 
