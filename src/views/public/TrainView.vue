@@ -158,13 +158,32 @@
               </button>
 
               <template v-else-if="slot.username">
-                <a
-                  v-if="slot.seller_link"
-                  :href="safeUrl(slot.seller_link)"
-                  target="_blank"
-                  rel="noopener"
-                  class="block w-full text-center whitespace-nowrap bg-niknax-600 hover:bg-niknax-500 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
-                >Show Link ↗</a>
+                <div v-if="slot.seller_link" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <a
+                    :href="safeUrl(slot.seller_link)"
+                    target="_blank"
+                    rel="noopener"
+                    class="block w-full text-center whitespace-nowrap bg-niknax-600 hover:bg-niknax-500 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                  >Show Link ↗</a>
+                  <details class="relative">
+                    <summary class="list-none cursor-pointer block w-full text-center whitespace-nowrap bg-surface hover:bg-sur2 border border-bd text-tx1 text-sm font-semibold px-3 py-2 rounded-lg transition-colors">
+                      Add to Calendar
+                    </summary>
+                    <div class="mt-1 sm:absolute sm:right-0 sm:z-20 sm:w-44 card p-1 shadow-lg">
+                      <a
+                        :href="googleCalendarUrl(day, slot)"
+                        target="_blank"
+                        rel="noopener"
+                        class="block rounded-md px-3 py-2 text-sm text-tx1 hover:bg-sur2"
+                      >Google Calendar</a>
+                      <button
+                        type="button"
+                        @click="downloadCalendarFile(day, slot)"
+                        class="block w-full text-left rounded-md px-3 py-2 text-sm text-tx1 hover:bg-sur2"
+                      >Download .ics</button>
+                    </div>
+                  </details>
+                </div>
 
                 <button
                   v-else-if="linkEditSlotId !== slot.id"
@@ -206,7 +225,7 @@
 
           <!-- Desktop schedule table -->
           <div class="hidden md:block overflow-x-auto">
-            <table class="w-full text-sm min-w-[560px]">
+            <table class="w-full text-sm min-w-[680px]">
               <thead>
                 <tr class="bg-sur2 text-tx3">
                   <th class="text-left px-4 py-3 w-8">#</th>
@@ -215,7 +234,7 @@
                   <th class="text-left px-4 py-3">CT</th>
                   <th class="text-left px-4 py-3">MT</th>
                   <th class="text-left px-4 py-3">PT</th>
-                  <th class="text-left px-4 py-3 w-28"></th>
+                  <th class="text-left px-4 py-3 w-56"></th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-bd">
@@ -264,13 +283,32 @@
                     </button>
 
                     <template v-else-if="slot.username">
-                      <a
-                        v-if="slot.seller_link"
-                        :href="safeUrl(slot.seller_link)"
-                        target="_blank"
-                        rel="noopener"
-                        class="inline-flex items-center whitespace-nowrap bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-                      >Show Link ↗</a>
+                      <div v-if="slot.seller_link" class="flex items-center justify-end gap-2">
+                        <a
+                          :href="safeUrl(slot.seller_link)"
+                          target="_blank"
+                          rel="noopener"
+                          class="inline-flex items-center whitespace-nowrap bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                        >Show Link ↗</a>
+                        <details class="relative">
+                          <summary class="list-none cursor-pointer inline-flex items-center whitespace-nowrap bg-surface hover:bg-sur2 border border-bd text-tx1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+                            Add to Calendar
+                          </summary>
+                          <div class="absolute right-0 z-20 mt-1 w-44 card p-1 text-left shadow-lg">
+                            <a
+                              :href="googleCalendarUrl(day, slot)"
+                              target="_blank"
+                              rel="noopener"
+                              class="block rounded-md px-3 py-2 text-xs text-tx1 hover:bg-sur2"
+                            >Google Calendar</a>
+                            <button
+                              type="button"
+                              @click="downloadCalendarFile(day, slot)"
+                              class="block w-full text-left rounded-md px-3 py-2 text-xs text-tx1 hover:bg-sur2"
+                            >Download .ics</button>
+                          </div>
+                        </details>
+                      </div>
 
                       <button
                         v-else-if="linkEditSlotId !== slot.id"
@@ -599,6 +637,104 @@ function normalizePublicUrl(raw) {
 
 function safeUrl(raw) {
   return normalizePublicUrl(raw) || '#'
+}
+
+function slotCalendarDate(day, slot, offsetMinutes = 0) {
+  const [year, month, date] = day.day_date.split('-').map(Number)
+  const { hours, minutes } = parseTime(slot.start_time)
+  return new Date(year, month - 1, date, hours, minutes + offsetMinutes)
+}
+
+function calendarStamp(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+    'T',
+    String(date.getHours()).padStart(2, '0'),
+    String(date.getMinutes()).padStart(2, '0'),
+    '00',
+  ].join('')
+}
+
+function utcCalendarStamp(date) {
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, '0'),
+    String(date.getUTCDate()).padStart(2, '0'),
+    'T',
+    String(date.getUTCHours()).padStart(2, '0'),
+    String(date.getUTCMinutes()).padStart(2, '0'),
+    String(date.getUTCSeconds()).padStart(2, '0'),
+    'Z',
+  ].join('')
+}
+
+function calendarTitle(slot) {
+  const seller = slot.username ? `@${slot.username}` : 'Seller'
+  return `${seller} on ${train.value?.name || 'Niknax Train'}`
+}
+
+function calendarDescription(slot) {
+  const link = safeUrl(slot.seller_link)
+  return [
+    `Live show link: ${link}`,
+    '',
+    `Part of ${train.value?.name || 'Niknax Train Station'}.`,
+  ].join('\n')
+}
+
+function googleCalendarUrl(day, slot) {
+  const start = slotCalendarDate(day, slot)
+  const end = slotCalendarDate(day, slot, slot.duration_min || 30)
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: calendarTitle(slot),
+    dates: `${calendarStamp(start)}/${calendarStamp(end)}`,
+    ctz: 'America/New_York',
+    details: calendarDescription(slot),
+    location: safeUrl(slot.seller_link),
+  })
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
+function escapeIcsText(value) {
+  return String(value)
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n')
+}
+
+function downloadCalendarFile(day, slot) {
+  const start = slotCalendarDate(day, slot)
+  const end = slotCalendarDate(day, slot, slot.duration_min || 30)
+  const now = new Date()
+  const filename = `${calendarTitle(slot).replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'niknax-show'}.ics`
+  const content = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Niknax//Train Station//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${slot.id}@niknax-trains`,
+    `DTSTAMP:${utcCalendarStamp(now)}`,
+    `DTSTART;TZID=America/New_York:${calendarStamp(start)}`,
+    `DTEND;TZID=America/New_York:${calendarStamp(end)}`,
+    `SUMMARY:${escapeIcsText(calendarTitle(slot))}`,
+    `DESCRIPTION:${escapeIcsText(calendarDescription(slot))}`,
+    `LOCATION:${escapeIcsText(safeUrl(slot.seller_link))}`,
+    `URL:${safeUrl(slot.seller_link)}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n')
+
+  const blob = new Blob([`${content}\r\n`], { type: 'text/calendar;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = Object.assign(document.createElement('a'), { href: url, download: filename })
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 // ── Live-now tracking ─────────────────────────────────────────────────────
