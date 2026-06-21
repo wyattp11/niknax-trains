@@ -114,7 +114,6 @@
             </div>
 
             <span v-if="ev.published" class="text-niknax-600 dark:text-niknax-400 group-hover:translate-x-1 transition-transform text-xl shrink-0 font-bold">→</span>
-            <span v-else class="text-tx3 text-sm shrink-0 font-mono">coming soon</span>
           </component>
         </div>
       </section>
