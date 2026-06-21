@@ -166,7 +166,7 @@
                     class="block w-full text-center whitespace-nowrap bg-niknax-600 hover:bg-niknax-500 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
                   >Show Link ↗</a>
                   <details class="relative">
-                    <summary class="list-none cursor-pointer block w-full text-center whitespace-nowrap bg-surface hover:bg-sur2 border border-bd text-tx1 text-sm font-semibold px-3 py-2 rounded-lg transition-colors">
+                    <summary class="list-none cursor-pointer block w-full text-center whitespace-nowrap bg-mustard-400 hover:bg-mustard-300 text-[#2A2118] text-sm font-semibold px-3 py-2 rounded-lg transition-colors">
                       Add to Calendar
                     </summary>
                     <div class="mt-1 sm:absolute sm:right-0 sm:z-20 sm:w-44 card p-1 shadow-lg">
@@ -291,7 +291,7 @@
                           class="inline-flex items-center whitespace-nowrap bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                         >Show Link ↗</a>
                         <details class="relative">
-                          <summary class="list-none cursor-pointer inline-flex items-center whitespace-nowrap bg-surface hover:bg-sur2 border border-bd text-tx1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+                          <summary class="list-none cursor-pointer inline-flex items-center whitespace-nowrap bg-mustard-400 hover:bg-mustard-300 text-[#2A2118] text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
                             Add to Calendar
                           </summary>
                           <div class="absolute right-0 z-20 mt-1 w-44 card p-1 text-left shadow-lg">
