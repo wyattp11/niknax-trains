@@ -163,13 +163,13 @@
                   :href="safeUrl(slot.seller_link)"
                   target="_blank"
                   rel="noopener"
-                  class="block w-full text-center bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                  class="block w-full text-center whitespace-nowrap bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
                 >Show Link ↗</a>
 
                 <button
                   v-else-if="linkEditSlotId !== slot.id"
                   @click="startAddLink(slot)"
-                  class="w-full bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                  class="w-full whitespace-nowrap bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
                 >+ Add Show Link</button>
 
                 <div v-else class="space-y-2">
@@ -269,13 +269,13 @@
                         :href="safeUrl(slot.seller_link)"
                         target="_blank"
                         rel="noopener"
-                        class="inline-block bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                        class="inline-flex items-center whitespace-nowrap bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                       >Show Link ↗</a>
 
                       <button
                         v-else-if="linkEditSlotId !== slot.id"
                         @click="startAddLink(slot)"
-                        class="bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                        class="whitespace-nowrap bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                       >+ Add Show Link</button>
 
                       <div v-else class="space-y-1">
