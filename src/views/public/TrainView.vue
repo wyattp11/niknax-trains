@@ -166,20 +166,21 @@
                     class="block w-full text-center whitespace-nowrap bg-niknax-600 hover:bg-niknax-500 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
                   >Show Link ↗</a>
                   <details class="relative">
-                    <summary class="list-none cursor-pointer block w-full text-center whitespace-nowrap bg-mustard-400 hover:bg-mustard-300 text-[#2A2118] text-sm font-semibold px-3 py-2 rounded-lg transition-colors">
+                    <summary class="list-none cursor-pointer block w-full text-center whitespace-nowrap bg-[#FEA0CE] hover:bg-[#F9927C] text-[#2A2118] text-sm font-semibold px-3 py-2 rounded-lg transition-colors">
                       Add to Calendar
                     </summary>
-                    <div class="mt-1 sm:absolute sm:right-0 sm:z-20 sm:w-44 card p-1 shadow-lg">
+                    <div class="mt-1 sm:absolute sm:right-0 sm:z-20 sm:w-44 bg-surface border-2 border-[#FEA0CE] rounded-lg p-1 shadow-lg shadow-[#FEA0CE]/20">
                       <a
                         :href="googleCalendarUrl(day, slot)"
                         target="_blank"
                         rel="noopener"
-                        class="block rounded-md px-3 py-2 text-sm text-tx1 hover:bg-sur2"
+                        class="block rounded-md px-3 py-2 text-sm font-semibold text-tx1 hover:bg-[#FEA0CE]/20"
+                        @click="closeCalendarMenu"
                       >Google Calendar</a>
                       <button
                         type="button"
-                        @click="downloadCalendarFile(day, slot)"
-                        class="block w-full text-left rounded-md px-3 py-2 text-sm text-tx1 hover:bg-sur2"
+                        @click="downloadCalendarFile(day, slot, $event)"
+                        class="block w-full text-left rounded-md px-3 py-2 text-sm font-semibold text-tx1 hover:bg-[#FEA0CE]/20"
                       >Download .ics</button>
                     </div>
                   </details>
@@ -291,20 +292,21 @@
                           class="inline-flex items-center whitespace-nowrap bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                         >Show Link ↗</a>
                         <details class="relative">
-                          <summary class="list-none cursor-pointer inline-flex items-center whitespace-nowrap bg-mustard-400 hover:bg-mustard-300 text-[#2A2118] text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+                          <summary class="list-none cursor-pointer inline-flex items-center whitespace-nowrap bg-[#FEA0CE] hover:bg-[#F9927C] text-[#2A2118] text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
                             Add to Calendar
                           </summary>
-                          <div class="absolute right-0 z-20 mt-1 w-44 card p-1 text-left shadow-lg">
+                          <div class="absolute right-0 z-20 mt-1 w-44 bg-surface border-2 border-[#FEA0CE] rounded-lg p-1 text-left shadow-lg shadow-[#FEA0CE]/20">
                             <a
                               :href="googleCalendarUrl(day, slot)"
                               target="_blank"
                               rel="noopener"
-                              class="block rounded-md px-3 py-2 text-xs text-tx1 hover:bg-sur2"
+                              class="block rounded-md px-3 py-2 text-xs font-semibold text-tx1 hover:bg-[#FEA0CE]/20"
+                              @click="closeCalendarMenu"
                             >Google Calendar</a>
                             <button
                               type="button"
-                              @click="downloadCalendarFile(day, slot)"
-                              class="block w-full text-left rounded-md px-3 py-2 text-xs text-tx1 hover:bg-sur2"
+                              @click="downloadCalendarFile(day, slot, $event)"
+                              class="block w-full text-left rounded-md px-3 py-2 text-xs font-semibold text-tx1 hover:bg-[#FEA0CE]/20"
                             >Download .ics</button>
                           </div>
                         </details>
@@ -706,7 +708,12 @@ function escapeIcsText(value) {
     .replace(/\r?\n/g, '\\n')
 }
 
-function downloadCalendarFile(day, slot) {
+function closeCalendarMenu(event) {
+  const menu = event?.currentTarget?.closest?.('details')
+  if (menu) menu.open = false
+}
+
+function downloadCalendarFile(day, slot, event) {
   const start = slotCalendarDate(day, slot)
   const end = slotCalendarDate(day, slot, slot.duration_min || 30)
   const now = new Date()
@@ -735,6 +742,7 @@ function downloadCalendarFile(day, slot) {
   const a = Object.assign(document.createElement('a'), { href: url, download: filename })
   a.click()
   URL.revokeObjectURL(url)
+  closeCalendarMenu(event)
 }
 
 // ── Live-now tracking ─────────────────────────────────────────────────────
