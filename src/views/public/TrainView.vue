@@ -176,7 +176,7 @@
                   <input
                     v-model="linkEditValue"
                     type="url"
-                    placeholder="https://districtapp.tv/…"
+                    placeholder="https://districtapp.tv/… or https://niknax.net/…"
                     class="input text-sm"
                     :disabled="linkSavingSlotId === slot.id"
                     @keyup.enter="saveLink(slot)"
@@ -283,7 +283,7 @@
                           <input
                             v-model="linkEditValue"
                             type="url"
-                            placeholder="https://districtapp.tv/…"
+                            placeholder="https://districtapp.tv/… or https://niknax.net/…"
                             class="input text-xs py-1 px-2 w-40"
                             :disabled="linkSavingSlotId === slot.id"
                             @keyup.enter="saveLink(slot)"
@@ -485,7 +485,7 @@ function cancelAddLink() {
 async function saveLink(slot) {
   const value = normalizePublicUrl(linkEditValue.value)
   if (linkEditValue.value.trim() && !value) {
-    linkEditError.value = 'Please enter a valid https:// District link.'
+    linkEditError.value = 'Please enter a valid https:// District or Niknax link.'
     return
   }
 
@@ -589,7 +589,8 @@ function normalizePublicUrl(raw) {
     const url = new URL(value)
     const host = url.hostname.toLowerCase()
     if (url.protocol !== 'https:') return null
-    if (host !== 'districtapp.tv' && !host.endsWith('.districtapp.tv')) return null
+    const allowedHosts = ['districtapp.tv', 'niknax.net']
+    if (!allowedHosts.some(domain => host === domain || host.endsWith(`.${domain}`))) return null
     return url.toString()
   } catch {
     return null

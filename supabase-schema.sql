@@ -158,8 +158,8 @@ declare
 begin
   clean_link := nullif(trim(coalesce(link, '')), '');
 
-  if clean_link is not null and clean_link !~* '^https://([a-z0-9-]+\.)*districtapp\.tv(/|$)' then
-    raise exception 'Please enter a valid https:// District link.' using errcode = '22023';
+  if clean_link is not null and clean_link !~* '^https://([a-z0-9-]+\.)*(districtapp\.tv|niknax\.net)([/?#]|$)' then
+    raise exception 'Please enter a valid https:// District or Niknax link.' using errcode = '22023';
   end if;
 
   update public.slots s

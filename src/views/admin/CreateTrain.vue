@@ -31,8 +31,8 @@
           </div>
 
           <div>
-            <label class="label">District Event Link</label>
-            <input v-model="form.district_link" class="input" type="url" placeholder="https://districtapp.tv/…" />
+            <label class="label">Event Link</label>
+            <input v-model="form.district_link" class="input" type="url" placeholder="https://districtapp.tv/… or https://niknax.net/…" />
           </div>
 
           <div>

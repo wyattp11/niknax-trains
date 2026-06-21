@@ -91,8 +91,8 @@
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label class="label">District Event Link</label>
-                <input v-model="editForm.district_link" class="input" type="url" />
+                <label class="label">Event Link</label>
+                <input v-model="editForm.district_link" class="input" type="url" placeholder="https://districtapp.tv/… or https://niknax.net/…" />
               </div>
               <div>
                 <label class="label">Train Graphic</label>
