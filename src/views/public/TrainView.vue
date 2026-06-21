@@ -163,7 +163,7 @@
                   :href="safeUrl(slot.seller_link)"
                   target="_blank"
                   rel="noopener"
-                  class="block w-full text-center whitespace-nowrap bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                  class="block w-full text-center whitespace-nowrap bg-niknax-600 hover:bg-niknax-500 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
                 >Show Link ↗</a>
 
                 <button
@@ -269,7 +269,7 @@
                         :href="safeUrl(slot.seller_link)"
                         target="_blank"
                         rel="noopener"
-                        class="inline-flex items-center whitespace-nowrap bg-[#6fcb9f] hover:bg-[#59b88a] text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                        class="inline-flex items-center whitespace-nowrap bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                       >Show Link ↗</a>
 
                       <button
