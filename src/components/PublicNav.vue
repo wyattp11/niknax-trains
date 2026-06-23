@@ -19,6 +19,17 @@
         <span v-else class="text-lg" aria-hidden="true">🌙</span>
       </button>
 
+      <!-- Sound toggle -->
+      <button
+        @click="theme.toggleSound()"
+        :title="theme.isSoundMuted ? 'Turn on sounds' : 'Mute sounds'"
+        :aria-label="theme.isSoundMuted ? 'Turn on sounds' : 'Mute sounds'"
+        :aria-pressed="theme.isSoundMuted"
+        class="w-9 h-9 flex items-center justify-center rounded-lg text-tx2 hover:bg-sur2 transition-colors"
+      >
+        <span class="text-lg" aria-hidden="true">{{ theme.isSoundMuted ? '🔇' : '🔊' }}</span>
+      </button>
+
       <!-- Palm Springs theme toggle -->
       <button
         @click="theme.togglePalm()"

@@ -384,10 +384,12 @@ import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
 import { allZones, addMinutes, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
+import { useThemeStore } from '../../stores/theme.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 
 const route  = useRoute()
 const router = useRouter()
+const theme  = useThemeStore()
 
 const train      = ref(null)
 const days       = ref([])
@@ -601,6 +603,7 @@ function flashSlotRow(slotId) {
 }
 
 async function playRowChangeSound() {
+  if (theme.isSoundMuted) return
   try {
     rowSoundCtx ||= new (window.AudioContext || window.webkitAudioContext)()
     if (rowSoundCtx.state === 'suspended') await rowSoundCtx.resume()

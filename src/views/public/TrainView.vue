@@ -15,6 +15,13 @@
           :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
         ><span aria-hidden="true">{{ theme.isDark ? '☀' : '◑' }}</span></button>
         <button
+          @click="theme.toggleSound()"
+          class="text-base text-tx3 hover:text-tx1 transition-colors"
+          :title="theme.isSoundMuted ? 'Turn on sounds' : 'Mute sounds'"
+          :aria-label="theme.isSoundMuted ? 'Turn on sounds' : 'Mute sounds'"
+          :aria-pressed="theme.isSoundMuted"
+        ><span aria-hidden="true">{{ theme.isSoundMuted ? '🔇' : '🔊' }}</span></button>
+        <button
           @click="theme.togglePalm()"
           class="text-base transition-colors"
           :class="theme.isPalm ? 'text-niknax-600 dark:text-niknax-400' : 'text-tx3 hover:text-tx1'"
@@ -766,6 +773,7 @@ function flashSlotRow(slotId) {
 }
 
 async function playRowChangeSound() {
+  if (theme.isSoundMuted) return
   try {
     rowSoundCtx ||= new (window.AudioContext || window.webkitAudioContext)()
     if (rowSoundCtx.state === 'suspended') await rowSoundCtx.resume()

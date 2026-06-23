@@ -6,6 +6,7 @@ export const useThemeStore = defineStore('theme', () => {
   const isDark = ref(localStorage.getItem('niknax_theme') !== 'light')
   // Palm Springs accent theme — off by default
   const isPalm = ref(localStorage.getItem('niknax_palm') === 'on')
+  const isSoundMuted = ref(localStorage.getItem('niknax_sound') === 'muted')
 
   function apply() {
     document.documentElement.classList.toggle('dark', isDark.value)
@@ -24,8 +25,13 @@ export const useThemeStore = defineStore('theme', () => {
     apply()
   }
 
+  function toggleSound() {
+    isSoundMuted.value = !isSoundMuted.value
+    localStorage.setItem('niknax_sound', isSoundMuted.value ? 'muted' : 'on')
+  }
+
   // Apply immediately on store creation
   apply()
 
-  return { isDark, isPalm, toggle, togglePalm }
+  return { isDark, isPalm, isSoundMuted, toggle, togglePalm, toggleSound }
 })
