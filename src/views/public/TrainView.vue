@@ -74,6 +74,25 @@
             <button @click="copyPageLink" class="btn-secondary text-sm" aria-live="polite">
               {{ pageLinkCopied ? '✓ Copied!' : '🔗 Share Event' }}
             </button>
+            <details v-if="trainCalendarRange" class="relative">
+              <summary class="list-none cursor-pointer text-center whitespace-nowrap bg-[#FEA0CE] hover:bg-[#F9927C] text-[#2A2118] text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+                Remind Me
+              </summary>
+              <div class="mt-1 sm:absolute sm:left-0 sm:z-20 sm:w-44 bg-surface border-2 border-[#FEA0CE] rounded-lg p-1 shadow-lg shadow-[#FEA0CE]/20">
+                <a
+                  :href="googleTrainCalendarUrl"
+                  target="_blank"
+                  rel="noopener"
+                  class="block rounded-md px-3 py-2 text-sm font-semibold text-tx1 hover:bg-[#FEA0CE]/20"
+                  @click="closeCalendarMenu"
+                >Google Calendar</a>
+                <button
+                  type="button"
+                  @click="downloadTrainCalendarFile"
+                  class="block w-full text-left rounded-md px-3 py-2 text-sm font-semibold text-tx1 hover:bg-[#FEA0CE]/20"
+                >Download .ics</button>
+              </div>
+            </details>
             <button
               v-if="train.cover_url"
               @click="downloadGraphic"
@@ -738,6 +757,48 @@ function googleCalendarUrl(day, slot) {
   return `https://calendar.google.com/calendar/render?${params.toString()}`
 }
 
+const trainCalendarRange = computed(() => {
+  const entries = flatSlotsChrono.value
+    .map(({ day, slot }) => ({
+      start: slotCalendarDate(day, slot),
+      end: slotCalendarDate(day, slot, slot.duration_min || 30),
+    }))
+    .sort((a, b) => a.start - b.start)
+
+  if (!entries.length) return null
+  return {
+    start: entries[0].start,
+    end: entries.reduce((latest, entry) => entry.end > latest ? entry.end : latest, entries[0].end),
+  }
+})
+
+const trainCalendarTitle = computed(() =>
+  `${train.value?.name || 'Niknax Train'} Reminder`
+)
+
+const trainCalendarDescription = computed(() => {
+  const lines = [
+    train.value?.tagline || '',
+    train.value?.description || '',
+    `Event page: ${location.href}`,
+  ]
+  if (effectiveDistrictLink.value) lines.push(`Watch link: ${effectiveDistrictLink.value}`)
+  return lines.filter(Boolean).join('\n\n')
+})
+
+const googleTrainCalendarUrl = computed(() => {
+  if (!trainCalendarRange.value) return '#'
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: trainCalendarTitle.value,
+    dates: `${calendarStamp(trainCalendarRange.value.start)}/${calendarStamp(trainCalendarRange.value.end)}`,
+    ctz: 'America/New_York',
+    details: trainCalendarDescription.value,
+    location: location.href,
+  })
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
+})
+
 function escapeIcsText(value) {
   return String(value)
     .replace(/\\/g, '\\\\')
@@ -771,6 +832,37 @@ function downloadCalendarFile(day, slot, event) {
     `DESCRIPTION:${escapeIcsText(calendarDescription(slot))}`,
     `LOCATION:${escapeIcsText(safeUrl(slot.seller_link))}`,
     `URL:${safeUrl(slot.seller_link)}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n')
+
+  const blob = new Blob([`${content}\r\n`], { type: 'text/calendar;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = Object.assign(document.createElement('a'), { href: url, download: filename })
+  a.click()
+  URL.revokeObjectURL(url)
+  closeCalendarMenu(event)
+}
+
+function downloadTrainCalendarFile(event) {
+  if (!trainCalendarRange.value) return
+  const now = new Date()
+  const filename = `${trainCalendarTitle.value.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'niknax-train'}.ics`
+  const content = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Niknax//Train Station//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${train.value?.id || route.params.id}@niknax-trains`,
+    `DTSTAMP:${utcCalendarStamp(now)}`,
+    `DTSTART;TZID=America/New_York:${calendarStamp(trainCalendarRange.value.start)}`,
+    `DTEND;TZID=America/New_York:${calendarStamp(trainCalendarRange.value.end)}`,
+    `SUMMARY:${escapeIcsText(trainCalendarTitle.value)}`,
+    `DESCRIPTION:${escapeIcsText(trainCalendarDescription.value)}`,
+    `LOCATION:${escapeIcsText(location.href)}`,
+    `URL:${location.href}`,
     'END:VEVENT',
     'END:VCALENDAR',
   ].join('\r\n')
