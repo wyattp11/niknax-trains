@@ -131,13 +131,13 @@ const carTypeIdx = Array.from({ length: MAX_CARS }, (_, i) => i % CAR_ARTS.lengt
 const cabVis  = ref(false)
 
 const isDark     = ref(false)
-const locoColor  = computed(() => isDark.value ? '#D4E7E8' : '#122736')
-const cabColor   = computed(() => isDark.value ? '#E8A688' : '#803117')
+const locoColor  = computed(() => isDark.value ? '#FFF4B8' : '#122736')
+const cabColor   = computed(() => isDark.value ? '#FFB38A' : '#803117')
 const trackColor = computed(() => isDark.value ? 'rgba(74,63,46,0.35)' : 'rgba(201,173,126,0.55)')
 
 // Slate-blue / persimmon / goldenrod alternating shades for cars
 const carColors     = ['#2C5F7C', '#A8401F', '#1B3A4D', '#876316', '#234C64']
-const carColorsDark = ['#93BECF', '#DC7C54', '#FCE2F0', '#E8CB85', '#D4E7E8']
+const carColorsDark = ['#9FE8FF', '#FFB38A', '#FFD1EC', '#FFE08A', '#C8F7D4']
 
 const pieces = computed(() => [
   { key: 'loco', art: LOCO_ART, x: locoX.value, visible: true, color: locoColor.value },
@@ -203,6 +203,7 @@ let whistleEl       = null
 let cabooseWhistleEl = null
 let audioCtx        = null
 let pendingCaboose  = false
+let themeObserver   = null
 
 function webCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
@@ -375,7 +376,12 @@ onMounted(async () => {
   const el = wrap.value
   if (!el) return
 
-  isDark.value = document.documentElement.classList.contains('dark')
+  const syncTheme = () => {
+    isDark.value = document.documentElement.classList.contains('dark')
+  }
+  syncTheme()
+  themeObserver = new MutationObserver(syncTheme)
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
 
   const W = el.clientWidth
   if (W < 480)       { fz.value = 8;  lineH.value = 11 }
@@ -447,6 +453,7 @@ onMounted(async () => {
 onUnmounted(() => {
   if (rafId)     cancelAnimationFrame(rafId)
   if (waitTimer) clearTimeout(waitTimer)
+  if (themeObserver) themeObserver.disconnect()
   stopClickityClack()
   if (audioCtx)        { try { audioCtx.close() } catch {} }
   if (whistleEl)       { whistleEl.pause(); whistleEl.src = '' }
