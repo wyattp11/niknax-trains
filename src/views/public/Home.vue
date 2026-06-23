@@ -8,7 +8,7 @@
     <header class="text-center px-6 pt-12 pb-6 relative">
       <!-- Eyebrow -->
       <p class="text-niknax-600 dark:text-niknax-400 text-[0.65rem] font-mono tracking-[0.55em] uppercase mb-6">
-        District · Live Selling · Raid Trains
+        Niknax.net · Live Selling · Events
       </p>
 
       <!-- Main title — huge Righteous display -->
@@ -34,14 +34,14 @@
           class="text-tx3 hover:text-tx1 transition-colors text-lg"
           :title="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
           :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-        ><span aria-hidden="true">{{ theme.isDark ? '☀' : '◑' }}</span></button>
+        ><ion-icon :name="theme.isDark ? 'sunny-outline' : 'moon-outline'" aria-hidden="true"></ion-icon></button>
         <button
           @click="theme.toggleSound()"
           class="text-lg text-tx3 hover:text-tx1 transition-colors"
           :title="theme.isSoundMuted ? 'Turn on sounds' : 'Mute sounds'"
           :aria-label="theme.isSoundMuted ? 'Turn on sounds' : 'Mute sounds'"
           :aria-pressed="theme.isSoundMuted"
-        ><span aria-hidden="true">{{ theme.isSoundMuted ? '🔇' : '🔊' }}</span></button>
+        ><ion-icon :name="theme.isSoundMuted ? 'volume-mute-outline' : 'volume-high-outline'" aria-hidden="true"></ion-icon></button>
         <button
           @click="theme.togglePalm()"
           class="text-lg transition-colors"
@@ -49,7 +49,7 @@
           :title="theme.isPalm ? 'Turn off Palm Springs theme' : 'Turn on Palm Springs theme'"
           :aria-label="theme.isPalm ? 'Turn off Palm Springs theme' : 'Turn on Palm Springs theme'"
           :aria-pressed="theme.isPalm"
-        ><span aria-hidden="true">🌴</span></button>
+        ><ion-icon name="leaf-outline" aria-hidden="true"></ion-icon></button>
       </div>
     </header>
 

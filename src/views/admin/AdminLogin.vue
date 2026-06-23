@@ -6,8 +6,7 @@
       :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
       class="fixed top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg text-tx3 hover:bg-sur2 transition-colors"
     >
-      <span v-if="theme.isDark" aria-hidden="true">☀️</span>
-      <span v-else aria-hidden="true">🌙</span>
+      <ion-icon :name="theme.isDark ? 'sunny-outline' : 'moon-outline'" class="text-xl" aria-hidden="true"></ion-icon>
     </button>
 
     <div class="w-full max-w-sm">

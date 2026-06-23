@@ -15,8 +15,7 @@
         :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
         class="w-9 h-9 flex items-center justify-center rounded-lg text-tx2 hover:bg-sur2 transition-colors"
       >
-        <span v-if="theme.isDark" class="text-lg" aria-hidden="true">☀️</span>
-        <span v-else class="text-lg" aria-hidden="true">🌙</span>
+        <ion-icon :name="theme.isDark ? 'sunny-outline' : 'moon-outline'" class="text-xl" aria-hidden="true"></ion-icon>
       </button>
 
       <!-- Sound toggle -->
@@ -27,7 +26,7 @@
         :aria-pressed="theme.isSoundMuted"
         class="w-9 h-9 flex items-center justify-center rounded-lg text-tx2 hover:bg-sur2 transition-colors"
       >
-        <span class="text-lg" aria-hidden="true">{{ theme.isSoundMuted ? '🔇' : '🔊' }}</span>
+        <ion-icon :name="theme.isSoundMuted ? 'volume-mute-outline' : 'volume-high-outline'" class="text-xl" aria-hidden="true"></ion-icon>
       </button>
 
       <!-- Palm Springs theme toggle -->
@@ -39,7 +38,7 @@
         class="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
         :class="theme.isPalm ? 'bg-niknax-600 text-white' : 'text-tx2 hover:bg-sur2'"
       >
-        <span class="text-lg" aria-hidden="true">🌴</span>
+        <ion-icon name="leaf-outline" class="text-xl" aria-hidden="true"></ion-icon>
       </button>
 
       <RouterLink to="/admin" class="text-tx3 hover:text-tx2 text-xs px-2 py-1 rounded transition-colors">

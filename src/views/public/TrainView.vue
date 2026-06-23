@@ -13,14 +13,14 @@
           class="text-tx3 hover:text-tx1 transition-colors text-base"
           :title="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
           :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-        ><span aria-hidden="true">{{ theme.isDark ? '☀' : '◑' }}</span></button>
+        ><ion-icon :name="theme.isDark ? 'sunny-outline' : 'moon-outline'" aria-hidden="true"></ion-icon></button>
         <button
           @click="theme.toggleSound()"
           class="text-base text-tx3 hover:text-tx1 transition-colors"
           :title="theme.isSoundMuted ? 'Turn on sounds' : 'Mute sounds'"
           :aria-label="theme.isSoundMuted ? 'Turn on sounds' : 'Mute sounds'"
           :aria-pressed="theme.isSoundMuted"
-        ><span aria-hidden="true">{{ theme.isSoundMuted ? '🔇' : '🔊' }}</span></button>
+        ><ion-icon :name="theme.isSoundMuted ? 'volume-mute-outline' : 'volume-high-outline'" aria-hidden="true"></ion-icon></button>
         <button
           @click="theme.togglePalm()"
           class="text-base transition-colors"
@@ -28,7 +28,7 @@
           :title="theme.isPalm ? 'Turn off Palm Springs theme' : 'Turn on Palm Springs theme'"
           :aria-label="theme.isPalm ? 'Turn off Palm Springs theme' : 'Turn on Palm Springs theme'"
           :aria-pressed="theme.isPalm"
-        ><span aria-hidden="true">🌴</span></button>
+        ><ion-icon name="leaf-outline" aria-hidden="true"></ion-icon></button>
       </div>
     </div>
 
@@ -1127,7 +1127,10 @@ async function load() {
 
   document.title = `${t.name} — Niknax Raid Train`
   setMeta('og:title', t.name)
-  setMeta('og:description', t.tagline || 'Join the live-selling train on District!')
+  const metaDescription = t.tagline || 'Join the live-selling event on Niknax.net'
+  setMeta('og:description', metaDescription)
+  setNamedMeta('description', metaDescription)
+  setNamedMeta('twitter:description', metaDescription)
   if (t.cover_url) setMeta('og:image', t.cover_url)
   setMeta('og:url', location.href)
 
@@ -1156,6 +1159,12 @@ async function load() {
 function setMeta(name, content) {
   let el = document.querySelector(`meta[property="${name}"]`)
   if (!el) { el = document.createElement('meta'); el.setAttribute('property', name); document.head.appendChild(el) }
+  el.setAttribute('content', content)
+}
+
+function setNamedMeta(name, content) {
+  let el = document.querySelector(`meta[name="${name}"]`)
+  if (!el) { el = document.createElement('meta'); el.setAttribute('name', name); document.head.appendChild(el) }
   el.setAttribute('content', content)
 }
 
