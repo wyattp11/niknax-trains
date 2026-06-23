@@ -123,6 +123,7 @@
               :key="slot.id"
               :id="`slot-mobile-${slot.id}`"
               :class="[
+                recentlyChangedSlotIds.has(slot.id) ? 'slot-row-flash' : '',
                 slot.id === activeSlotId
                   ? 'bg-[var(--badge-live-bg)] ring-1 ring-inset ring-[var(--badge-live-dot)]'
                   : slot.is_pre_assigned
@@ -135,14 +136,7 @@
                 <div class="min-w-0">
                   <p class="text-xs text-tx3 mb-1">Slot {{ slotIdx + 1 }}</p>
                   <div class="flex items-center gap-2 flex-wrap">
-                    <span v-if="slot.username" class="inline-flex items-center gap-1.5 flex-wrap">
-                      <span class="font-medium text-tx1 break-words">{{ slot.username }}</span>
-                      <span
-                        v-if="memberBadge(slot.username)"
-                        :class="memberBadgeClass(memberBadge(slot.username))"
-                        class="text-[0.62rem] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded-full"
-                      >{{ memberBadge(slot.username) }}</span>
-                    </span>
+                    <span v-if="slot.username" class="font-medium text-tx1 break-words">{{ slot.username }}</span>
                     <span v-else class="text-tx3 italic text-sm">— available —</span>
                     <span
                       v-if="slot.id === activeSlotId"
@@ -270,6 +264,7 @@
                   :key="slot.id"
                   :id="`slot-desktop-${slot.id}`"
                   :class="[
+                    recentlyChangedSlotIds.has(slot.id) ? 'slot-row-flash' : '',
                     slot.id === activeSlotId
                       ? 'bg-[var(--badge-live-bg)] ring-1 ring-inset ring-[var(--badge-live-dot)]'
                       : slot.is_pre_assigned
@@ -281,14 +276,7 @@
                   <td class="px-4 py-3 text-tx3 text-xs">{{ slotIdx + 1 }}</td>
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span v-if="slot.username" class="inline-flex items-center gap-1.5 flex-wrap">
-                        <span class="font-medium text-tx1">{{ slot.username }}</span>
-                        <span
-                          v-if="memberBadge(slot.username)"
-                          :class="memberBadgeClass(memberBadge(slot.username))"
-                          class="text-[0.62rem] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded-full"
-                        >{{ memberBadge(slot.username) }}</span>
-                      </span>
+                      <span v-if="slot.username" class="font-medium text-tx1">{{ slot.username }}</span>
                       <span v-else class="text-tx3 italic text-xs">— available —</span>
                       <span
                         v-if="slot.id === activeSlotId"
@@ -529,7 +517,7 @@ const train   = ref(null)
 const days    = ref([])
 const slots   = ref([])
 const loading = ref(true)
-const memberRoles = ref({})
+const recentlyChangedSlotIds = ref(new Set())
 
 const signupModal    = ref(null)
 const signupSuccess  = ref(null)   // { username, slot, day } after successful claim
@@ -599,11 +587,6 @@ watch(signupSuccess, async (val) => {
     successHeadingRef.value?.focus?.()
   }
 })
-
-watch(
-  () => [...new Set(slots.value.map(slot => usernameKey(slot.username)).filter(Boolean))].sort().join('|'),
-  loadMemberBadges
-)
 
 // ── Username autocomplete (from members_signup_search view) ──────────────
 const usernameSuggestions = ref([])
@@ -691,6 +674,7 @@ function applySlotRealtimeChange(payload) {
   }
 
   if (!nextSlot?.id) return
+  flashSlotRow(nextSlot.id)
   const idx = slots.value.findIndex(slot => slot.id === nextSlot.id)
   if (idx === -1) {
     slots.value.push(nextSlot)
@@ -699,41 +683,13 @@ function applySlotRealtimeChange(payload) {
   }
 }
 
-function usernameKey(username) {
-  return String(username || '').trim().replace(/^@+/, '').toLowerCase()
-}
-
-function memberBadge(username) {
-  return memberRoles.value[usernameKey(username)] || ''
-}
-
-function memberBadgeClass(label) {
-  const key = String(label || '').trim().toLowerCase()
-  if (key === 'owner') return 'bg-[#FEA0CE] text-[#2A2118]'
-  if (key === 'administrator') return 'bg-mustard-400 text-[#2A2118]'
-  if (key === 'nn moderator') return 'bg-niknax-600 text-white'
-  return 'bg-olive-600 text-white'
-}
-
-async function loadMemberBadges() {
-  const keys = [...new Set(slots.value.map(slot => usernameKey(slot.username)).filter(Boolean))]
-  if (!keys.length) {
-    memberRoles.value = {}
-    return
-  }
-
-  const { data, error } = await supabase
-    .from('members_public_badges')
-    .select('username_key, role')
-    .in('username_key', keys)
-
-  if (error) return
-
-  const nextRoles = {}
-  for (const member of data || []) {
-    if (member.role) nextRoles[member.username_key] = member.role
-  }
-  memberRoles.value = nextRoles
+function flashSlotRow(slotId) {
+  recentlyChangedSlotIds.value = new Set([...recentlyChangedSlotIds.value, slotId])
+  setTimeout(() => {
+    const nextIds = new Set(recentlyChangedSlotIds.value)
+    nextIds.delete(slotId)
+    recentlyChangedSlotIds.value = nextIds
+  }, 1800)
 }
 
 function subscribeToSlotChanges(dayIds) {

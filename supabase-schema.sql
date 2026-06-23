@@ -89,8 +89,8 @@ values
   ('jolieflipsvintage', 'NN Moderator', true, now()),
   ('myflippingvanlife', 'NN Moderator', true, now()),
   ('candylandcuriosities', 'NN Moderator', true, now()),
-  ('crazylamplady', 'Owner', true, now()),
-  ('moonskyvintage', 'Administrator', true, now())
+  ('crazylamplady', 'NN Owner', true, now()),
+  ('moonskyvintage', 'NN Admin', true, now())
 on conflict (username) do update
 set role = excluded.role,
     can_go_live = true,

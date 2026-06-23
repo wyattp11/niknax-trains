@@ -202,6 +202,25 @@
     @apply rounded-xl p-6;
   }
 
+  .slot-row-flash {
+    animation: slot-row-flash 1.6s ease-out;
+  }
+
+  @keyframes slot-row-flash {
+    0% {
+      background-color: rgba(254, 160, 206, 0.38);
+      box-shadow: inset 0 0 0 2px #FEA0CE;
+    }
+    45% {
+      background-color: rgba(201, 150, 42, 0.22);
+      box-shadow: inset 0 0 0 2px #C9962A;
+    }
+    100% {
+      background-color: transparent;
+      box-shadow: inset 0 0 0 0 transparent;
+    }
+  }
+
   /* Status badges — colorblind-friendly, solid "postal stamp" fills.       */
   /* Solid (non-translucent) so contrast holds identically in light & dark; */
   /* every pairing below clears WCAG AA (4.5:1+) for white text on the fill. */

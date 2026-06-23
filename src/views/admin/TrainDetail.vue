@@ -179,6 +179,7 @@
                   @dragleave="onDragLeave(slot)"
                   @drop.prevent="onDrop(slot)"
                   :class="[
+                    recentlyChangedSlotIds.has(slot.id) ? 'slot-row-flash' : '',
                     slot.is_pre_assigned ? 'bg-niknax-950/40' : '',
                     dragOver === slot.id && dragSource?.id !== slot.id
                       ? 'bg-niknax-900/60 outline outline-2 outline-niknax-500' : '',
@@ -354,6 +355,7 @@ const slots      = ref([])
 const loading    = ref(true)
 const publishing = ref(false)
 const copied     = ref(false)
+const recentlyChangedSlotIds = ref(new Set())
 let slotsChannel = null
 
 // Edit details
@@ -492,12 +494,22 @@ function applySlotRealtimeChange(payload) {
   }
 
   if (!nextSlot?.id) return
+  flashSlotRow(nextSlot.id)
   const idx = slots.value.findIndex(slot => slot.id === nextSlot.id)
   if (idx === -1) {
     slots.value.push(nextSlot)
   } else {
     slots.value[idx] = { ...slots.value[idx], ...nextSlot }
   }
+}
+
+function flashSlotRow(slotId) {
+  recentlyChangedSlotIds.value = new Set([...recentlyChangedSlotIds.value, slotId])
+  setTimeout(() => {
+    const nextIds = new Set(recentlyChangedSlotIds.value)
+    nextIds.delete(slotId)
+    recentlyChangedSlotIds.value = nextIds
+  }, 1800)
 }
 
 function subscribeToSlotChanges(dayIds) {

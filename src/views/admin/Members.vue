@@ -75,7 +75,7 @@
                 :id="`member-role-${row.id}`"
                 v-model="row.role"
                 class="input"
-                placeholder="NN Moderator, Administrator, Owner…"
+                placeholder="NN Moderator, NN Admin, NN Owner…"
                 @blur="saveField(row, 'role')"
                 @keyup.enter="saveField(row, 'role')"
               />
@@ -199,7 +199,7 @@
         </div>
         <div>
           <label class="label" for="add-member-role">Badge</label>
-          <input id="add-member-role" v-model="newMember.role" class="input" placeholder="NN Moderator, Administrator, Owner…" />
+          <input id="add-member-role" v-model="newMember.role" class="input" placeholder="NN Moderator, NN Admin, NN Owner…" />
         </div>
         <label class="flex items-center gap-2 text-sm text-tx2 select-none cursor-pointer">
           <input type="checkbox" v-model="newMember.can_go_live" class="accent-niknax-600" />
