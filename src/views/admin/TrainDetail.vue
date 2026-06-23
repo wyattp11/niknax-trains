@@ -229,7 +229,7 @@
                 >
                   <!-- Drag handle -->
                   <td class="px-3 py-2.5 text-tx3 select-none text-base">⠿</td>
-                  <td class="px-3 py-2.5 text-tx3 text-xs">{{ slotIdx + 1 }}</td>
+                  <td class="px-3 py-2.5 text-tx3 text-xs">{{ slotRowNumber(slot, slotIdx) }}</td>
                   <td class="px-3 py-2.5">
                     <span v-if="editingSlot === slot.id">
                       <input
@@ -383,7 +383,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
-import { allZones, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
+import { allZones, addMinutes, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 
 const route  = useRoute()
@@ -397,6 +397,7 @@ const publishing = ref(false)
 const copied     = ref(false)
 const recentlyChangedSlotIds = ref(new Set())
 let slotsChannel = null
+let rowSoundCtx = null
 
 // Edit details
 const showEdit      = ref(false)
@@ -536,13 +537,23 @@ function initScheduleForms() {
   const forms = {}
   for (const day of days.value) {
     const daySlots = [...(slotsByDay.value[day.id] || [])]
+    const kickoff = daySlots.find(isKickoffSlot)
+    const sellerSlots = daySlots.filter(slot => !isKickoffSlot(slot))
     forms[day.id] = {
-      start_time: timeInputValue(daySlots[0]?.start_time || '12:00'),
-      slot_duration: daySlots[0]?.duration_min || 30,
-      slot_count: Math.max(1, daySlots.length || 1),
+      start_time: timeInputValue(kickoff?.start_time || sellerSlots[0]?.start_time || '12:00'),
+      slot_duration: sellerSlots[0]?.duration_min || 30,
+      slot_count: Math.max(1, sellerSlots.length || 1),
     }
   }
   scheduleForms.value = forms
+}
+
+function isKickoffSlot(slot) {
+  return String(slot?.label || '').trim().toLowerCase() === 'kickoff'
+}
+
+function slotRowNumber(slot, idx) {
+  return isKickoffSlot(slot) ? 0 : Math.max(1, Number(slot?.slot_order ?? idx + 1))
 }
 
 async function loadSlotsForDays(dayIds = days.value.map(d => d.id)) {
@@ -565,11 +576,13 @@ function applySlotRealtimeChange(payload) {
 
   if (payload.eventType === 'DELETE') {
     slots.value = slots.value.filter(slot => slot.id !== oldSlot?.id)
+    playRowChangeSound()
     return
   }
 
   if (!nextSlot?.id) return
   flashSlotRow(nextSlot.id)
+  playRowChangeSound()
   const idx = slots.value.findIndex(slot => slot.id === nextSlot.id)
   if (idx === -1) {
     slots.value.push(nextSlot)
@@ -585,6 +598,28 @@ function flashSlotRow(slotId) {
     nextIds.delete(slotId)
     recentlyChangedSlotIds.value = nextIds
   }, 1800)
+}
+
+async function playRowChangeSound() {
+  try {
+    rowSoundCtx ||= new (window.AudioContext || window.webkitAudioContext)()
+    if (rowSoundCtx.state === 'suspended') await rowSoundCtx.resume()
+    const t = rowSoundCtx.currentTime
+    const notes = [660, 880]
+    notes.forEach((freq, idx) => {
+      const osc = rowSoundCtx.createOscillator()
+      const gain = rowSoundCtx.createGain()
+      osc.type = 'triangle'
+      osc.frequency.setValueAtTime(freq, t + idx * 0.055)
+      gain.gain.setValueAtTime(0, t + idx * 0.055)
+      gain.gain.linearRampToValueAtTime(0.08, t + idx * 0.055 + 0.012)
+      gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.055 + 0.16)
+      osc.connect(gain)
+      gain.connect(rowSoundCtx.destination)
+      osc.start(t + idx * 0.055)
+      osc.stop(t + idx * 0.055 + 0.18)
+    })
+  } catch {}
 }
 
 function subscribeToSlotChanges(dayIds) {
@@ -702,23 +737,51 @@ async function applyScheduleChanges() {
   try {
     for (const day of days.value) {
       const form = scheduleForms.value[day.id]
-      const desiredTimes = generateSlotTimes(form.start_time, form.slot_duration, form.slot_count)
+      const kickoffTime = form.start_time
+      const desiredTimes = generateSlotTimes(addMinutes(form.start_time, 10), form.slot_duration, form.slot_count)
       const existingSlots = [...(slotsByDay.value[day.id] || [])]
+      const kickoff = existingSlots.find(isKickoffSlot)
+      const sellerSlots = existingSlots.filter(slot => !isKickoffSlot(slot))
 
-      for (let idx = 0; idx < Math.min(existingSlots.length, desiredTimes.length); idx++) {
+      if (kickoff) {
+        const { error } = await supabase
+          .from('slots')
+          .update({
+            start_time: kickoffTime,
+            duration_min: 10,
+            label: 'Kickoff',
+            slot_order: 0,
+          })
+          .eq('id', kickoff.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('slots').insert({
+          train_day_id: day.id,
+          start_time: kickoffTime,
+          duration_min: 10,
+          username: null,
+          seller_link: null,
+          label: 'Kickoff',
+          is_pre_assigned: false,
+          slot_order: 0,
+        })
+        if (error) throw error
+      }
+
+      for (let idx = 0; idx < Math.min(sellerSlots.length, desiredTimes.length); idx++) {
         const { error } = await supabase
           .from('slots')
           .update({
             start_time: desiredTimes[idx],
             duration_min: form.slot_duration,
-            slot_order: idx,
+            slot_order: idx + 1,
           })
-          .eq('id', existingSlots[idx].id)
+          .eq('id', sellerSlots[idx].id)
         if (error) throw error
       }
 
-      if (desiredTimes.length > existingSlots.length) {
-        const slotsToInsert = desiredTimes.slice(existingSlots.length).map((time, offset) => ({
+      if (desiredTimes.length > sellerSlots.length) {
+        const slotsToInsert = desiredTimes.slice(sellerSlots.length).map((time, offset) => ({
           train_day_id: day.id,
           start_time: time,
           duration_min: form.slot_duration,
@@ -726,14 +789,14 @@ async function applyScheduleChanges() {
           seller_link: null,
           label: null,
           is_pre_assigned: false,
-          slot_order: existingSlots.length + offset,
+          slot_order: sellerSlots.length + offset + 1,
         }))
         const { error } = await supabase.from('slots').insert(slotsToInsert)
         if (error) throw error
       }
 
-      if (desiredTimes.length < existingSlots.length) {
-        const deleteIds = existingSlots.slice(desiredTimes.length).map(slot => slot.id)
+      if (desiredTimes.length < sellerSlots.length) {
+        const deleteIds = sellerSlots.slice(desiredTimes.length).map(slot => slot.id)
         const { error } = await supabase.from('slots').delete().in('id', deleteIds)
         if (error) throw error
       }
@@ -812,7 +875,7 @@ function addSlotToDay(day) {
 
 async function saveNewSlot() {
   savingSlot.value = true
-  const maxOrder = (slotsByDay.value[addSlotDay.value.id] || []).reduce((m, s) => Math.max(m, s.slot_order), -1)
+  const maxOrder = (slotsByDay.value[addSlotDay.value.id] || []).reduce((m, s) => Math.max(m, s.slot_order), 0)
   const { data, error } = await supabase.from('slots').insert({
     train_day_id: addSlotDay.value.id,
     start_time: newSlot.value.start_time,

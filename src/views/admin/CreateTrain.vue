@@ -108,7 +108,7 @@
                 </div>
               </div>
               <p class="text-xs text-tx3">
-                This generates {{ day.slot_count }} open slots of {{ day.slot_duration }} min each, starting at {{ formatDisplayTime(day.start_time) }} ET.
+                This adds a 10-minute Kickoff row at {{ formatDisplayTime(day.start_time) }} ET, then generates {{ day.slot_count }} open seller slots of {{ day.slot_duration }} min each.
                 Pre-assigned slots below will overwrite matching times.
               </p>
             </div>
@@ -289,9 +289,19 @@ async function saveAndContinue() {
         if (p.time) preMap[p.time] = p
       }
 
-      // Generate open slot times
+      const kickoffSlot = {
+        train_day_id: trainDay.id,
+        start_time: day.start_time,
+        duration_min: 10,
+        username: null,
+        label: 'Kickoff',
+        is_pre_assigned: false,
+        slot_order: 0,
+      }
+
+      // Generate open slot times after the 10-minute Kickoff row.
       const openTimes = generateSlotTimes(
-        day.start_time,
+        addMinutes(day.start_time, 10),
         day.slot_duration,
         day.slot_count
       )
@@ -310,7 +320,7 @@ async function saveAndContinue() {
             username: pre.username || null,
             label: pre.label || null,
             is_pre_assigned: true,
-            slot_order: idx,
+            slot_order: idx + 1,
           }
         }
         return {
@@ -320,11 +330,11 @@ async function saveAndContinue() {
           username: null,
           label: null,
           is_pre_assigned: false,
-          slot_order: idx,
+          slot_order: idx + 1,
         }
       })
 
-      const { error: slotsErr } = await supabase.from('slots').insert(slotsToInsert)
+      const { error: slotsErr } = await supabase.from('slots').insert([kickoffSlot, ...slotsToInsert])
       if (slotsErr) throw slotsErr
     }
 

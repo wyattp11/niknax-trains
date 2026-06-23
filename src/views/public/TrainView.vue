@@ -134,7 +134,7 @@
             >
               <div class="flex items-start justify-between gap-3 mb-3">
                 <div class="min-w-0">
-                  <p class="text-xs text-tx3 mb-1">Slot {{ slotIdx + 1 }}</p>
+                  <p class="text-xs text-tx3 mb-1">Slot {{ slotRowNumber(slot, slotIdx) }}</p>
                   <div class="flex items-center gap-2 flex-wrap">
                     <span v-if="slot.username" class="inline-flex items-center gap-1.5 flex-wrap">
                       <span class="font-medium text-tx1 break-words">{{ slot.username }}</span>
@@ -181,7 +181,7 @@
                 @click="openSignup(slot, day)"
                 class="w-full bg-niknax-600 hover:bg-niknax-500 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
               >
-                {{ train.published ? 'Sign Up' : 'Moderator Sign Up' }}
+                {{ !train.published || isKickoffSlot(slot) ? 'Moderator Sign Up' : 'Sign Up' }}
               </button>
 
               <template v-else-if="slot.username">
@@ -280,7 +280,7 @@
                   ]"
                   class="transition-colors"
                 >
-                  <td class="px-4 py-3 text-tx3 text-xs">{{ slotIdx + 1 }}</td>
+                  <td class="px-4 py-3 text-tx3 text-xs">{{ slotRowNumber(slot, slotIdx) }}</td>
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-2 flex-wrap">
                       <span v-if="slot.username" class="inline-flex items-center gap-1.5 flex-wrap">
@@ -315,7 +315,7 @@
                       @click="openSignup(slot, day)"
                       class="bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                     >
-                      {{ train.published ? 'Sign Up' : 'Moderator Sign Up' }}
+                      {{ !train.published || isKickoffSlot(slot) ? 'Moderator Sign Up' : 'Sign Up' }}
                     </button>
 
                     <template v-else-if="slot.username">
@@ -548,6 +548,7 @@ const linkEditError  = ref('')
 const linkSavingSlotId = ref(null)
 let slotsChannel = null
 let trainChannel = null
+let rowSoundCtx = null
 
 function startAddLink(slot) {
   linkEditSlotId.value = slot.id
@@ -666,6 +667,14 @@ function hideSuggestionsSoon() {
 
 function zones(t) { return allZones(t) }
 
+function isKickoffSlot(slot) {
+  return String(slot?.label || '').trim().toLowerCase() === 'kickoff'
+}
+
+function slotRowNumber(slot, idx) {
+  return isKickoffSlot(slot) ? 0 : Math.max(1, Number(slot?.slot_order ?? idx + 1))
+}
+
 function normalizePublicUrl(raw) {
   const value = raw.trim()
   if (!value) return null
@@ -691,11 +700,13 @@ function applySlotRealtimeChange(payload) {
 
   if (payload.eventType === 'DELETE') {
     slots.value = slots.value.filter(slot => slot.id !== oldSlot?.id)
+    playRowChangeSound()
     return
   }
 
   if (!nextSlot?.id) return
   flashSlotRow(nextSlot.id)
+  playRowChangeSound()
   const idx = slots.value.findIndex(slot => slot.id === nextSlot.id)
   if (idx === -1) {
     slots.value.push(nextSlot)
@@ -715,7 +726,7 @@ function memberBadge(username) {
 function memberBadgeClass(label) {
   const key = String(label || '').trim().toLowerCase()
   if (key === 'nn owner') return 'bg-[#FEA0CE] text-[#2A2118]'
-  if (key === 'nn admin') return 'bg-mustard-400 text-[#2A2118]'
+  if (key === 'nn admin') return 'bg-[#A8401F] text-white'
   if (key === 'nn moderator') return 'bg-niknax-600 text-white'
   return 'bg-olive-600 text-white'
 }
@@ -752,6 +763,28 @@ function flashSlotRow(slotId) {
     nextIds.delete(slotId)
     recentlyChangedSlotIds.value = nextIds
   }, 1800)
+}
+
+async function playRowChangeSound() {
+  try {
+    rowSoundCtx ||= new (window.AudioContext || window.webkitAudioContext)()
+    if (rowSoundCtx.state === 'suspended') await rowSoundCtx.resume()
+    const t = rowSoundCtx.currentTime
+    const notes = [660, 880]
+    notes.forEach((freq, idx) => {
+      const osc = rowSoundCtx.createOscillator()
+      const gain = rowSoundCtx.createGain()
+      osc.type = 'triangle'
+      osc.frequency.setValueAtTime(freq, t + idx * 0.055)
+      gain.gain.setValueAtTime(0, t + idx * 0.055)
+      gain.gain.linearRampToValueAtTime(0.08, t + idx * 0.055 + 0.012)
+      gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.055 + 0.16)
+      osc.connect(gain)
+      gain.connect(rowSoundCtx.destination)
+      osc.start(t + idx * 0.055)
+      osc.stop(t + idx * 0.055 + 0.18)
+    })
+  } catch {}
 }
 
 function subscribeToSlotChanges(dayIds) {
