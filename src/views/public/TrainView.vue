@@ -74,7 +74,7 @@
             <button @click="copyPageLink" class="btn-secondary text-sm" aria-live="polite">
               {{ pageLinkCopied ? '✓ Copied!' : '🔗 Share Event' }}
             </button>
-            <details v-if="trainCalendarRange" class="relative">
+            <details v-if="trainCalendarRange" class="calendar-menu relative">
               <summary class="list-none cursor-pointer text-center whitespace-nowrap bg-[#FEA0CE] hover:bg-[#F9927C] text-[#2A2118] text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
                 Remind Me
               </summary>
@@ -184,7 +184,7 @@
                     rel="noopener"
                     class="block w-full text-center whitespace-nowrap bg-niknax-600 hover:bg-niknax-500 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
                   >Show Link ↗</a>
-                  <details class="relative">
+                  <details class="calendar-menu relative">
                     <summary class="list-none cursor-pointer block w-full text-center whitespace-nowrap bg-[#FEA0CE] hover:bg-[#F9927C] text-[#2A2118] text-sm font-semibold px-3 py-2 rounded-lg transition-colors">
                       Add to Calendar
                     </summary>
@@ -310,7 +310,7 @@
                           rel="noopener"
                           class="inline-flex items-center whitespace-nowrap bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                         >Show Link ↗</a>
-                        <details class="relative">
+                        <details class="calendar-menu relative">
                           <summary class="list-none cursor-pointer inline-flex items-center whitespace-nowrap bg-[#FEA0CE] hover:bg-[#F9927C] text-[#2A2118] text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
                             Add to Calendar
                           </summary>
@@ -812,6 +812,13 @@ function closeCalendarMenu(event) {
   if (menu) menu.open = false
 }
 
+function closeCalendarMenusOnOutsideClick(event) {
+  if (event.target?.closest?.('.calendar-menu')) return
+  for (const menu of document.querySelectorAll('.calendar-menu[open]')) {
+    menu.open = false
+  }
+}
+
 function downloadCalendarFile(day, slot, event) {
   const start = slotCalendarDate(day, slot)
   const end = slotCalendarDate(day, slot, slot.duration_min || 30)
@@ -1066,6 +1073,7 @@ function copyPageLink() {
 }
 
 async function loadAndScroll() {
+  document.addEventListener('pointerdown', closeCalendarMenusOnOutsideClick)
   await load()
   clockInterval = setInterval(() => { nowET.value = getCurrentET() }, 30_000)
   await nextTick()
@@ -1078,6 +1086,7 @@ async function loadAndScroll() {
 
 onMounted(loadAndScroll)
 onUnmounted(() => {
+  document.removeEventListener('pointerdown', closeCalendarMenusOnOutsideClick)
   if (clockInterval) clearInterval(clockInterval)
   if (slotsChannel) supabase.removeChannel(slotsChannel)
 })
