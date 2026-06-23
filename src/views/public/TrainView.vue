@@ -509,6 +509,7 @@ const linkEditSlotId = ref(null)
 const linkEditValue  = ref('')
 const linkEditError  = ref('')
 const linkSavingSlotId = ref(null)
+let slotsChannel = null
 
 function startAddLink(slot) {
   linkEditSlotId.value = slot.id
@@ -639,6 +640,43 @@ function normalizePublicUrl(raw) {
 
 function safeUrl(raw) {
   return normalizePublicUrl(raw) || '#'
+}
+
+function applySlotRealtimeChange(payload) {
+  const nextSlot = payload.new
+  const oldSlot = payload.old
+
+  if (payload.eventType === 'DELETE') {
+    slots.value = slots.value.filter(slot => slot.id !== oldSlot?.id)
+    return
+  }
+
+  if (!nextSlot?.id) return
+  const idx = slots.value.findIndex(slot => slot.id === nextSlot.id)
+  if (idx === -1) {
+    slots.value.push(nextSlot)
+  } else {
+    slots.value[idx] = { ...slots.value[idx], ...nextSlot }
+  }
+}
+
+function subscribeToSlotChanges(dayIds) {
+  if (!dayIds.length) return
+  if (slotsChannel) supabase.removeChannel(slotsChannel)
+
+  slotsChannel = supabase
+    .channel(`public-train-slots-${route.params.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'slots',
+        filter: `train_day_id=in.(${dayIds.join(',')})`,
+      },
+      applySlotRealtimeChange
+    )
+    .subscribe()
 }
 
 function slotCalendarDate(day, slot, offsetMinutes = 0) {
@@ -864,6 +902,7 @@ async function load() {
       .in('train_day_id', dayIds)
       .order('slot_order')
     slots.value = s || []
+    subscribeToSlotChanges(dayIds)
   }
 
   loading.value = false
@@ -946,5 +985,8 @@ async function loadAndScroll() {
 }
 
 onMounted(loadAndScroll)
-onUnmounted(() => { if (clockInterval) clearInterval(clockInterval) })
+onUnmounted(() => {
+  if (clockInterval) clearInterval(clockInterval)
+  if (slotsChannel) supabase.removeChannel(slotsChannel)
+})
 </script>
