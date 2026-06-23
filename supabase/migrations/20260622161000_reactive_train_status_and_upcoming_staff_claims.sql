@@ -1,3 +1,21 @@
+do $$
+begin
+  if exists (
+    select 1
+    from pg_publication
+    where pubname = 'supabase_realtime'
+  ) and not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'trains'
+  ) then
+    alter publication supabase_realtime add table public.trains;
+  end if;
+end;
+$$;
+
 create or replace function public.claim_slot(slot_id uuid, claimant_username text)
 returns public.slots
 language plpgsql
@@ -45,9 +63,7 @@ begin
     raise exception 'Only NN moderators and admins can sign up before this train is published.' using errcode = 'P0001';
   end if;
 
-  if target_train_id is not null then
-    perform pg_advisory_xact_lock(hashtext(target_train_id::text), hashtext(lower(clean_username)));
-  end if;
+  perform pg_advisory_xact_lock(hashtext(target_train_id::text), hashtext(lower(clean_username)));
 
   if not is_unlimited_claimant and exists (
     select 1
@@ -82,3 +98,18 @@ end;
 $$;
 
 grant execute on function public.claim_slot(uuid, text) to anon, authenticated;
+
+drop policy if exists "public read visible slots" on public.slots;
+
+create policy "public read visible slots"
+on public.slots
+for select
+using (
+  exists (
+    select 1
+    from public.train_days d
+    join public.trains t on t.id = d.train_id
+    where d.id = slots.train_day_id
+      and (t.published = true or t.is_upcoming = true or public.is_admin())
+  )
+);

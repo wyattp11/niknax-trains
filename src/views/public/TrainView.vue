@@ -177,11 +177,11 @@
               </div>
 
               <button
-                v-if="train.published && !slot.username && !slot.is_pre_assigned"
+                v-if="canAttemptSignup && !slot.username && !slot.is_pre_assigned"
                 @click="openSignup(slot, day)"
                 class="w-full bg-niknax-600 hover:bg-niknax-500 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
               >
-                Sign Up
+                {{ train.published ? 'Sign Up' : 'Moderator Sign Up' }}
               </button>
 
               <template v-else-if="slot.username">
@@ -311,11 +311,11 @@
                   <td class="px-4 py-3 text-tx2 font-semibold">{{ zones(slot.start_time)[3].time }}</td>
                   <td class="px-4 py-3 text-right">
                     <button
-                      v-if="train.published && !slot.username && !slot.is_pre_assigned"
+                      v-if="canAttemptSignup && !slot.username && !slot.is_pre_assigned"
                       @click="openSignup(slot, day)"
                       class="bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                     >
-                      Sign Up
+                      {{ train.published ? 'Sign Up' : 'Moderator Sign Up' }}
                     </button>
 
                     <template v-else-if="slot.username">
@@ -547,6 +547,7 @@ const linkEditValue  = ref('')
 const linkEditError  = ref('')
 const linkSavingSlotId = ref(null)
 let slotsChannel = null
+let trainChannel = null
 
 function startAddLink(slot) {
   linkEditSlotId.value = slot.id
@@ -772,6 +773,31 @@ function subscribeToSlotChanges(dayIds) {
     .subscribe()
 }
 
+function applyTrainRealtimeChange(payload) {
+  const nextTrain = payload.new
+  if (!nextTrain?.id) return
+  train.value = { ...train.value, ...nextTrain }
+}
+
+function subscribeToTrainChanges(trainId) {
+  if (!trainId) return
+  if (trainChannel) supabase.removeChannel(trainChannel)
+
+  trainChannel = supabase
+    .channel(`public-train-${trainId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'trains',
+        filter: `id=eq.${trainId}`,
+      },
+      applyTrainRealtimeChange
+    )
+    .subscribe()
+}
+
 function slotCalendarDate(day, slot, offsetMinutes = 0) {
   const [year, month, date] = day.day_date.split('-').map(Number)
   const { hours, minutes } = parseTime(slot.start_time)
@@ -989,6 +1015,10 @@ const status = computed(() =>
   trainStatus(train.value, slots.value.length, slots.value.filter(s => s.username).length)
 )
 
+const canAttemptSignup = computed(() =>
+  !!(train.value?.published || train.value?.is_upcoming)
+)
+
 const slotsByDay = computed(() => {
   const map = {}
   for (const s of slots.value) {
@@ -1052,6 +1082,7 @@ async function load() {
 
   if (!t) { loading.value = false; return }
   train.value = t
+  subscribeToTrainChanges(t.id)
 
   document.title = `${t.name} — Niknax Raid Train`
   setMeta('og:title', t.name)
@@ -1163,5 +1194,6 @@ onUnmounted(() => {
   document.removeEventListener('pointerdown', closeCalendarMenusOnOutsideClick)
   if (clockInterval) clearInterval(clockInterval)
   if (slotsChannel) supabase.removeChannel(slotsChannel)
+  if (trainChannel) supabase.removeChannel(trainChannel)
 })
 </script>

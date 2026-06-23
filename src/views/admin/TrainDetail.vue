@@ -766,8 +766,9 @@ async function publish() {
 
 async function unpublish() {
   publishing.value = true
-  await supabase.from('trains').update({ published: false }).eq('id', train.value.id)
+  await supabase.from('trains').update({ published: false, is_upcoming: true }).eq('id', train.value.id)
   train.value.published = false
+  train.value.is_upcoming = true
   publishing.value = false
 }
 

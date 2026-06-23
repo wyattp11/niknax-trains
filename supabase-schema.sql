@@ -130,6 +130,8 @@ declare
   claimed public.slots;
   clean_username text;
   target_train_id uuid;
+  target_published boolean := false;
+  target_is_upcoming boolean := false;
   is_unlimited_claimant boolean := false;
 begin
   clean_username := nullif(trim(regexp_replace(coalesce(claimant_username, ''), '^@+', '')), '');
@@ -150,11 +152,20 @@ begin
   )
   into is_unlimited_claimant;
 
-  select d.train_id
-  into target_train_id
+  select d.train_id, t.published, t.is_upcoming
+  into target_train_id, target_published, target_is_upcoming
   from public.slots s
   join public.train_days d on d.id = s.train_day_id
+  join public.trains t on t.id = d.train_id
   where s.id = slot_id;
+
+  if target_train_id is null then
+    raise exception 'Sorry - this slot is no longer available.' using errcode = 'P0001';
+  end if;
+
+  if not target_published and not (target_is_upcoming and is_unlimited_claimant) then
+    raise exception 'Only NN moderators and admins can sign up before this train is published.' using errcode = 'P0001';
+  end if;
 
   if target_train_id is not null then
     perform pg_advisory_xact_lock(hashtext(target_train_id::text), hashtext(lower(clean_username)));
@@ -180,7 +191,7 @@ begin
       from public.train_days d
       join public.trains t on t.id = d.train_id
       where d.id = s.train_day_id
-        and t.published = true
+        and (t.published = true or (t.is_upcoming = true and is_unlimited_claimant))
     )
   returning s.* into claimed;
 
@@ -311,7 +322,7 @@ using (
     from public.train_days d
     join public.trains t on t.id = d.train_id
     where d.id = slots.train_day_id
-      and (t.published = true or public.is_admin())
+      and (t.published = true or t.is_upcoming = true or public.is_admin())
   )
 );
 
