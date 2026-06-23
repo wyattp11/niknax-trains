@@ -19,7 +19,7 @@
         <input
           v-model="search"
           type="text"
-          placeholder="Search username, name, or email…"
+          placeholder="Search username, name, email, or badge…"
           class="input max-w-sm"
         />
         <label class="flex items-center gap-2 text-sm text-tx2 select-none cursor-pointer">
@@ -69,6 +69,18 @@
               />
             </div>
 
+            <div>
+              <label class="label" :for="`member-role-${row.id}`">Badge</label>
+              <input
+                :id="`member-role-${row.id}`"
+                v-model="row.role"
+                class="input"
+                placeholder="NN Moderator, Administrator, Owner…"
+                @blur="saveField(row, 'role')"
+                @keyup.enter="saveField(row, 'role')"
+              />
+            </div>
+
             <label class="flex items-center justify-between gap-3 text-sm text-tx2 select-none cursor-pointer">
               <span>Can go live</span>
               <input
@@ -90,16 +102,17 @@
               <th class="px-4 py-3 font-medium">Username</th>
               <th class="px-4 py-3 font-medium">Full name</th>
               <th class="px-4 py-3 font-medium">Email</th>
+              <th class="px-4 py-3 font-medium">Badge</th>
               <th class="px-4 py-3 font-medium text-center">Can go live</th>
               <th class="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="5" class="px-4 py-10 text-center text-tx3">Loading…</td>
+              <td colspan="6" class="px-4 py-10 text-center text-tx3">Loading…</td>
             </tr>
             <tr v-else-if="rows.length === 0">
-              <td colspan="5" class="px-4 py-10 text-center text-tx3">No members match.</td>
+              <td colspan="6" class="px-4 py-10 text-center text-tx3">No members match.</td>
             </tr>
             <tr
               v-for="row in rows"
@@ -122,6 +135,15 @@
                   class="input py-1"
                   @blur="saveField(row, 'email')"
                   @keyup.enter="saveField(row, 'email')"
+                />
+              </td>
+              <td class="px-4 py-2">
+                <input
+                  v-model="row.role"
+                  class="input py-1"
+                  placeholder="Badge label"
+                  @blur="saveField(row, 'role')"
+                  @keyup.enter="saveField(row, 'role')"
                 />
               </td>
               <td class="px-4 py-2 text-center">
@@ -175,6 +197,10 @@
           <label class="label" for="add-member-email">Email</label>
           <input id="add-member-email" v-model="newMember.email" type="email" class="input" />
         </div>
+        <div>
+          <label class="label" for="add-member-role">Badge</label>
+          <input id="add-member-role" v-model="newMember.role" class="input" placeholder="NN Moderator, Administrator, Owner…" />
+        </div>
         <label class="flex items-center gap-2 text-sm text-tx2 select-none cursor-pointer">
           <input type="checkbox" v-model="newMember.can_go_live" class="accent-niknax-600" />
           Can go live
@@ -209,7 +235,7 @@
           <span class="font-mono text-xs">role</span>,
           <span class="font-mono text-xs">can_go_live</span> / <span class="font-mono text-xs">can go live</span> (Yes/No or true/false),
           <span class="font-mono text-xs">sales</span>, <span class="font-mono text-xs">spend</span>.
-          Existing usernames are updated; new usernames are added.
+          Existing usernames are updated; new usernames are added. The <span class="font-mono text-xs">role</span> column is shown as the public badge label.
         </p>
 
         <label class="sr-only" for="upload-csv-file">CSV file</label>
@@ -279,12 +305,12 @@ async function loadMembers() {
 
   let query = supabase
     .from('members')
-    .select('id, username, full_name, email, can_go_live', { count: 'exact' })
+    .select('id, username, full_name, email, role, can_go_live', { count: 'exact' })
     .order('username')
 
   const term = search.value.trim()
   if (term) {
-    query = query.or(`username.ilike.%${term}%,full_name.ilike.%${term}%,email.ilike.%${term}%`)
+    query = query.or(`username.ilike.%${term}%,full_name.ilike.%${term}%,email.ilike.%${term}%,role.ilike.%${term}%`)
   }
   if (onlyCanGoLive.value) {
     query = query.eq('can_go_live', true)
@@ -349,7 +375,7 @@ async function confirmDelete(row) {
 const showAdd  = ref(false)
 const adding   = ref(false)
 const addError = ref('')
-const newMember = ref({ username: '', full_name: '', email: '', can_go_live: false })
+const newMember = ref({ username: '', full_name: '', email: '', role: '', can_go_live: false })
 
 const { modalRef: addModalRef } = useModalA11y(
   () => showAdd.value,
@@ -357,7 +383,7 @@ const { modalRef: addModalRef } = useModalA11y(
 )
 
 function openAdd() {
-  newMember.value = { username: '', full_name: '', email: '', can_go_live: false }
+  newMember.value = { username: '', full_name: '', email: '', role: '', can_go_live: false }
   addError.value = ''
   showAdd.value = true
 }
@@ -374,6 +400,7 @@ async function addMember() {
     username,
     full_name: newMember.value.full_name.trim() || null,
     email: newMember.value.email.trim() || null,
+    role: newMember.value.role.trim() || null,
     can_go_live: newMember.value.can_go_live,
   })
   adding.value = false
