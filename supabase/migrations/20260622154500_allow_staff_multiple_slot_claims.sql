@@ -71,37 +71,3 @@ end;
 $$;
 
 grant execute on function public.claim_slot(uuid, text) to anon, authenticated;
-
-create or replace view public.members_signup_search
-with (security_invoker = false)
-as
-select username, lower(username) as username_key, role
-from public.members
-where can_go_live = true;
-
-grant select on public.members_signup_search to anon, authenticated;
-
-create or replace view public.members_public_badges
-with (security_invoker = false)
-as
-select lower(username) as username_key, role
-from public.members
-where role is not null and trim(role) <> '';
-
-grant select on public.members_public_badges to anon, authenticated;
-
-insert into public.members (username, role, can_go_live, updated_at)
-values
-  ('pixiestix', 'NN Moderator', true, now()),
-  ('koalateavintage', 'NN Moderator', true, now()),
-  ('thiftydiytrish', 'NN Moderator', true, now()),
-  ('thethriftingteacher', 'NN Moderator', true, now()),
-  ('jolieflipsvintage', 'NN Moderator', true, now()),
-  ('myflippingvanlife', 'NN Moderator', true, now()),
-  ('candylandcuriosities', 'NN Moderator', true, now()),
-  ('crazylamplady', 'NN Owner', true, now()),
-  ('moonskyvintage', 'NN Admin', true, now())
-on conflict (username) do update
-set role = excluded.role,
-    can_go_live = true,
-    updated_at = now();
