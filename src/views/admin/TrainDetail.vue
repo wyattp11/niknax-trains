@@ -135,6 +135,46 @@
               </div>
             </div>
 
+            <div class="bg-sur2 rounded-lg p-4 space-y-4">
+              <div>
+                <p class="text-sm text-tx2 font-semibold">Schedule Generation</p>
+                <p class="text-xs text-tx3 mt-1">
+                  Changing these settings can modify existing slot times and durations. Reducing the number of slots will delete the extra slots and any sellers or links in them.
+                </p>
+              </div>
+
+              <template v-for="day in days" :key="`schedule-${day.id}`">
+                <div v-if="scheduleForms[day.id]" class="border border-bd rounded-lg p-3 space-y-3">
+                  <p class="text-sm font-medium text-tx1">
+                    {{ day.day_label ? `${day.day_label} — ` : '' }}{{ formatDate(day.day_date) }}
+                  </p>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label class="label">Start Time (ET)</label>
+                      <input v-model="scheduleForms[day.id].start_time" type="time" step="60" class="input" />
+                    </div>
+                    <div>
+                      <label class="label">Slot Duration</label>
+                      <input v-model.number="scheduleForms[day.id].slot_duration" type="number" min="5" max="120" class="input" />
+                    </div>
+                    <div>
+                      <label class="label">Number of Slots</label>
+                      <input v-model.number="scheduleForms[day.id].slot_count" type="number" min="1" max="100" class="input" />
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <p class="text-sm min-h-[1.25rem]" :class="scheduleError ? 'text-red-600 dark:text-red-400' : 'text-green-700 dark:text-green-400'">
+                  {{ scheduleError || (scheduleSaved ? '✓ Schedule updated' : '') }}
+                </p>
+                <button @click="applyScheduleChanges" :disabled="savingSchedule" class="btn-secondary w-full sm:w-auto">
+                  {{ savingSchedule ? 'Updating…' : 'Apply Schedule Changes' }}
+                </button>
+              </div>
+            </div>
+
             <div class="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
               <button @click="showEdit = false" class="btn-secondary w-full sm:w-auto">Cancel</button>
               <button @click="saveDetails" :disabled="savingDetails" class="btn-primary w-full sm:w-auto">
@@ -343,7 +383,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
-import { allZones, formatDate, trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
+import { allZones, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 
 const route  = useRoute()
@@ -363,8 +403,12 @@ const showEdit      = ref(false)
 const editForm      = ref({})
 const editDayDates  = ref({})
 const editDayLabels = ref({})
+const scheduleForms = ref({})
 const savingDetails = ref(false)
 const detailsSaved  = ref(false)
+const savingSchedule = ref(false)
+const scheduleSaved  = ref(false)
+const scheduleError  = ref('')
 const editCoverFile   = ref(null)  // new image file selected in edit mode
 const editUploadPct   = ref(0)
 const editUploadStatus = ref('')
@@ -484,6 +528,37 @@ const slotsByDay = computed(() => {
 
 function zones(t) { return allZones(t) }
 
+function timeInputValue(time) {
+  return String(time || '12:00').slice(0, 5)
+}
+
+function initScheduleForms() {
+  const forms = {}
+  for (const day of days.value) {
+    const daySlots = [...(slotsByDay.value[day.id] || [])]
+    forms[day.id] = {
+      start_time: timeInputValue(daySlots[0]?.start_time || '12:00'),
+      slot_duration: daySlots[0]?.duration_min || 30,
+      slot_count: Math.max(1, daySlots.length || 1),
+    }
+  }
+  scheduleForms.value = forms
+}
+
+async function loadSlotsForDays(dayIds = days.value.map(d => d.id)) {
+  if (!dayIds.length) {
+    slots.value = []
+    return
+  }
+
+  const { data } = await supabase
+    .from('slots')
+    .select('*')
+    .in('train_day_id', dayIds)
+    .order('slot_order')
+  slots.value = data || []
+}
+
 function applySlotRealtimeChange(payload) {
   const nextSlot = payload.new
   const oldSlot = payload.old
@@ -552,8 +627,8 @@ async function load() {
 
     if (days.value.length) {
       const dayIds = days.value.map(d => d.id)
-      const { data: s } = await supabase.from('slots').select('*').in('train_day_id', dayIds).order('slot_order')
-      slots.value = s || []
+      await loadSlotsForDays(dayIds)
+      initScheduleForms()
       subscribeToSlotChanges(dayIds)
     }
   }
@@ -599,6 +674,80 @@ async function saveDetails() {
   savingDetails.value = false
   detailsSaved.value = true
   setTimeout(() => { detailsSaved.value = false; showEdit.value = false }, 1500)
+}
+
+async function applyScheduleChanges() {
+  scheduleError.value = ''
+  scheduleSaved.value = false
+
+  for (const day of days.value) {
+    const form = scheduleForms.value[day.id]
+    if (!form?.start_time || !form.slot_duration || !form.slot_count) {
+      scheduleError.value = 'Each day needs a start time, duration, and slot count.'
+      return
+    }
+    if (form.slot_duration < 5 || form.slot_duration > 120 || form.slot_count < 1 || form.slot_count > 100) {
+      scheduleError.value = 'Slot duration must be 5-120 minutes, and slot count must be 1-100.'
+      return
+    }
+  }
+
+  const ok = confirm(
+    'Apply schedule changes?\n\nThis may change existing slot times and durations. If you reduce the number of slots, extra slots will be deleted along with any sellers, labels, and links in those rows.'
+  )
+  if (!ok) return
+
+  savingSchedule.value = true
+
+  try {
+    for (const day of days.value) {
+      const form = scheduleForms.value[day.id]
+      const desiredTimes = generateSlotTimes(form.start_time, form.slot_duration, form.slot_count)
+      const existingSlots = [...(slotsByDay.value[day.id] || [])]
+
+      for (let idx = 0; idx < Math.min(existingSlots.length, desiredTimes.length); idx++) {
+        const { error } = await supabase
+          .from('slots')
+          .update({
+            start_time: desiredTimes[idx],
+            duration_min: form.slot_duration,
+            slot_order: idx,
+          })
+          .eq('id', existingSlots[idx].id)
+        if (error) throw error
+      }
+
+      if (desiredTimes.length > existingSlots.length) {
+        const slotsToInsert = desiredTimes.slice(existingSlots.length).map((time, offset) => ({
+          train_day_id: day.id,
+          start_time: time,
+          duration_min: form.slot_duration,
+          username: null,
+          seller_link: null,
+          label: null,
+          is_pre_assigned: false,
+          slot_order: existingSlots.length + offset,
+        }))
+        const { error } = await supabase.from('slots').insert(slotsToInsert)
+        if (error) throw error
+      }
+
+      if (desiredTimes.length < existingSlots.length) {
+        const deleteIds = existingSlots.slice(desiredTimes.length).map(slot => slot.id)
+        const { error } = await supabase.from('slots').delete().in('id', deleteIds)
+        if (error) throw error
+      }
+    }
+
+    await loadSlotsForDays()
+    initScheduleForms()
+    scheduleSaved.value = true
+    setTimeout(() => { scheduleSaved.value = false }, 2000)
+  } catch (err) {
+    scheduleError.value = err?.message || 'Failed to update schedule.'
+  } finally {
+    savingSchedule.value = false
+  }
 }
 
 async function toggleUpcoming() {
