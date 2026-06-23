@@ -337,7 +337,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
@@ -354,6 +354,7 @@ const slots      = ref([])
 const loading    = ref(true)
 const publishing = ref(false)
 const copied     = ref(false)
+let slotsChannel = null
 
 // Edit details
 const showEdit      = ref(false)
@@ -481,6 +482,43 @@ const slotsByDay = computed(() => {
 
 function zones(t) { return allZones(t) }
 
+function applySlotRealtimeChange(payload) {
+  const nextSlot = payload.new
+  const oldSlot = payload.old
+
+  if (payload.eventType === 'DELETE') {
+    slots.value = slots.value.filter(slot => slot.id !== oldSlot?.id)
+    return
+  }
+
+  if (!nextSlot?.id) return
+  const idx = slots.value.findIndex(slot => slot.id === nextSlot.id)
+  if (idx === -1) {
+    slots.value.push(nextSlot)
+  } else {
+    slots.value[idx] = { ...slots.value[idx], ...nextSlot }
+  }
+}
+
+function subscribeToSlotChanges(dayIds) {
+  if (!dayIds.length) return
+  if (slotsChannel) supabase.removeChannel(slotsChannel)
+
+  slotsChannel = supabase
+    .channel(`admin-train-slots-${route.params.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'slots',
+        filter: `train_day_id=in.(${dayIds.join(',')})`,
+      },
+      applySlotRealtimeChange
+    )
+    .subscribe()
+}
+
 async function load() {
   loading.value = true
   const id = route.params.id
@@ -504,6 +542,7 @@ async function load() {
       const dayIds = days.value.map(d => d.id)
       const { data: s } = await supabase.from('slots').select('*').in('train_day_id', dayIds).order('slot_order')
       slots.value = s || []
+      subscribeToSlotChanges(dayIds)
     }
   }
   loading.value = false
@@ -632,4 +671,7 @@ async function confirmDelete() {
 }
 
 onMounted(load)
+onUnmounted(() => {
+  if (slotsChannel) supabase.removeChannel(slotsChannel)
+})
 </script>
