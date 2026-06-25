@@ -404,6 +404,60 @@
     <!-- ── Bottom accent stripe ── -->
     <div class="h-3 bg-niknax-600 shrink-0 mt-auto"></div>
 
+    <!-- ── Rules & Criteria acknowledgment modal (public signup gate) ── -->
+    <Teleport to="body">
+      <div
+        v-if="rulesModal"
+        class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4"
+        @click.self="rulesModal = null"
+      >
+        <div
+          ref="rulesModalRef"
+          class="bg-surface border border-bd rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="rules-modal-title"
+          tabindex="-1"
+        >
+          <div class="px-6 pt-6 pb-3 border-b border-bd shrink-0">
+            <h3 id="rules-modal-title" class="text-lg font-bold text-tx1">Sign-Up Rules &amp; Criteria</h3>
+            <p class="text-tx3 text-sm mt-1">Please read everything below before signing up.</p>
+          </div>
+
+          <div
+            ref="rulesScrollRef"
+            class="rules-content overflow-y-auto px-6 py-4 flex-1"
+            @scroll="onRulesScroll"
+          >
+            <div v-html="renderedRulesMd"></div>
+          </div>
+
+          <div class="px-6 py-4 border-t border-bd shrink-0 space-y-3">
+            <p v-if="!rulesScrolledToEnd" class="text-xs text-tx3" aria-live="polite">
+              Scroll to the end to continue.
+            </p>
+            <label class="flex items-start gap-2 text-sm text-tx2 cursor-pointer" :class="!rulesScrolledToEnd ? 'opacity-50' : ''">
+              <input
+                v-model="rulesAcknowledged"
+                type="checkbox"
+                class="rounded mt-0.5"
+                :disabled="!rulesScrolledToEnd"
+              />
+              <span>I have read and understood the rules and criteria above.</span>
+            </label>
+            <div class="flex flex-col-reverse sm:flex-row gap-3">
+              <button @click="rulesModal = null" class="btn-secondary sm:flex-1">Cancel</button>
+              <button
+                @click="confirmRulesAndProceed"
+                :disabled="!rulesAcknowledged"
+                class="btn-primary sm:flex-1"
+              >Continue to Sign Up</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- ── Signup Modal ── -->
     <Teleport to="body">
       <div
@@ -530,6 +584,7 @@ import { supabase } from '../../lib/supabase.js'
 import { allZones, formatDate, parseTime, trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
+import { renderMarkdown } from '../../lib/renderMarkdown.js'
 
 const route = useRoute()
 const theme = useThemeStore()
@@ -547,6 +602,34 @@ const signupUsername = ref('')
 const signupError    = ref('')
 const signingUp      = ref(false)
 const pageLinkCopied = ref(false)
+
+// ── Rules & criteria acknowledgment gate (public signup only) ────────────
+const rulesModal        = ref(null)   // { slot, day } pending acknowledgment
+const rulesScrollRef    = ref(null)
+const rulesScrolledToEnd = ref(false)
+const rulesAcknowledged  = ref(false)
+
+const renderedRulesMd = computed(() => renderMarkdown(train.value?.rules_md || ''))
+
+const { modalRef: rulesModalRef } = useModalA11y(
+  () => !!rulesModal.value,
+  () => { rulesModal.value = null }
+)
+
+function onRulesScroll() {
+  const el = rulesScrollRef.value
+  if (!el) return
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 16) {
+    rulesScrolledToEnd.value = true
+  }
+}
+
+function confirmRulesAndProceed() {
+  if (!rulesAcknowledged.value) return
+  const { slot, day } = rulesModal.value
+  rulesModal.value = null
+  beginSignup(slot, day)
+}
 
 // ── Inline "add show link" editing for already-claimed slots ─────────────
 const linkEditSlotId = ref(null)
@@ -1174,6 +1257,26 @@ function setNamedMeta(name, content) {
 }
 
 function openSignup(slot, day) {
+  // Public signup gate: require sellers to scroll through and acknowledge
+  // this train's rules/criteria before they can claim a slot. Admin-driven
+  // actions (manual username entry, train edits) never go through here.
+  if (String(train.value?.rules_md || '').trim()) {
+    rulesScrolledToEnd.value = false
+    rulesAcknowledged.value  = false
+    rulesModal.value = { slot, day }
+    nextTick(() => {
+      // If the content is short enough to not need scrolling, don't block on it.
+      const el = rulesScrollRef.value
+      if (el && el.scrollHeight <= el.clientHeight + 16) {
+        rulesScrolledToEnd.value = true
+      }
+    })
+    return
+  }
+  beginSignup(slot, day)
+}
+
+function beginSignup(slot, day) {
   signupSuccess.value  = null
   signupModal.value    = { slot, day }
   signupUsername.value = ''

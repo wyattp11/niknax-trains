@@ -116,6 +116,15 @@
               </div>
             </div>
 
+            <div>
+              <label class="label">Sign-Up Rules &amp; Criteria (Markdown)</label>
+              <p class="text-xs text-tx3 mb-2">
+                Shown to sellers before they can claim a slot on the public page — they must scroll
+                through and acknowledge it first. This never applies to admin actions below.
+              </p>
+              <textarea v-model="editForm.rules_md" class="input font-mono text-xs" rows="14" />
+            </div>
+
             <!-- Day dates -->
             <div>
               <label class="label">Event Dates</label>
@@ -657,7 +666,7 @@ async function load() {
   train.value = t
 
   if (t) {
-    editForm.value = { name: t.name, tagline: t.tagline || '', description: t.description || '', district_link: t.district_link || '', cover_url: t.cover_url || '' }
+    editForm.value = { name: t.name, tagline: t.tagline || '', description: t.description || '', district_link: t.district_link || '', cover_url: t.cover_url || '', rules_md: t.rules_md || '' }
 
     const { data: d } = await supabase.from('train_days').select('*').eq('train_id', id).order('day_order')
     days.value = d || []
@@ -701,6 +710,7 @@ async function saveDetails() {
     description: editForm.value.description || null,
     district_link: editForm.value.district_link || null,
     cover_url: editForm.value.cover_url || null,
+    rules_md: editForm.value.rules_md || null,
   }).eq('id', train.value.id)
 
   // Update day dates + labels

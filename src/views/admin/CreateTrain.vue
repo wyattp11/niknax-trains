@@ -55,6 +55,15 @@
               </div>
             </div>
           </div>
+
+          <div>
+            <label class="label">Sign-Up Rules &amp; Criteria (Markdown)</label>
+            <p class="text-xs text-tx3 mb-2">
+              Shown to sellers before they can claim a slot — they must scroll through and
+              acknowledge it first. Pre-filled with the standard template; edit freely for this event.
+            </p>
+            <textarea v-model="form.rules_md" class="input font-mono text-xs" rows="14" />
+          </div>
         </section>
 
         <!-- ── Days ── -->
@@ -163,6 +172,7 @@ import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
 import { generateSlotTimes, addMinutes } from '../../lib/timeUtils.js'
+import { DEFAULT_RULES_TEMPLATE } from '../../lib/defaultRulesTemplate.js'
 
 const router = useRouter()
 const saving        = ref(false)
@@ -177,6 +187,7 @@ const form = ref({
   tagline: '',
   description: '',
   district_link: '',
+  rules_md: DEFAULT_RULES_TEMPLATE,
   days: [],
 })
 
@@ -245,6 +256,7 @@ async function saveAndContinue() {
         tagline: form.value.tagline || null,
         description: form.value.description || null,
         district_link: form.value.district_link || null,
+        rules_md: form.value.rules_md || null,
         cover_url: null,
         published: false,
       })

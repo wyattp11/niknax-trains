@@ -270,4 +270,40 @@
     @apply block text-xs px-1.5 py-0.5 rounded mb-0.5 truncate leading-tight transition-colors;
   }
   .chip-full:hover { filter: brightness(0.92); }
+
+  /* Rendered Markdown — sign-up rules & criteria gate */
+  .rules-content h1 {
+    color: var(--color-tx1);
+    @apply font-display text-2xl mb-3 mt-1;
+  }
+  .rules-content h2 {
+    color: var(--color-tx1);
+    @apply font-display text-lg mt-6 mb-2 pt-1;
+  }
+  .rules-content h3 {
+    color: var(--color-tx2);
+    @apply font-semibold text-base mt-4 mb-1.5;
+  }
+  .rules-content p {
+    color: var(--color-tx2);
+    @apply text-sm leading-relaxed mb-3;
+  }
+  .rules-content ul, .rules-content ol {
+    color: var(--color-tx2);
+    @apply text-sm leading-relaxed mb-3 pl-5 space-y-1.5;
+  }
+  .rules-content ul { list-style-type: disc; }
+  .rules-content ul ul { list-style-type: circle; @apply mt-1.5 mb-0; }
+  .rules-content ol { list-style-type: decimal; }
+  .rules-content li::marker { color: var(--brand-600); }
+  .rules-content strong { color: var(--color-tx1); }
+  .rules-content em { font-style: italic; }
+  .rules-content a {
+    color: var(--brand-600);
+    @apply underline font-medium;
+  }
+  .rules-content hr {
+    border-color: var(--color-bd);
+    @apply my-4;
+  }
 }

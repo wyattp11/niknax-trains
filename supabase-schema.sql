@@ -27,6 +27,7 @@ alter table public.trains add column if not exists district_link text;
 alter table public.trains add column if not exists published boolean not null default false;
 alter table public.trains add column if not exists is_upcoming boolean not null default false;
 alter table public.trains add column if not exists created_at timestamptz not null default now();
+alter table public.trains add column if not exists rules_md text;
 
 create table if not exists public.train_days (
   id        uuid primary key default gen_random_uuid(),
