@@ -129,7 +129,7 @@
 
       <!-- Schedule -->
       <main data-tour="schedule-section" class="max-w-4xl mx-auto px-4 py-10 flex-1">
-        <div v-for="day in days" :key="day.id" class="mb-12">
+        <div v-for="(day, dayIdx) in days" :key="day.id" class="mb-12">
           <!-- 60s section header -->
           <div class="flex items-center gap-4 mb-4">
             <h2 class="font-display text-2xl sm:text-3xl text-tx1 shrink-0">
@@ -145,6 +145,7 @@
               v-for="(slot, slotIdx) in slotsByDay[day.id] || []"
               :key="slot.id"
               :id="`slot-mobile-${slot.id}`"
+              :data-tour="(dayIdx === 0 && slotIdx === 0) ? 'first-slot-row' : undefined"
               :class="[
                 recentlyChangedSlotIds.has(slot.id) ? 'slot-row-flash' : '',
                 slot.id === activeSlotId
@@ -294,6 +295,7 @@
                   v-for="(slot, slotIdx) in slotsByDay[day.id] || []"
                   :key="slot.id"
                   :id="`slot-desktop-${slot.id}`"
+                  :data-tour="(dayIdx === 0 && slotIdx === 0) ? 'first-slot-row' : undefined"
                   :class="[
                     recentlyChangedSlotIds.has(slot.id) ? 'slot-row-flash' : '',
                     slot.id === activeSlotId
@@ -1264,7 +1266,7 @@ const firstOpenSlotId = computed(() => {
 function buildSignupSteps() {
   const steps = [
     {
-      target: '[data-tour="schedule-section"]',
+      target: '[data-tour="first-slot-row"]',
       title: 'The Show Schedule',
       body: 'Each row is a time slot, shown in Eastern, Central, Mountain, and Pacific time.',
       placement: 'bottom',
@@ -1275,14 +1277,14 @@ function buildSignupSteps() {
     steps.push({
       target: '[data-tour="first-signup-btn"]',
       title: 'Grab an Open Slot',
-      body: 'Rows marked "— available —" are up for grabs. Tap Sign Up to claim one.',
+      body: 'Rows marked "— available —" are up for grabs. Tap Sign Up to claim one — you\'ll be asked to read and accept the rules & criteria for this train before you can commit to a slot.',
       placement: 'left',
     })
   }
 
   steps.push({
     title: 'Enter Your Username',
-    body: "You'll be asked for your District / Niknax username — type it in and tap Claim Slot ✓. That's it, you're on the train!",
+    body: "You'll be asked for your District / Niknax username — type it in and tap Claim Slot ✓. Once you're on the train, an \"+ Add Show Link\" button appears on your row — create your show in District, then paste its link there. That link is what goes public while you're live!",
     placement: 'center',
   })
 

@@ -2,8 +2,14 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useThemeStore = defineStore('theme', () => {
-  // Default to dark; only light if user explicitly chose it
-  const isDark = ref(localStorage.getItem('niknax_theme') !== 'light')
+  // Respect the user's explicit choice if they've made one; otherwise
+  // default to whatever their OS/browser is set to (prefers-color-scheme),
+  // so new visitors land in day or night mode based on their own system —
+  // not hard-coded to dark.
+  const storedTheme = localStorage.getItem('niknax_theme')
+  const isDark = ref(
+    storedTheme ? storedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
+  )
   // Palm Springs accent theme — off by default
   const isPalm = ref(localStorage.getItem('niknax_palm') === 'on')
   const isSoundMuted = ref(localStorage.getItem('niknax_sound') === 'muted')

@@ -264,7 +264,7 @@ function buildHomeSteps() {
       placement: 'center',
     },
     {
-      target: '[data-tour="events-section"]',
+      target: '[data-tour="first-event-card"]',
       title: 'Upcoming Trains',
       body: 'Every open and upcoming event lives here. "Now Boarding" means signups are live right now.',
       placement: 'bottom',
