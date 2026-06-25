@@ -1267,7 +1267,7 @@ function buildSignupSteps() {
       target: '[data-tour="schedule-section"]',
       title: 'The Show Schedule',
       body: 'Each row is a time slot, shown in Eastern, Central, Mountain, and Pacific time.',
-      placement: 'top',
+      placement: 'bottom',
     },
   ]
 

@@ -103,18 +103,46 @@ function updateAll() {
   })
 }
 
+// Wait until the element's viewport-relative position stops changing —
+// far more reliable than guessing a fixed delay, since smooth-scroll
+// duration depends on distance (short hop vs. scrolling a tall <main>).
+function rectOf(el) {
+  const r = el.getBoundingClientRect()
+  return { top: r.top, left: r.left }
+}
+
+async function waitForScrollSettle(el, maxMs = 1200) {
+  let last = rectOf(el)
+  const start = performance.now()
+  // give the smooth-scroll a tick to actually start before sampling
+  await new Promise(r => requestAnimationFrame(r))
+  while (performance.now() - start < maxMs) {
+    await new Promise(r => requestAnimationFrame(r))
+    const cur = rectOf(el)
+    if (Math.abs(cur.top - last.top) < 0.5 && Math.abs(cur.left - last.left) < 0.5) return
+    last = cur
+  }
+}
+
 async function goToStep() {
   const sel = step.value?.target
-  if (sel) {
-    const el = findVisibleTarget(sel)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      await new Promise(resolve => setTimeout(resolve, 320))
-    }
+  const el = sel ? findVisibleTarget(sel) : null
+  if (el) {
+    // A target taller than the viewport (e.g. the full schedule <main>)
+    // can't be centered — "center" would scroll deep into its middle,
+    // landing the popover far down the page. Align its top edge instead.
+    const tooTall = el.getBoundingClientRect().height > window.innerHeight * 0.85
+    el.scrollIntoView({ behavior: 'smooth', block: tooTall ? 'start' : 'center' })
+    await waitForScrollSettle(el)
   }
   updateAll()
   await nextTick()
-  popoverRef.value?.focus?.()
+  // preventScroll is critical here — focusing a position:fixed element can
+  // otherwise trigger the browser's own scroll-into-view heuristic, which
+  // misreads the fixed viewport coordinates as a document offset and yanks
+  // the page (often all the way down), desyncing the spotlight from its
+  // target right after we just finished positioning it.
+  popoverRef.value?.focus?.({ preventScroll: true })
 }
 
 watch(step, () => { if (store.active) goToStep() }, { immediate: true })
@@ -125,19 +153,15 @@ function onKeydown(e) {
 
 watch(() => store.active, (isActive) => {
   if (isActive) {
-    document.body.style.overflow = 'hidden'
     window.addEventListener('resize', updateAll)
     window.addEventListener('keydown', onKeydown)
-    goToStep()
   } else {
-    document.body.style.overflow = ''
     window.removeEventListener('resize', updateAll)
     window.removeEventListener('keydown', onKeydown)
   }
 })
 
 onUnmounted(() => {
-  document.body.style.overflow = ''
   window.removeEventListener('resize', updateAll)
   window.removeEventListener('keydown', onKeydown)
 })
@@ -168,28 +192,25 @@ const popoverStyle = computed(() => {
   const { width: pw, height: ph } = popoverSize.value
 
   if (!rect.value) {
-    return { top: `${vh / 2}px`, left: `${vw / 2}px`, transform: 'translate(-50%, -50%)' }
+    const top  = Math.max(12, vh / 2 - ph / 2)
+    const left = Math.max(12, vw / 2 - pw / 2)
+    return { top: `${top}px`, left: `${left}px` }
   }
 
   const r = rect.value
   const placement = step.value?.placement
     || (vh - r.bottom > ph + GAP + 20 ? 'bottom' : r.top > ph + GAP + 20 ? 'top' : 'bottom')
 
-  let top
-  if (placement === 'top') {
-    top = r.top - GAP
-  } else {
-    top = r.bottom + GAP
-  }
-  // Clamp vertically so it never runs off-screen
+  // Compute the popover's actual rendered top edge directly — no transform —
+  // so the clamp below operates on the real on-screen position instead of a
+  // pre-transform value that can still end up off-screen after translation.
+  let top = placement === 'top' ? (r.top - GAP - ph) : (r.bottom + GAP)
   top = Math.max(12, Math.min(top, vh - ph - 12))
 
   let left = r.left + r.width / 2 - pw / 2
   left = Math.max(12, Math.min(left, vw - pw - 12))
 
-  const transform = placement === 'top' ? 'translateY(-100%)' : 'none'
-
-  return { top: `${top}px`, left: `${left}px`, transform }
+  return { top: `${top}px`, left: `${left}px` }
 })
 </script>
 
