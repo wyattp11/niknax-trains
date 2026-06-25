@@ -29,6 +29,12 @@
           :aria-label="theme.isPalm ? 'Turn off Palm Springs theme' : 'Turn on Palm Springs theme'"
           :aria-pressed="theme.isPalm"
         ><ion-icon name="leaf-outline" aria-hidden="true"></ion-icon></button>
+        <button
+          @click="startSignupTour"
+          class="text-tx3 hover:text-tx1 transition-colors text-base"
+          title="How do I sign up?"
+          aria-label="How do I sign up?"
+        ><ion-icon name="help-circle-outline" aria-hidden="true"></ion-icon></button>
       </div>
     </div>
 
@@ -78,7 +84,7 @@
             >
               Watch on District ↗
             </a>
-            <button @click="copyPageLink" class="btn-secondary text-sm flex items-center justify-center gap-1.5" aria-live="polite">
+            <button @click="copyPageLink" data-tour="share-button" class="btn-secondary text-sm flex items-center justify-center gap-1.5" aria-live="polite">
               <ion-icon :name="pageLinkCopied ? 'checkmark-circle-outline' : 'share-social-outline'" aria-hidden="true"></ion-icon>
               {{ pageLinkCopied ? 'Copied!' : 'Share Event' }}
             </button>
@@ -122,7 +128,7 @@
       </div>
 
       <!-- Schedule -->
-      <main class="max-w-4xl mx-auto px-4 py-10 flex-1">
+      <main data-tour="schedule-section" class="max-w-4xl mx-auto px-4 py-10 flex-1">
         <div v-for="day in days" :key="day.id" class="mb-12">
           <!-- 60s section header -->
           <div class="flex items-center gap-4 mb-4">
@@ -196,6 +202,7 @@
               <button
                 v-if="canAttemptSignup && !slot.username && !slot.is_pre_assigned"
                 @click="openSignup(slot, day)"
+                :data-tour="slot.id === firstOpenSlotId ? 'first-signup-btn' : undefined"
                 class="w-full bg-niknax-600 hover:bg-niknax-500 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
               >
                 {{ !train.published || isKickoffSlot(slot) ? 'Moderator Sign Up' : 'Sign Up' }}
@@ -330,6 +337,7 @@
                     <button
                       v-if="canAttemptSignup && !slot.username && !slot.is_pre_assigned"
                       @click="openSignup(slot, day)"
+                      :data-tour="slot.id === firstOpenSlotId ? 'first-signup-btn' : undefined"
                       class="bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                     >
                       {{ !train.published || isKickoffSlot(slot) ? 'Moderator Sign Up' : 'Sign Up' }}
@@ -625,11 +633,13 @@ import { RouterLink, useRoute } from 'vue-router'
 import { supabase } from '../../lib/supabase.js'
 import { allZones, formatDate, parseTime, trainStatus, STATUS_BADGE_CLASS, isPastTrain } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
+import { useOnboardingStore } from '../../stores/onboarding.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 import { renderMarkdown } from '../../lib/renderMarkdown.js'
 
 const route = useRoute()
 const theme = useThemeStore()
+const onboarding = useOnboardingStore()
 
 const train   = ref(null)
 const days    = ref([])
@@ -1243,6 +1253,53 @@ function slotEndsAt(day, slot) {
   return new Date(start.getTime() + (slot.duration_min || 30) * 60000)
 }
 
+const firstOpenSlotId = computed(() => {
+  const entry = flatSlotsChrono.value.find(
+    ({ slot }) => canAttemptSignup.value && !slot.username && !slot.is_pre_assigned
+  )
+  return entry?.slot.id || null
+})
+
+// ── Signup walkthrough ────────────────────────────────────────────────────
+function buildSignupSteps() {
+  const steps = [
+    {
+      target: '[data-tour="schedule-section"]',
+      title: 'The Show Schedule',
+      body: 'Each row is a time slot, shown in Eastern, Central, Mountain, and Pacific time.',
+      placement: 'top',
+    },
+  ]
+
+  if (firstOpenSlotId.value) {
+    steps.push({
+      target: '[data-tour="first-signup-btn"]',
+      title: 'Grab an Open Slot',
+      body: 'Rows marked "— available —" are up for grabs. Tap Sign Up to claim one.',
+      placement: 'left',
+    })
+  }
+
+  steps.push({
+    title: 'Enter Your Username',
+    body: "You'll be asked for your District / Niknax username — type it in and tap Claim Slot ✓. That's it, you're on the train!",
+    placement: 'center',
+  })
+
+  steps.push({
+    target: '[data-tour="share-button"]',
+    title: 'Spread the Word',
+    body: 'Use Share Event to grab a link for this train and post it anywhere.',
+    placement: 'bottom',
+  })
+
+  return steps
+}
+
+function startSignupTour() {
+  onboarding.start(buildSignupSteps())
+}
+
 const effectiveDistrictLink = computed(() => {
   const now = nowET.value
   const list = flatSlotsChrono.value
@@ -1407,6 +1464,10 @@ async function loadAndScroll() {
     const slotPrefix = window.matchMedia('(min-width: 768px)').matches ? 'slot-desktop' : 'slot-mobile'
     document.getElementById(`${slotPrefix}-${activeSlotId.value}`)
       ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+  // Continuing the walkthrough handed off from the Home page tour
+  if (onboarding.consumeContinuation('signup')) {
+    nextTick(() => startSignupTour())
   }
 }
 

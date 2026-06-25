@@ -50,6 +50,12 @@
           :aria-label="theme.isPalm ? 'Turn off Palm Springs theme' : 'Turn on Palm Springs theme'"
           :aria-pressed="theme.isPalm"
         ><ion-icon name="leaf-outline" aria-hidden="true"></ion-icon></button>
+        <button
+          @click="startHomeTour"
+          class="text-tx3 hover:text-tx1 transition-colors text-lg"
+          title="Show me around"
+          aria-label="Show me around"
+        ><ion-icon name="help-circle-outline" aria-hidden="true"></ion-icon></button>
       </div>
     </header>
 
@@ -71,7 +77,7 @@
       </div>
 
       <!-- Events list -->
-      <section>
+      <section data-tour="events-section">
         <div class="flex items-center gap-5 mb-7">
           <h2 class="font-display text-4xl text-tx1 shrink-0">Events</h2>
           <div class="flex-1 h-[3px] bg-niknax-600 rounded-full"></div>
@@ -86,9 +92,10 @@
         <div v-else class="space-y-3">
           <component
             :is="ev.published ? RouterLink : 'div'"
-            v-for="ev in events"
+            v-for="(ev, idx) in events"
             :key="ev.id"
             :to="ev.published ? `/train/${ev.id}` : undefined"
+            :data-tour="idx === 0 ? 'first-event-card' : undefined"
             class="flex items-stretch gap-4 card transition-all"
             :class="ev.published
               ? 'group cursor-pointer hover:border-niknax-600 hover:shadow-md hover:-translate-y-0.5'
@@ -126,7 +133,7 @@
       </section>
 
       <!-- Calendar -->
-      <section>
+      <section data-tour="calendar-section">
         <div class="flex items-center gap-5 mb-7">
           <h2 class="font-display text-4xl text-tx1 shrink-0">Calendar</h2>
           <div class="flex-1 h-[3px] bg-niknax-600 rounded-full"></div>
@@ -183,15 +190,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { RouterLink } from 'vue-router'
 import { supabase, isSupabaseConfigured } from '../../lib/supabase.js'
 import { formatDate, trainStatus, STATUS_BADGE_CLASS, isPastTrain } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
+import { useOnboardingStore } from '../../stores/onboarding.js'
 import EventCalendar from '../../components/EventCalendar.vue'
 import TrainAnimation from '../../components/TrainAnimation.vue'
 
-const theme     = useThemeStore()
+const theme      = useThemeStore()
+const onboarding = useOnboardingStore()
 const rawTrains = ref([])
 const loading   = ref(true)
 
@@ -246,5 +255,56 @@ const calendarEvents = computed(() =>
   })
 )
 
-onMounted(load)
+// ── First-visit walkthrough ───────────────────────────────────────────────
+function buildHomeSteps() {
+  const steps = [
+    {
+      title: 'Welcome aboard! 🚂',
+      body: "Let's take a quick look around the Niknax Train Station.",
+      placement: 'center',
+    },
+    {
+      target: '[data-tour="events-section"]',
+      title: 'Upcoming Trains',
+      body: 'Every open and upcoming event lives here. "Now Boarding" means signups are live right now.',
+      placement: 'bottom',
+    },
+    {
+      target: '[data-tour="calendar-section"]',
+      title: 'Calendar View',
+      body: 'Prefer dates over a list? Every train shows up here too, color-coded by status.',
+      placement: 'top',
+    },
+  ]
+
+  if (events.value.length) {
+    steps.push({
+      target: '[data-tour="first-event-card"]',
+      title: 'Pick a Train',
+      body: "Tap any train to see its full schedule. We'll show you how to grab an open time slot next.",
+      placement: 'bottom',
+      onComplete: () => onboarding.setContinuation('signup'),
+    })
+  } else {
+    steps.push({
+      title: "That's it for now!",
+      body: 'Check back soon — new trains will show up here as they get scheduled.',
+      placement: 'center',
+    })
+  }
+
+  return steps
+}
+
+function startHomeTour() {
+  onboarding.start(buildHomeSteps())
+}
+
+onMounted(async () => {
+  await load()
+  if (!onboarding.hasSeenIntro()) {
+    onboarding.markIntroSeen()
+    nextTick(() => startHomeTour())
+  }
+})
 </script>
