@@ -39,6 +39,9 @@
       <span class="flex items-center gap-1.5">
         <span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color: var(--badge-draft-dot)"></span> Draft
       </span>
+      <span class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full inline-block bg-tx3"></span> Past
+      </span>
     </div>
 
     <!-- Calendar grids -->
@@ -169,6 +172,7 @@ function isToday(offset, day) {
 }
 
 function chipClass(ev) {
+  if (ev.isPast)      return 'chip-past'
   if (ev.published)   return 'chip-live'
   if (ev.is_upcoming) return 'chip-upcoming'
   return 'chip-draft'

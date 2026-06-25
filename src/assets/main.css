@@ -33,6 +33,10 @@
   --badge-full-text:     #5C4710;
   --badge-full-dot:      #C9962A;
 
+  --badge-past-bg:       #E5E0D8;
+  --badge-past-text:     #5C5446;
+  --badge-past-dot:      #948A77;
+
   /* Brand scale — Slate Blue (same in light & dark; overridden by .palm) */
   --brand-50:  #EFF5F8;
   --brand-100: #DCEAF0;
@@ -74,6 +78,10 @@
   --badge-full-bg:       rgba(135, 99, 22, 0.35);
   --badge-full-text:     #E8CB85;
   --badge-full-dot:      #C9962A;
+
+  --badge-past-bg:       #2C2820;
+  --badge-past-text:     #9C9180;
+  --badge-past-dot:      #5C5446;
 }
 
 /* ── Palm Springs accent theme (toggle, independent of light/dark) ──────── */
@@ -107,6 +115,10 @@
   --badge-full-bg:       #FCE2F0;
   --badge-full-text:     #9A1763;
   --badge-full-dot:      #FEA0CE;
+
+  --badge-past-bg:       #EAE0DC;
+  --badge-past-text:     #6B5A52;
+  --badge-past-dot:      #B79C8F;
 
   --brand-50:  #EAF6F8;
   --brand-100: #D4E7E8;   /* pale aqua, from palette */
@@ -146,6 +158,10 @@
   --badge-full-bg:       rgba(254, 160, 206, 0.30);
   --badge-full-text:     #FBC3DF;
   --badge-full-dot:      #FEA0CE;
+
+  --badge-past-bg:       #234048;
+  --badge-past-text:     #9FB9BC;
+  --badge-past-dot:      #5C7479;
 }
 
 /* ── Base ───────────────────────────────────────────────────────────────── */
@@ -244,6 +260,11 @@
     color: #0F2A28; /* dark teal text — white fails contrast on turquoise */
     @apply text-xs font-extrabold uppercase tracking-wide px-3 py-1 rounded-full shadow-sm;
   }
+  .badge-past {
+    background-color: #5C5446; /* muted grey-brown — distinct from draft's warmer walnut */
+    color: #FFFFFF;
+    @apply text-xs font-extrabold uppercase tracking-wide px-3 py-1 rounded-full shadow-sm;
+  }
 
   /* Calendar event chips */
   .chip-live {
@@ -264,6 +285,13 @@
     @apply block text-xs px-1.5 py-0.5 rounded mb-0.5 truncate leading-tight transition-colors;
   }
   .chip-draft:hover { filter: brightness(0.92); }
+  .chip-past {
+    background-color: var(--badge-past-bg);
+    color: var(--badge-past-text);
+    text-decoration: line-through;
+    @apply block text-xs px-1.5 py-0.5 rounded mb-0.5 truncate leading-tight transition-colors;
+  }
+  .chip-past:hover { filter: brightness(0.95); }
   .chip-full {
     background-color: var(--badge-full-bg);
     color: var(--badge-full-text);

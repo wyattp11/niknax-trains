@@ -136,6 +136,45 @@
         </div>
       </section>
 
+      <!-- Past Trains -->
+      <section v-if="pastEvents.length">
+        <div class="flex items-center gap-5 mb-7">
+          <h2 class="font-display text-4xl text-tx3 shrink-0">Past Trains</h2>
+          <div class="flex-1 h-[3px] bg-bd rounded-full"></div>
+        </div>
+
+        <div class="space-y-3">
+          <RouterLink
+            v-for="ev in pastEvents"
+            :key="ev.id"
+            :to="`/train/${ev.id}`"
+            class="flex items-stretch gap-4 card transition-all opacity-60 hover:opacity-90"
+          >
+            <img
+              v-if="ev.cover_url"
+              :src="ev.cover_url"
+              class="w-28 h-full min-h-28 rounded-lg object-cover shrink-0 grayscale"
+              alt=""
+            />
+            <div
+              v-else
+              class="w-28 h-full min-h-28 rounded-lg bg-niknax-100 dark:bg-niknax-950 border border-bd
+                     flex items-center justify-center font-mono text-5xl shrink-0"
+              aria-hidden="true"
+            >🚂</div>
+
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-0.5 flex-wrap">
+                <span class="badge-past shrink-0">Past Event</span>
+                <h3 class="font-semibold text-tx2 truncate">{{ ev.name }}</h3>
+              </div>
+              <p v-if="ev.tagline" class="text-tx3 text-sm truncate">{{ ev.tagline }}</p>
+              <p v-if="ev.dateRange" class="text-tx3 text-xs mt-0.5 font-mono">{{ ev.dateRange }}</p>
+            </div>
+          </RouterLink>
+        </div>
+      </section>
+
     </main>
 
     <!-- ── Bottom accent stripe ── -->
@@ -147,7 +186,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { supabase, isSupabaseConfigured } from '../../lib/supabase.js'
-import { formatDate, trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
+import { formatDate, trainStatus, STATUS_BADGE_CLASS, isPastTrain } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
 import EventCalendar from '../../components/EventCalendar.vue'
 import TrainAnimation from '../../components/TrainAnimation.vue'
@@ -174,24 +213,36 @@ function enrich(t) {
       : `${formatDate(dates[0])} – ${formatDate(dates[dates.length - 1])}`
     : null
   const allSlots = (t.days || []).flatMap(d => d.slots || [])
-  const status = trainStatus(t, allSlots.length, allSlots.filter(s => s.username).length)
-  return { ...t, dates, dateRange, status }
+  const isPast = isPastTrain(dates)
+  const status = isPast
+    ? { key: 'past', label: 'Past Event' }
+    : trainStatus(t, allSlots.length, allSlots.filter(s => s.username).length)
+  return { ...t, dates, dateRange, isPast, status }
 }
 
 const events = computed(() =>
   rawTrains.value
     .filter(t => t.published || t.is_upcoming)
     .map(enrich)
+    .filter(e => !e.isPast)
     .sort((a, b) => {
       if (a.published !== b.published) return a.published ? -1 : 1
       return (a.dates[0] || '9999').localeCompare(b.dates[0] || '9999')
     })
 )
 
+const pastEvents = computed(() =>
+  rawTrains.value
+    .filter(t => t.published || t.is_upcoming)
+    .map(enrich)
+    .filter(e => e.isPast)
+    .sort((a, b) => (b.dates.at(-1) || '').localeCompare(a.dates.at(-1) || ''))
+)
+
 const calendarEvents = computed(() =>
   rawTrains.value.map(t => {
     const e = enrich(t)
-    return { id: e.id, name: e.name, published: e.published, is_upcoming: e.is_upcoming, dates: e.dates }
+    return { id: e.id, name: e.name, published: e.published, is_upcoming: e.is_upcoming, dates: e.dates, isPast: e.isPast }
   })
 )
 

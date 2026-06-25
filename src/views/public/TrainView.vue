@@ -623,7 +623,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { supabase } from '../../lib/supabase.js'
-import { allZones, formatDate, parseTime, trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
+import { allZones, formatDate, parseTime, trainStatus, STATUS_BADGE_CLASS, isPastTrain } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 import { renderMarkdown } from '../../lib/renderMarkdown.js'
@@ -1193,12 +1193,17 @@ const activeSlotId = computed(() => {
   return null
 })
 
-const status = computed(() =>
-  trainStatus(train.value, slots.value.length, slots.value.filter(s => s.username).length)
+const trainIsPast = computed(() =>
+  isPastTrain(days.value.map(d => d.day_date))
 )
 
+const status = computed(() => {
+  if (trainIsPast.value) return { key: 'past', label: 'Past Event' }
+  return trainStatus(train.value, slots.value.length, slots.value.filter(s => s.username).length)
+})
+
 const canAttemptSignup = computed(() =>
-  !!(train.value?.published || train.value?.is_upcoming)
+  !trainIsPast.value && !!(train.value?.published || train.value?.is_upcoming)
 )
 
 const slotsByDay = computed(() => {

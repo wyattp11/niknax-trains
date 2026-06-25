@@ -100,4 +100,33 @@ export const STATUS_BADGE_CLASS = {
   pending:  'upcoming',
   boarding: 'live',
   full:     'full',
+  past:     'past',
+}
+
+/**
+ * Today's date as a "YYYY-MM-DD" string, in local time (matches how
+ * day_date values are stored/compared — no timezone math needed since
+ * trains are always scheduled and viewed against US wall-clock dates).
+ */
+export function todayDateStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/**
+ * A single "YYYY-MM-DD" date string is in the past (strictly before today).
+ */
+export function isPastDate(dateStr) {
+  return !!dateStr && dateStr < todayDateStr()
+}
+
+/**
+ * A train (given its list of day_date strings) has fully wrapped — every
+ * scheduled day is in the past. Trains with no days yet (fresh drafts)
+ * are never considered past.
+ */
+export function isPastTrain(dates) {
+  if (!dates || !dates.length) return false
+  const lastDate = [...dates].sort().at(-1)
+  return isPastDate(lastDate)
 }

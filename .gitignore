@@ -3,3 +3,4 @@ dist
 .env.local
 .env
 .DS_Store
+insert_objects_of_holding.mjs
