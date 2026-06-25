@@ -243,7 +243,7 @@
                     <span v-else class="flex items-center gap-2">
                       <span v-if="slot.username" class="text-tx1 font-medium">{{ slot.username }}</span>
                       <span v-else class="text-tx3 italic text-xs">— open —</span>
-                      <span v-if="slot.label" class="text-xs text-niknax-400 bg-niknax-900/50 px-1.5 py-0.5 rounded">{{ slot.label }}</span>
+                      <span v-if="displaySlotLabel(slot)" class="text-xs text-niknax-400 bg-niknax-900/50 px-1.5 py-0.5 rounded">{{ displaySlotLabel(slot) }}</span>
                     </span>
                   </td>
                   <td class="px-3 py-2.5 text-tx1 font-bold text-base">{{ zones(slot.start_time)[0].time }}</td>
@@ -360,7 +360,7 @@
         </div>
         <div>
           <label class="label" for="add-slot-label">Label (optional)</label>
-          <input id="add-slot-label" v-model="newSlot.label" class="input" placeholder="Kickoff, Boost…" />
+          <input id="add-slot-label" v-model="newSlot.label" class="input" placeholder="Kickoff, featured seller…" />
         </div>
         <label class="flex items-center gap-2 text-sm text-tx2 cursor-pointer">
           <input v-model="newSlot.is_pre_assigned" type="checkbox" class="rounded" />
@@ -552,6 +552,11 @@ function initScheduleForms() {
 
 function isKickoffSlot(slot) {
   return String(slot?.label || '').trim().toLowerCase() === 'kickoff'
+}
+
+function displaySlotLabel(slot) {
+  const label = String(slot?.label || '').trim()
+  return label.toLowerCase() === 'niknax boost' ? '' : label
 }
 
 function slotRowNumber(slot, idx) {

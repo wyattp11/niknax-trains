@@ -123,7 +123,7 @@
               </div>
 
               <p class="text-xs text-tx3 -mt-1">
-                Reserved spots (moderators, Jocelyn's boosts, kickoff). These cannot be claimed via public signup.
+                Reserved spots (moderators, kickoff, or other special rows). These cannot be claimed via public signup.
               </p>
 
               <div

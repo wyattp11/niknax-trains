@@ -160,9 +160,9 @@
                       LIVE NOW
                     </span>
                     <span
-                      v-if="slot.label"
+                      v-if="displaySlotLabel(slot)"
                       class="text-xs font-semibold text-niknax-500 bg-niknax-500/15 px-1.5 py-0.5 rounded"
-                    >{{ slot.label }}</span>
+                    >{{ displaySlotLabel(slot) }}</span>
                   </div>
                 </div>
                 <p class="text-tx1 font-bold text-lg shrink-0">{{ zones(slot.start_time)[0].time }}</p>
@@ -307,9 +307,9 @@
                         LIVE NOW
                       </span>
                       <span
-                        v-if="slot.label"
+                        v-if="displaySlotLabel(slot)"
                         class="text-xs font-semibold text-niknax-500 bg-niknax-500/15 px-1.5 py-0.5 rounded"
-                      >{{ slot.label }}</span>
+                      >{{ displaySlotLabel(slot) }}</span>
                     </div>
                   </td>
                   <td class="px-4 py-3 text-tx1 font-bold text-base">{{ zones(slot.start_time)[0].time }}</td>
@@ -676,6 +676,11 @@ function zones(t) { return allZones(t) }
 
 function isKickoffSlot(slot) {
   return String(slot?.label || '').trim().toLowerCase() === 'kickoff'
+}
+
+function displaySlotLabel(slot) {
+  const label = String(slot?.label || '').trim()
+  return label.toLowerCase() === 'niknax boost' ? '' : label
 }
 
 function slotRowNumber(slot, idx) {
