@@ -78,8 +78,9 @@
             >
               Watch on District ↗
             </a>
-            <button @click="copyPageLink" class="btn-secondary text-sm" aria-live="polite">
-              {{ pageLinkCopied ? '✓ Copied!' : '🔗 Share Event' }}
+            <button @click="copyPageLink" class="btn-secondary text-sm flex items-center justify-center gap-1.5" aria-live="polite">
+              <ion-icon :name="pageLinkCopied ? 'checkmark-circle-outline' : 'share-social-outline'" aria-hidden="true"></ion-icon>
+              {{ pageLinkCopied ? 'Copied!' : 'Share Event' }}
             </button>
             <details v-if="trainCalendarRange" class="calendar-menu relative">
               <summary class="list-none cursor-pointer text-center whitespace-nowrap bg-[#FEA0CE] hover:bg-[#F9927C] text-[#2A2118] text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
@@ -105,7 +106,16 @@
               @click="downloadGraphic"
               class="btn-secondary text-sm flex items-center justify-center gap-1.5"
             >
-              📥 Download Graphic
+              <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
+              Download Graphic
+            </button>
+            <button
+              v-if="String(train.rules_md || '').trim()"
+              @click="openRulesViewer"
+              class="btn-secondary text-sm flex items-center justify-center gap-1.5"
+            >
+              <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
+              Rules &amp; Criteria
             </button>
           </div>
         </div>
@@ -458,6 +468,37 @@
       </div>
     </Teleport>
 
+    <!-- ── Rules & Criteria viewer (plain read-only, no acknowledgment gate) ── -->
+    <Teleport to="body">
+      <div
+        v-if="rulesViewerOpen"
+        class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4"
+        @click.self="rulesViewerOpen = false"
+      >
+        <div
+          ref="rulesViewerModalRef"
+          class="bg-surface border border-bd rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="rules-viewer-title"
+          tabindex="-1"
+        >
+          <div class="px-6 pt-6 pb-3 border-b border-bd shrink-0 flex items-start justify-between gap-4">
+            <h3 id="rules-viewer-title" class="text-lg font-bold text-tx1">Sign-Up Rules &amp; Criteria</h3>
+            <button @click="rulesViewerOpen = false" class="text-tx3 hover:text-tx1 text-xl leading-none" aria-label="Close">✕</button>
+          </div>
+
+          <div class="rules-content overflow-y-auto px-6 py-4 flex-1">
+            <div v-html="renderedRulesMd"></div>
+          </div>
+
+          <div class="px-6 py-4 border-t border-bd shrink-0">
+            <button @click="rulesViewerOpen = false" class="btn-secondary w-full">Close</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- ── Signup Modal ── -->
     <Teleport to="body">
       <div
@@ -497,7 +538,8 @@
                   @click="downloadGraphic"
                   class="btn-primary text-sm py-1.5 shrink-0 flex items-center gap-1.5"
                 >
-                  📥 Download
+                  <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
+                  Download
                 </button>
               </div>
             </div>
@@ -629,6 +671,17 @@ function confirmRulesAndProceed() {
   const { slot, day } = rulesModal.value
   rulesModal.value = null
   beginSignup(slot, day)
+}
+
+// Plain "view the rules anytime" button — no scroll/acknowledge requirement,
+// just a read-only look at the same content shown in the signup gate.
+const rulesViewerOpen = ref(false)
+const { modalRef: rulesViewerModalRef } = useModalA11y(
+  () => rulesViewerOpen.value,
+  () => { rulesViewerOpen.value = false }
+)
+function openRulesViewer() {
+  rulesViewerOpen.value = true
 }
 
 // ── Inline "add show link" editing for already-claimed slots ─────────────
