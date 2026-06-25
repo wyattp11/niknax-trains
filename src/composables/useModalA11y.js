@@ -8,6 +8,13 @@ import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
  * - Focuses the first focusable element inside the modal on open.
  * - Restores focus to whatever was focused before the modal opened, on close.
  *
+ * Some modals contain a scrollable region of rendered/untrusted content
+ * (e.g. links inside markdown) that shouldn't grab initial focus — doing so
+ * makes the browser auto-scroll that region to reveal the focused link,
+ * which looks like the modal "jumped" to the bottom on open. Elements inside
+ * any container marked `data-no-autofocus` are skipped for *initial* focus
+ * only; they're still reachable (and still trapped) via Tab.
+ *
  * Usage:
  *   const { modalRef } = useModalA11y(() => !!showThing.value, () => showThing.value = false)
  *   <div v-if="showThing" ref="modalRef" role="dialog" aria-modal="true">...</div>
@@ -16,13 +23,17 @@ export function useModalA11y(isOpen, onClose) {
   const modalRef = ref(null)
   let previouslyFocused = null
 
-  function getFocusable() {
+  function getFocusable({ forInitialFocus = false } = {}) {
     if (!modalRef.value) return []
     return Array.from(
       modalRef.value.querySelectorAll(
         'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
       )
-    ).filter((el) => el.offsetParent !== null)
+    ).filter((el) => {
+      if (el.offsetParent === null) return false
+      if (forInitialFocus && el.closest('[data-no-autofocus]')) return false
+      return true
+    })
   }
 
   function handleKeydown(e) {
@@ -56,7 +67,7 @@ export function useModalA11y(isOpen, onClose) {
         // first via e.stopPropagation() — get first crack at the keypress.
         document.addEventListener('keydown', handleKeydown, false)
         await nextTick()
-        const focusable = getFocusable()
+        const focusable = getFocusable({ forInitialFocus: true })
         ;(focusable[0] || modalRef.value)?.focus?.()
       } else {
         document.removeEventListener('keydown', handleKeydown, false)

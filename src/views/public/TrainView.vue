@@ -437,6 +437,7 @@
           <div
             ref="rulesScrollRef"
             class="rules-content overflow-y-auto px-6 py-4 flex-1"
+            data-no-autofocus
             @scroll="onRulesScroll"
           >
             <div v-html="renderedRulesMd"></div>
@@ -446,12 +447,11 @@
             <p v-if="!rulesScrolledToEnd" class="text-xs text-tx3" aria-live="polite">
               Scroll to the end to continue.
             </p>
-            <label class="flex items-start gap-2 text-sm text-tx2 cursor-pointer" :class="!rulesScrolledToEnd ? 'opacity-50' : ''">
+            <label v-else class="flex items-start gap-2 text-sm text-tx2 cursor-pointer">
               <input
                 v-model="rulesAcknowledged"
                 type="checkbox"
                 class="rounded mt-0.5"
-                :disabled="!rulesScrolledToEnd"
               />
               <span>I have read and understood the rules and criteria above.</span>
             </label>
@@ -488,7 +488,7 @@
             <button @click="rulesViewerOpen = false" class="text-tx3 hover:text-tx1 text-xl leading-none" aria-label="Close">✕</button>
           </div>
 
-          <div class="rules-content overflow-y-auto px-6 py-4 flex-1">
+          <div class="rules-content overflow-y-auto px-6 py-4 flex-1" data-no-autofocus>
             <div v-html="renderedRulesMd"></div>
           </div>
 
@@ -1318,9 +1318,14 @@ function openSignup(slot, day) {
     rulesAcknowledged.value  = false
     rulesModal.value = { slot, day }
     nextTick(() => {
-      // If the content is short enough to not need scrolling, don't block on it.
       const el = rulesScrollRef.value
-      if (el && el.scrollHeight <= el.clientHeight + 16) {
+      if (!el) return
+      // Always start at the top — the modal's initial-focus handling skips
+      // links inside this region (see data-no-autofocus / useModalA11y) so
+      // this is now mostly a defensive reset, not a fix for the focus jump.
+      el.scrollTop = 0
+      // If the content is short enough to not need scrolling, don't block on it.
+      if (el.scrollHeight <= el.clientHeight + 16) {
         rulesScrolledToEnd.value = true
       }
     })
