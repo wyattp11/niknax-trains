@@ -201,12 +201,12 @@
               </div>
 
               <button
-                v-if="canAttemptSignup && !slot.username && !slot.is_pre_assigned"
+                v-if="canAttemptSignup && !slot.username"
                 @click="openSignup(slot, day)"
                 :data-tour="slot.id === firstOpenSlotId ? 'first-signup-btn' : undefined"
                 class="w-full bg-niknax-600 hover:bg-niknax-500 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
               >
-                {{ !train.published || isKickoffSlot(slot) ? 'Moderator Sign Up' : 'Sign Up' }}
+                {{ !train.published || isKickoffSlot(slot) || slot.is_pre_assigned ? 'Moderator Sign Up' : 'Sign Up' }}
               </button>
 
               <template v-else-if="slot.username">
@@ -337,12 +337,12 @@
                   <td class="px-4 py-3 text-tx2 font-semibold">{{ zones(slot.start_time)[3].time }}</td>
                   <td class="px-4 py-3 text-right">
                     <button
-                      v-if="canAttemptSignup && !slot.username && !slot.is_pre_assigned"
+                      v-if="canAttemptSignup && !slot.username"
                       @click="openSignup(slot, day)"
                       :data-tour="slot.id === firstOpenSlotId ? 'first-signup-btn' : undefined"
                       class="bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                     >
-                      {{ !train.published || isKickoffSlot(slot) ? 'Moderator Sign Up' : 'Sign Up' }}
+                      {{ !train.published || isKickoffSlot(slot) || slot.is_pre_assigned ? 'Moderator Sign Up' : 'Sign Up' }}
                     </button>
 
                     <template v-else-if="slot.username">

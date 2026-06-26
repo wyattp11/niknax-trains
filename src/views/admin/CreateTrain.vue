@@ -132,7 +132,7 @@
               </div>
 
               <p class="text-xs text-tx3 -mt-1">
-                Reserved spots (moderators, kickoff, or other special rows). These cannot be claimed via public signup.
+                Reserved spots (moderators, kickoff, or other special rows). If left without a username, the public sees a "Moderator Sign Up" button on this row instead of "Sign Up".
               </p>
 
               <div

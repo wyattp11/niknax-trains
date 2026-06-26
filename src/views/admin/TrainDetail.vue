@@ -275,7 +275,7 @@
                       :class="slot.is_pre_assigned
                         ? 'border-niknax-500 text-niknax-600 dark:text-niknax-300 bg-niknax-500/10 hover:bg-niknax-500/20'
                         : 'border-bd text-tx3 hover:text-tx1 hover:bg-sur2'"
-                      :title="slot.is_pre_assigned ? 'Make this slot open for public signup' : 'Reserve this slot for the owner, admins, or moderators — it cannot be claimed publicly'"
+                      :title="slot.is_pre_assigned ? 'Make this a regular open slot' : 'Reserve this slot — it shows a Moderator Sign Up button instead of the public Sign Up button'"
                     >
                       {{ slot.is_pre_assigned ? 'Reserved' : 'Open' }}
                     </button>
@@ -380,10 +380,10 @@
         </div>
         <label class="flex items-center gap-2 text-sm text-tx2 cursor-pointer">
           <input v-model="newSlot.is_pre_assigned" type="checkbox" class="rounded" />
-          Reserved (cannot be claimed publicly)
+          Reserved (shows "Moderator Sign Up" instead of "Sign Up")
         </label>
         <p v-if="newSlot.is_pre_assigned" class="text-xs text-tx3 -mt-1">
-          Reserved slots are meant for the owner, admins, and moderators — pick a name from the suggestions, or type any username you need.
+          Reserved slots are meant for the owner, admins, and moderators — pick a name from the suggestions, or type any username you need. If left open, the public will see a "Moderator Sign Up" button on this row.
         </p>
         <div class="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
           <button @click="addSlotDay = null" class="btn-secondary w-full sm:w-auto">Cancel</button>
