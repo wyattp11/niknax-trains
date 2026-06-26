@@ -285,7 +285,14 @@
                       <button @click="saveSlotUsername(slot)" class="text-green-700 dark:text-green-400 text-xs font-medium">Save</button>
                       <button @click="editingSlot = null" class="text-tx3 text-xs">✕</button>
                     </span>
-                    <button v-else @click="startEdit(slot)" class="text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300 text-xs">Edit</button>
+                    <span v-else class="flex gap-2 justify-end">
+                      <button @click="startEdit(slot)" class="text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300 text-xs">Edit</button>
+                      <button
+                        @click="deleteSlot(slot, day)"
+                        :disabled="deletingSlotId === slot.id"
+                        class="text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300 text-xs disabled:opacity-50"
+                      >{{ deletingSlotId === slot.id ? '…' : 'Delete' }}</button>
+                    </span>
                   </td>
                 </tr>
               </tbody>
@@ -467,9 +474,10 @@ async function uploadCover(trainId) {
 }
 
 // Slot editing
-const editingSlot  = ref(null)
-const editUsername = ref('')
-const addSlotDay   = ref(null)
+const editingSlot   = ref(null)
+const editUsername  = ref('')
+const deletingSlotId = ref(null)
+const addSlotDay    = ref(null)
 const { modalRef: addSlotModalRef } = useModalA11y(
   () => !!addSlotDay.value,
   () => { addSlotDay.value = null }
@@ -892,6 +900,50 @@ function startEdit(slot) {
 async function saveSlotUsername(slot) {
   const { error } = await supabase.from('slots').update({ username: editUsername.value || null }).eq('id', slot.id)
   if (!error) { slot.username = editUsername.value || null; editingSlot.value = null }
+}
+
+// Deleting a slot leaves a gap in the day's schedule — close it by shifting
+// every later slot earlier by the deleted slot's duration, and renumbering
+// slot_order so the "#" column and public slot numbering stay contiguous.
+async function deleteSlot(slot, day) {
+  const daySlots = [...(slotsByDay.value[day.id] || [])]
+  const idx = daySlots.findIndex(s => s.id === slot.id)
+  if (idx === -1) return
+
+  const later = daySlots.slice(idx + 1)
+  const shiftMin = slot.duration_min || 0
+
+  const who = slot.username ? `"${slot.username}"'s slot` : 'this open slot'
+  const msg = later.length
+    ? `Delete ${who}? The ${later.length} slot${later.length === 1 ? '' : 's'} after it will shift ${shiftMin}m earlier to close the gap.`
+    : `Delete ${who}?`
+  if (!confirm(msg)) return
+
+  deletingSlotId.value = slot.id
+
+  const shifted = later.map(s => ({
+    id: s.id,
+    start_time: addMinutes(s.start_time, -shiftMin),
+    slot_order: s.slot_order - 1,
+  }))
+
+  const { error } = await supabase.from('slots').delete().eq('id', slot.id)
+  if (error) {
+    deletingSlotId.value = null
+    return
+  }
+
+  for (const s of shifted) {
+    await supabase.from('slots').update({ start_time: s.start_time, slot_order: s.slot_order }).eq('id', s.id)
+  }
+
+  slots.value = slots.value.filter(s => s.id !== slot.id)
+  for (const s of shifted) {
+    const target = slots.value.find(x => x.id === s.id)
+    if (target) { target.start_time = s.start_time; target.slot_order = s.slot_order }
+  }
+
+  deletingSlotId.value = null
 }
 
 async function toggleSlotReserved(slot) {

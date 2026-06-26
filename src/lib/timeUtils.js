@@ -45,8 +45,12 @@ export function allZones(etTimeStr) {
 export function addMinutes(timeStr, durationMin) {
   const { hours, minutes } = parseTime(timeStr)
   const totalMin = hours * 60 + minutes + durationMin
-  const h = Math.floor(totalMin / 60) % 24
-  const m = totalMin % 60
+  // Normalize into 0–1439 first so negative durationMin (e.g. shifting a
+  // slot earlier when an earlier slot is deleted) wraps correctly instead
+  // of producing negative hours/minutes.
+  const wrapped = ((totalMin % 1440) + 1440) % 1440
+  const h = Math.floor(wrapped / 60)
+  const m = wrapped % 60
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
