@@ -116,6 +116,15 @@
               Download Graphic
             </button>
             <button
+              v-if="train.cover_url && canCopyImages"
+              @click="copyGraphicImage"
+              class="btn-secondary text-sm flex items-center justify-center gap-1.5"
+              aria-live="polite"
+            >
+              <ion-icon :name="graphicCopied ? 'checkmark-circle-outline' : 'copy-outline'" aria-hidden="true"></ion-icon>
+              {{ graphicCopied ? 'Copied!' : graphicCopyError || 'Copy Image' }}
+            </button>
+            <button
               v-if="String(train.rules_md || '').trim()"
               @click="openRulesViewer"
               class="btn-secondary text-sm flex items-center justify-center gap-1.5"
@@ -539,18 +548,29 @@
             <!-- Graphic download card -->
             <div v-if="train.cover_url" class="bg-gray-800 rounded-xl overflow-hidden mb-5">
               <img :src="train.cover_url" class="w-full object-cover max-h-48" :alt="`${train.name} promotional graphic`" />
-              <div class="p-3 flex items-center justify-between gap-3">
+              <div class="p-3 flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <p class="text-white text-sm font-semibold">Train Graphic</p>
                   <p class="text-gray-400 text-xs">Share with your followers!</p>
                 </div>
-                <button
-                  @click="downloadGraphic"
-                  class="btn-primary text-sm py-1.5 shrink-0 flex items-center gap-1.5"
-                >
-                  <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
-                  Download
-                </button>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button
+                    v-if="canCopyImages"
+                    @click="copyGraphicImage"
+                    class="btn-secondary text-sm py-1.5 flex items-center gap-1.5"
+                    aria-live="polite"
+                  >
+                    <ion-icon :name="graphicCopied ? 'checkmark-circle-outline' : 'copy-outline'" aria-hidden="true"></ion-icon>
+                    {{ graphicCopied ? 'Copied!' : graphicCopyError || 'Copy' }}
+                  </button>
+                  <button
+                    @click="downloadGraphic"
+                    class="btn-primary text-sm py-1.5 flex items-center gap-1.5"
+                  >
+                    <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
+                    Download
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -656,6 +676,9 @@ const signupUsername = ref('')
 const signupError    = ref('')
 const signingUp      = ref(false)
 const pageLinkCopied = ref(false)
+const graphicCopied  = ref(false)
+const graphicCopyError = ref('')
+const canCopyImages = typeof window !== 'undefined' && !!(window.ClipboardItem && navigator.clipboard?.write)
 
 // ── Rules & criteria acknowledgment gate (public signup only) ────────────
 const rulesModal        = ref(null)   // { slot, day } pending acknowledgment
@@ -1434,20 +1457,78 @@ async function submitSignup() {
   signingUp.value = false
 }
 
+function graphicFilenameBase() {
+  return `${train.value.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-train-graphic`
+}
+
+function extFromBlobType(type) {
+  return type.includes('png') ? 'png' : type.includes('gif') ? 'gif' : 'jpg'
+}
+
+async function fetchGraphicBlob() {
+  const res = await fetch(train.value.cover_url)
+  return await res.blob()
+}
+
 async function downloadGraphic() {
   if (!train.value?.cover_url) return
-  const filename = `${train.value.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-train-graphic`
+  const filename = graphicFilenameBase()
   try {
-    const res  = await fetch(train.value.cover_url)
-    const blob = await res.blob()
-    const ext  = blob.type.includes('png') ? 'png' : blob.type.includes('gif') ? 'gif' : 'jpg'
-    const url  = URL.createObjectURL(blob)
-    const a    = Object.assign(document.createElement('a'), { href: url, download: `${filename}.${ext}` })
+    const blob = await fetchGraphicBlob()
+    const ext  = extFromBlobType(blob.type)
+    const file = new File([blob], `${filename}.${ext}`, { type: blob.type })
+
+    // On phones, the OS share sheet's "Save Image"/"Save to Photos" action is
+    // the only reliable way for a website to land an image straight in the
+    // camera roll — an <a download> link on mobile Safari/Chrome usually just
+    // opens the file or drops it in Files/Downloads, not Photos. Prefer that
+    // path whenever the browser supports sharing files.
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: train.value.name })
+      return
+    }
+
+    // Desktop (or no Web Share support) — fall back to a normal file download.
+    const url = URL.createObjectURL(blob)
+    const a   = Object.assign(document.createElement('a'), { href: url, download: `${filename}.${ext}` })
     a.click()
     URL.revokeObjectURL(url)
-  } catch {
-    // CORS blocked — open in new tab so user can save manually
+  } catch (err) {
+    if (err?.name === 'AbortError') return // user canceled the share sheet
+    // CORS blocked or share failed — open in new tab so user can long-press/save manually
     window.open(train.value.cover_url, '_blank')
+  }
+}
+
+async function copyGraphicImage() {
+  if (!train.value?.cover_url || !canCopyImages) return
+  graphicCopyError.value = ''
+  try {
+    let blob = await fetchGraphicBlob()
+    // Clipboard image writes are reliably supported for PNG — re-encode
+    // JPEG/WebP/etc. covers through a canvas so "Copy Image" works regardless
+    // of what format the uploaded graphic actually is.
+    if (!blob.type.includes('png')) {
+      blob = await new Promise((resolve, reject) => {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          canvas.width = img.naturalWidth
+          canvas.height = img.naturalHeight
+          canvas.getContext('2d').drawImage(img, 0, 0)
+          canvas.toBlob(b => b ? resolve(b) : reject(new Error('canvas export failed')), 'image/png')
+        }
+        img.onerror = reject
+        img.src = URL.createObjectURL(blob)
+      })
+    }
+    await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })])
+    graphicCopied.value = true
+    setTimeout(() => graphicCopied.value = false, 2000)
+  } catch {
+    graphicCopyError.value = 'Could not copy image — try Download instead.'
+    setTimeout(() => graphicCopyError.value = '', 3000)
   }
 }
 
