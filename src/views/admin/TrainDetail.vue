@@ -2,6 +2,12 @@
   <div class="min-h-screen bg-base">
     <AdminNav />
 
+    <!-- Quick-pick suggestions for reserved-slot usernames — owner/admin/moderator
+         members, sourced from the Members "role" badge. Free typing still works. -->
+    <datalist id="team-members-list">
+      <option v-for="m in teamMembers" :key="m.username" :value="m.username">{{ m.role }}</option>
+    </datalist>
+
     <main class="max-w-5xl mx-auto px-6 py-10">
       <RouterLink to="/admin/dashboard" class="text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300 text-sm mb-6 inline-block">
         ← Back to dashboard
@@ -243,6 +249,7 @@
                     <span v-if="editingSlot === slot.id">
                       <input
                         v-model="editUsername"
+                        list="team-members-list"
                         class="input py-1 text-sm"
                         @keyup.enter="saveSlotUsername(slot)"
                         @keyup.escape="editingSlot = null"
@@ -268,7 +275,7 @@
                       :class="slot.is_pre_assigned
                         ? 'border-niknax-500 text-niknax-600 dark:text-niknax-300 bg-niknax-500/10 hover:bg-niknax-500/20'
                         : 'border-bd text-tx3 hover:text-tx1 hover:bg-sur2'"
-                      :title="slot.is_pre_assigned ? 'Make this slot open for public signup' : 'Reserve this slot so it cannot be claimed publicly'"
+                      :title="slot.is_pre_assigned ? 'Make this slot open for public signup' : 'Reserve this slot for the owner, admins, or moderators — it cannot be claimed publicly'"
                     >
                       {{ slot.is_pre_assigned ? 'Reserved' : 'Open' }}
                     </button>
@@ -355,7 +362,7 @@
         <h4 id="add-slot-title" class="font-semibold text-tx1">Add Slot</h4>
         <div>
           <label class="label" for="add-slot-username">Username (blank = open slot)</label>
-          <input id="add-slot-username" v-model="newSlot.username" class="input" placeholder="@username" />
+          <input id="add-slot-username" v-model="newSlot.username" list="team-members-list" class="input" placeholder="@username" />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
@@ -375,6 +382,9 @@
           <input v-model="newSlot.is_pre_assigned" type="checkbox" class="rounded" />
           Reserved (cannot be claimed publicly)
         </label>
+        <p v-if="newSlot.is_pre_assigned" class="text-xs text-tx3 -mt-1">
+          Reserved slots are meant for the owner, admins, and moderators — pick a name from the suggestions, or type any username you need.
+        </p>
         <div class="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
           <button @click="addSlotDay = null" class="btn-secondary w-full sm:w-auto">Cancel</button>
           <button @click="saveNewSlot" :disabled="savingSlot" class="btn-primary w-full sm:w-auto">
@@ -409,6 +419,21 @@ const copied     = ref(false)
 const recentlyChangedSlotIds = ref(new Set())
 let slotsChannel = null
 let rowSoundCtx = null
+
+// Reserved slots are meant for the owner, admin, and moderators — the team.
+// We surface their usernames as quick-pick suggestions (via <datalist>) on
+// both the inline-edit and add-slot username fields so reserving a slot for
+// a teammate doesn't require remembering/typing their exact handle. Admins
+// can still type any username freely — this never restricts entry.
+const teamMembers = ref([])
+async function loadTeamMembers() {
+  const { data } = await supabase
+    .from('members')
+    .select('username, role')
+    .or('role.ilike.%admin%,role.ilike.%owner%,role.ilike.%moderator%')
+    .order('username')
+  teamMembers.value = data || []
+}
 
 // Edit details
 const showEdit      = ref(false)
@@ -913,7 +938,7 @@ async function confirmDelete() {
   router.push('/admin/dashboard')
 }
 
-onMounted(load)
+onMounted(() => { load(); loadTeamMembers() })
 onUnmounted(() => {
   if (slotsChannel) supabase.removeChannel(slotsChannel)
 })
