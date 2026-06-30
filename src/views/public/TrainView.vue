@@ -1338,6 +1338,41 @@ const effectiveDistrictLink = computed(() => {
   return normalizePublicUrl(train.value?.district_link || '')
 })
 
+// Dynamic share link for the "Share Event" button.
+// Priority order:
+//   1. Currently live slot's seller_link  (the show happening right now)
+//   2. Next future kickoff slot's seller_link  (pre-event or between days)
+//   3. Train-level district_link  (generic event page, no seller links set yet)
+//   4. This niknax train page  (safe fallback — always shareable)
+const effectiveShareLink = computed(() => {
+  const now = nowET.value
+  const list = flatSlotsChrono.value
+
+  // 1. Active slot right now
+  if (activeSlotId.value) {
+    const entry = list.find(({ slot }) => slot.id === activeSlotId.value)
+    const link = normalizePublicUrl(entry?.slot.seller_link || '')
+    if (link) return link
+  }
+
+  // 2. Next future kickoff slot (covers "not started yet" and "between days")
+  const nextKickoff = list.find(({ day, slot }) =>
+    slotEndsAt(day, slot) > now &&
+    (slot.slot_order === 0 || (slot.label || '').toLowerCase() === 'kickoff')
+  )
+  if (nextKickoff) {
+    const link = normalizePublicUrl(nextKickoff.slot.seller_link || '')
+    if (link) return link
+  }
+
+  // 3. Train-level District link
+  const eventLink = normalizePublicUrl(train.value?.district_link || '')
+  if (eventLink) return eventLink
+
+  // 4. This niknax page
+  return location.href
+})
+
 async function load() {
   loading.value = true
   const id = route.params.id
@@ -1533,7 +1568,7 @@ async function copyGraphicImage() {
 }
 
 function copyPageLink() {
-  navigator.clipboard.writeText(location.href)
+  navigator.clipboard.writeText(effectiveShareLink.value)
   pageLinkCopied.value = true
   setTimeout(() => pageLinkCopied.value = false, 2000)
 }
