@@ -134,6 +134,7 @@ declare
   target_published boolean := false;
   target_is_upcoming boolean := false;
   target_is_kickoff boolean := false;
+  target_is_pre_assigned boolean := false;
   is_unlimited_claimant boolean := false;
 begin
   clean_username := nullif(trim(regexp_replace(coalesce(claimant_username, ''), '^@+', '')), '');
@@ -154,8 +155,10 @@ begin
   )
   into is_unlimited_claimant;
 
-  select d.train_id, t.published, t.is_upcoming, (lower(coalesce(s.label, '')) = 'kickoff' or s.slot_order = 0)
-  into target_train_id, target_published, target_is_upcoming, target_is_kickoff
+  select d.train_id, t.published, t.is_upcoming,
+         (lower(coalesce(s.label, '')) = 'kickoff' or s.slot_order = 0),
+         s.is_pre_assigned
+  into target_train_id, target_published, target_is_upcoming, target_is_kickoff, target_is_pre_assigned
   from public.slots s
   join public.train_days d on d.id = s.train_day_id
   join public.trains t on t.id = d.train_id
@@ -167,6 +170,10 @@ begin
 
   if target_is_kickoff and not is_unlimited_claimant then
     raise exception 'Only NN moderators and admins can claim the Kickoff slot.' using errcode = 'P0001';
+  end if;
+
+  if target_is_pre_assigned and not target_is_kickoff and not is_unlimited_claimant then
+    raise exception 'This is a reserved slot for NN moderators and admins.' using errcode = 'P0001';
   end if;
 
   if not target_published and not (target_is_upcoming and is_unlimited_claimant) then
@@ -191,7 +198,7 @@ begin
   set username = clean_username
   where s.id = slot_id
     and s.username is null
-    and s.is_pre_assigned = false
+    and (s.is_pre_assigned = false or is_unlimited_claimant)
     and exists (
       select 1
       from public.train_days d
