@@ -43,9 +43,15 @@
                   <span :class="`badge-${statusBadgeClass(train)}`">
                     {{ status(train).label }}
                   </span>
+                  <span v-if="train.is_member_train" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
+                    Member Train
+                  </span>
                   <h3 class="font-semibold text-tx1 truncate">{{ train.name }}</h3>
                 </div>
-                <p class="text-sm text-tx3">Created {{ formatDate(train.created_at) }}</p>
+                <p class="text-sm text-tx3">
+                  Created {{ formatDate(train.created_at) }}
+                  <span v-if="train.is_member_train && train.conductor_username"> · Conductor: @{{ train.conductor_username }}</span>
+                </p>
               </div>
 
               <div class="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">

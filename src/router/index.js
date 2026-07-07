@@ -15,6 +15,14 @@ const routes = [
     path: '/propose',
     component: () => import('../views/public/ProposeTrainView.vue'),
   },
+  {
+    path: '/create-train',
+    component: () => import('../views/public/CreateMemberTrainView.vue'),
+  },
+  {
+    path: '/train/:id/conductor',
+    component: () => import('../views/public/ConductorView.vue'),
+  },
 
   // ── Admin ───────────────────────────────────────────────
   {

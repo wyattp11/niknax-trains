@@ -23,7 +23,13 @@
             <span :class="statusBadge.class" class="text-xs font-bold px-2.5 py-1 rounded-full">
               {{ statusBadge.label }}
             </span>
+            <span v-if="train.is_member_train" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
+              Member Train
+            </span>
             <h2 class="text-2xl font-bold text-tx1">{{ train.name }}</h2>
+            <span v-if="train.is_member_train && train.conductor_username" class="text-sm text-tx3">
+              Conductor: @{{ train.conductor_username }}
+            </span>
           </div>
           <div class="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
             <a v-if="train.published" :href="`/train/${train.id}`" target="_blank" class="btn-secondary text-sm text-center whitespace-nowrap">

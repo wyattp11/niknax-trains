@@ -74,6 +74,19 @@
             {{ train.description }}
           </p>
 
+          <!-- Conductor chip + manage link for member trains -->
+          <div v-if="train.is_member_train && train.conductor_username" class="flex flex-wrap items-center gap-3 mb-4">
+            <span class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                  :class="train.cover_url ? 'bg-white/20 text-white' : 'bg-niknax-100 dark:bg-niknax-900 text-niknax-700 dark:text-niknax-300'">
+              Conductor: @{{ train.conductor_username }}
+            </span>
+            <RouterLink
+              :to="`/train/${train.id}/conductor`"
+              class="text-xs underline underline-offset-2"
+              :class="train.cover_url ? 'text-white/70 hover:text-white' : 'text-tx3 hover:text-tx2'"
+            >Manage your train →</RouterLink>
+          </div>
+
           <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3">
             <a
               v-if="effectiveDistrictLink"
