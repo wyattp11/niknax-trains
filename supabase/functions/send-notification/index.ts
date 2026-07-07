@@ -3,9 +3,10 @@
  *
  * Receives Supabase Database Webhook POST payloads and sends email via Resend.
  *
- * Handles two webhooks (configure both in Supabase Dashboard → Database → Webhooks):
- *   1. Table: slots     | Event: UPDATE  → checks if train is now full, emails if so
- *   2. Table: train_proposals | Event: INSERT → emails the proposal details immediately
+ * Handles three webhooks (configure all in Supabase Dashboard → Database → Webhooks):
+ *   1. Table: slots          | Event: UPDATE → checks if train is now full, emails if so
+ *   2. Table: train_proposals| Event: INSERT → emails the proposal details immediately
+ *   3. Table: trains         | Event: INSERT → emails when a member submits a new train
  *
  * Required secrets (set in Supabase Dashboard → Settings → Edge Functions → Secrets,
  * or via `supabase secrets set KEY=value`):
@@ -124,6 +125,35 @@ async function handleProposalInsert(record: Record<string, unknown>) {
   console.log(`send-notification: sent proposal email for "${name}" (id: ${id})`)
 }
 
+// ── Member train submission handler ────────────────────────────────────────
+
+async function handleMemberTrainInsert(record: Record<string, unknown>) {
+  // Only notify for member trains (not admin-created Niknax trains)
+  if (!record.is_member_train) return
+
+  const { id, name, tagline, conductor_username } = record
+  const siteUrl  = Deno.env.get('PUBLIC_SITE_URL') ?? ''
+  const adminUrl = `${siteUrl}/admin/trains/${id}`
+
+  await sendEmail(
+    `🚂 New Member Train Submitted: ${name}`,
+    `
+    <div style="font-family:sans-serif;max-width:520px;margin:0 auto">
+      <h2 style="color:#7c3aed">🚂 New Member Train Submitted</h2>
+      <p>A seller has submitted a new train for your review.</p>
+      <table style="border-collapse:collapse;width:100%">
+        <tr><td style="padding:6px 0;color:#666;width:140px">Event Name</td><td style="padding:6px 0"><strong>${name}</strong></td></tr>
+        <tr><td style="padding:6px 0;color:#666">Tagline</td><td style="padding:6px 0">${tagline || '—'}</td></tr>
+        <tr><td style="padding:6px 0;color:#666">Conductor</td><td style="padding:6px 0">@${conductor_username}</td></tr>
+      </table>
+      <p style="margin-top:16px">Publish it or mark it as Upcoming once you've reviewed it.</p>
+      ${adminUrl ? `<p><a href="${adminUrl}" style="color:#7c3aed">Review in admin →</a></p>` : ''}
+    </div>
+    `,
+  )
+  console.log(`send-notification: sent member train email for "${name}" (id: ${id})`)
+}
+
 // ── Main handler ───────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
@@ -141,6 +171,10 @@ Deno.serve(async (req: Request) => {
 
     if (table === 'train_proposals' && type === 'INSERT') {
       await handleProposalInsert(record)
+    }
+
+    if (table === 'trains' && type === 'INSERT') {
+      await handleMemberTrainInsert(record)
     }
 
     return new Response(JSON.stringify({ ok: true }), {
