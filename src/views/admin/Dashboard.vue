@@ -60,6 +60,47 @@
           </div>
         </section>
 
+        <!-- Train proposals -->
+        <section v-if="proposals.length">
+          <div class="flex items-center gap-3 mb-4">
+            <h3 class="text-lg font-semibold text-tx2">Train Proposals</h3>
+            <span v-if="unreviewedCount" class="bg-niknax-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{{ unreviewedCount }} new</span>
+            <div class="flex-1 h-px bg-bd"></div>
+          </div>
+          <div class="space-y-3">
+            <div
+              v-for="p in proposals"
+              :key="p.id"
+              class="card"
+              :class="p.reviewed ? 'opacity-60' : ''"
+            >
+              <div class="flex items-start justify-between gap-4">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 mb-1 flex-wrap">
+                    <span v-if="!p.reviewed" class="bg-niknax-100 dark:bg-niknax-900 text-niknax-700 dark:text-niknax-300 text-xs font-semibold px-2 py-0.5 rounded-full">New</span>
+                    <span v-else class="text-tx3 text-xs">Reviewed</span>
+                    <span class="font-semibold text-tx1 truncate">{{ p.name }}</span>
+                  </div>
+                  <p v-if="p.tagline" class="text-sm text-tx2 mb-1">{{ p.tagline }}</p>
+                  <div class="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-tx3">
+                    <span>@{{ p.contact_username }}</span>
+                    <span v-if="p.proposed_date">{{ p.proposed_date }}</span>
+                    <span>{{ formatDate(p.created_at) }}</span>
+                  </div>
+                  <p v-if="p.message" class="text-sm text-tx2 mt-2 whitespace-pre-line">{{ p.message }}</p>
+                </div>
+                <button
+                  v-if="!p.reviewed"
+                  @click="markReviewed(p)"
+                  class="btn-secondary text-xs py-1 px-3 shrink-0 whitespace-nowrap"
+                >
+                  Mark reviewed
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- Past trains -->
         <section v-if="pastTrains.length">
           <div class="flex items-center gap-3 mb-4">
@@ -115,7 +156,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import { supabase } from '../../lib/supabase.js'
@@ -123,9 +164,11 @@ import { trainStatus, STATUS_BADGE_CLASS, isPastTrain } from '../../lib/timeUtil
 
 const router = useRouter()
 
-const trains  = ref([])
-const loading = ref(true)
+const trains     = ref([])
+const loading    = ref(true)
 const duplicatingId = ref(null)
+const proposals  = ref([])
+let proposalsSub = null
 
 async function loadTrains() {
   loading.value = true
@@ -236,5 +279,32 @@ async function duplicateTrain(train) {
   }
 }
 
-onMounted(loadTrains)
+const unreviewedCount = computed(() => proposals.value.filter(p => !p.reviewed).length)
+
+async function loadProposals() {
+  const { data } = await supabase
+    .from('train_proposals')
+    .select('*')
+    .order('created_at', { ascending: false })
+  proposals.value = data || []
+
+  // Subscribe to new proposals in real-time
+  proposalsSub = supabase
+    .channel('train-proposals-admin')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'train_proposals' }, payload => {
+      proposals.value.unshift(payload.new)
+    })
+    .subscribe()
+}
+
+async function markReviewed(proposal) {
+  const { error } = await supabase
+    .from('train_proposals')
+    .update({ reviewed: true })
+    .eq('id', proposal.id)
+  if (!error) proposal.reviewed = true
+}
+
+onMounted(() => { loadTrains(); loadProposals() })
+onUnmounted(() => { proposalsSub?.unsubscribe() })
 </script>

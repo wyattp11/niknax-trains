@@ -41,6 +41,9 @@
         <ion-icon name="leaf-outline" class="text-xl" aria-hidden="true"></ion-icon>
       </button>
 
+      <RouterLink to="/propose" class="text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300 text-xs font-medium px-2 py-1 rounded transition-colors whitespace-nowrap hidden sm:block">
+        Propose a Train
+      </RouterLink>
       <RouterLink to="/admin" class="text-tx3 hover:text-tx2 text-xs px-2 py-1 rounded transition-colors">
         Admin
       </RouterLink>

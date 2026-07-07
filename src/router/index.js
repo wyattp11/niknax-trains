@@ -11,6 +11,10 @@ const routes = [
     path: '/train/:id',
     component: () => import('../views/public/TrainView.vue'),
   },
+  {
+    path: '/propose',
+    component: () => import('../views/public/ProposeTrainView.vue'),
+  },
 
   // ── Admin ───────────────────────────────────────────────
   {
