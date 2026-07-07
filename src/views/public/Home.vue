@@ -81,6 +81,9 @@
         <div class="flex items-center gap-5 mb-7">
           <h2 class="font-display text-4xl text-tx1 shrink-0">Events</h2>
           <div class="flex-1 h-[3px] bg-niknax-600 rounded-full"></div>
+          <RouterLink to="/create-train" class="btn-primary text-sm py-1.5 whitespace-nowrap shrink-0">
+            🚂 Conduct your own train!
+          </RouterLink>
         </div>
 
         <div v-if="loading" class="text-tx3 text-sm">Loading…</div>
