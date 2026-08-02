@@ -29,6 +29,13 @@
       >
         Members
       </RouterLink>
+      <RouterLink
+        to="/admin/settings"
+        class="px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors shrink-0"
+        :class="isActive('/admin/settings') ? 'bg-niknax-600 text-white' : 'text-tx2 hover:bg-sur2 hover:text-tx1'"
+      >
+        Settings
+      </RouterLink>
     </nav>
 
     <!-- Right side controls -->

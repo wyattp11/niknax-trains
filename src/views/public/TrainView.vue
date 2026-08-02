@@ -646,11 +646,30 @@
               </div>
             </div>
 
-            <p class="text-red-600 dark:text-red-400 text-sm mt-3 min-h-[1.25rem]" aria-live="polite">{{ signupError }}</p>
+            <!-- Accountability block — shown when an active strike keeps this
+                 seller out of a Niknax-sponsored event. -->
+            <div
+              v-if="signupBlocked"
+              class="mt-4 rounded-lg border border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-900/20 p-4"
+              role="alert"
+              aria-live="polite"
+            >
+              <p class="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                Sign-up paused for this event
+              </p>
+              <p class="text-sm text-amber-800 dark:text-amber-200/90">{{ signupError }}</p>
+            </div>
+            <p
+              v-else
+              class="text-red-600 dark:text-red-400 text-sm mt-3 min-h-[1.25rem]"
+              aria-live="polite"
+            >{{ signupError }}</p>
 
             <div class="flex flex-col-reverse sm:flex-row gap-3 mt-6">
-              <button @click="signupModal = null" class="btn-secondary sm:flex-1">Cancel</button>
-              <button @click="submitSignup" :disabled="signingUp" class="btn-primary sm:flex-1">
+              <button @click="signupModal = null" class="btn-secondary sm:flex-1">
+                {{ signupBlocked ? 'Close' : 'Cancel' }}
+              </button>
+              <button v-if="!signupBlocked" @click="submitSignup" :disabled="signingUp" class="btn-primary sm:flex-1">
                 {{ signingUp ? 'Saving…' : 'Claim Slot ✓' }}
               </button>
             </div>
@@ -687,6 +706,7 @@ const signupModal    = ref(null)
 const signupSuccess  = ref(null)   // { username, slot, day } after successful claim
 const signupUsername = ref('')
 const signupError    = ref('')
+const signupBlocked  = ref(false)   // true when an active strike blocks this claim
 const signingUp      = ref(false)
 const pageLinkCopied = ref(false)
 const graphicCopied  = ref(false)
@@ -1474,6 +1494,7 @@ function beginSignup(slot, day) {
   signupModal.value    = { slot, day }
   signupUsername.value = ''
   signupError.value    = ''
+  signupBlocked.value  = false
   usernameSuggestions.value = []
 }
 
@@ -1482,8 +1503,9 @@ async function submitSignup() {
     signupError.value = 'Please enter your username.'
     return
   }
-  signingUp.value   = true
-  signupError.value = ''
+  signingUp.value     = true
+  signupError.value   = ''
+  signupBlocked.value = false
 
   const { slot, day } = signupModal.value
 
@@ -1493,7 +1515,8 @@ async function submitSignup() {
   })
 
   if (error) {
-    signupError.value = error.message || 'Could not claim slot. Please try again.'
+    signupError.value   = error.message || 'Could not claim slot. Please try again.'
+    signupBlocked.value = error.details === 'strike_block'
   } else {
     const idx = slots.value.findIndex(s => s.id === slot.id)
     if (idx !== -1) {

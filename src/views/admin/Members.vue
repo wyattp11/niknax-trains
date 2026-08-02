@@ -40,7 +40,17 @@
             class="card space-y-4"
           >
             <div class="flex items-start justify-between gap-3">
-              <p class="font-semibold text-tx1 min-w-0 break-words">{{ row.username }}</p>
+              <p class="font-semibold text-tx1 min-w-0 break-words">
+                {{ row.username }}
+                <button
+                  v-if="standingFor(row.username)"
+                  type="button"
+                  @click="openStandingModal(row)"
+                  class="align-middle ml-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
+                >
+                  ⚑ {{ standingFor(row.username).active_strikes }}
+                </button>
+              </p>
               <button class="text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 text-xs font-medium shrink-0" @click="confirmDelete(row)">
                 Delete
               </button>
@@ -103,16 +113,17 @@
               <th class="px-4 py-3 font-medium">Full name</th>
               <th class="px-4 py-3 font-medium">Email</th>
               <th class="px-4 py-3 font-medium">Badge</th>
+              <th class="px-4 py-3 font-medium text-center">Standing</th>
               <th class="px-4 py-3 font-medium text-center">Can go live</th>
               <th class="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="6" class="px-4 py-10 text-center text-tx3">Loading…</td>
+              <td colspan="7" class="px-4 py-10 text-center text-tx3">Loading…</td>
             </tr>
             <tr v-else-if="rows.length === 0">
-              <td colspan="6" class="px-4 py-10 text-center text-tx3">No members match.</td>
+              <td colspan="7" class="px-4 py-10 text-center text-tx3">No members match.</td>
             </tr>
             <tr
               v-for="row in rows"
@@ -145,6 +156,18 @@
                   @blur="saveField(row, 'role')"
                   @keyup.enter="saveField(row, 'role')"
                 />
+              </td>
+              <td class="px-4 py-2 text-center whitespace-nowrap">
+                <button
+                  v-if="standingFor(row.username)"
+                  type="button"
+                  @click="openStandingModal(row)"
+                  class="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/70 transition-colors"
+                  :title="'Blocked from the next Niknax train — click to review'"
+                >
+                  ⚑ {{ standingFor(row.username).active_strikes }}
+                </button>
+                <span v-else class="text-xs text-tx3">—</span>
               </td>
               <td class="px-4 py-2 text-center">
                 <input
@@ -269,6 +292,65 @@
         </div>
       </div>
     </div>
+
+    <!-- Standing / strike history modal -->
+    <div v-if="standingMember" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @click.self="standingMember = null">
+      <div
+        ref="standingModalRef"
+        class="card max-w-lg w-full space-y-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="standing-title"
+        tabindex="-1"
+      >
+        <div>
+          <h3 id="standing-title" class="text-lg font-bold text-tx1">Standing — @{{ standingMember.username }}</h3>
+          <p class="text-xs text-tx3 mt-1">
+            Active strikes block this seller from the next Niknax-sponsored train they try to join.
+            Member-created trains are never affected.
+          </p>
+        </div>
+
+        <div v-if="loadingHistory" class="text-tx3 text-sm py-6 text-center">Loading…</div>
+
+        <div v-else-if="strikeHistory.length === 0" class="text-tx3 text-sm py-6 text-center">
+          No strikes on record.
+        </div>
+
+        <div v-else class="space-y-2 max-h-80 overflow-y-auto">
+          <div
+            v-for="s in strikeHistory"
+            :key="s.id"
+            class="border rounded-lg p-3 space-y-1"
+            :class="s.cleared_at
+              ? 'border-bd bg-sur2 opacity-60'
+              : 'border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20'"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <p class="text-sm font-medium" :class="s.cleared_at ? 'text-tx2' : 'text-red-800 dark:text-red-200'">
+                <span v-if="!s.cleared_at">⚑ </span>{{ strikeReasonLabel(s.reason) }}
+                <span class="font-normal text-xs text-tx3">· {{ formatDate(s.created_at) }}</span>
+              </p>
+              <button
+                v-if="!s.cleared_at"
+                @click="clearStrike(s)"
+                :disabled="clearingId === s.id"
+                class="text-xs font-medium text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300 shrink-0 disabled:opacity-50"
+              >{{ clearingId === s.id ? '…' : 'Clear' }}</button>
+            </div>
+            <p v-if="s.trains?.name" class="text-xs text-tx3">From: {{ s.trains.name }}</p>
+            <p v-if="s.notes" class="text-xs" :class="s.cleared_at ? 'text-tx3' : 'text-red-700 dark:text-red-300'">{{ s.notes }}</p>
+            <p v-if="s.cleared_at" class="text-xs text-tx3">Cleared {{ formatDate(s.cleared_at) }}</p>
+            <p v-else-if="s.penalty_train_id" class="text-xs text-tx3">Assigned — clears once that train is over.</p>
+            <p v-else class="text-xs text-tx3">Waiting to be served on their next Niknax train attempt.</p>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button class="btn-secondary" @click="standingMember = null">Close</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -277,6 +359,7 @@ import { ref, watch, computed, onMounted } from 'vue'
 import AdminNav from '../../components/AdminNav.vue'
 import { supabase } from '../../lib/supabase.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
+import { formatDate } from '../../lib/timeUtils.js'
 
 const PAGE_SIZE = 50
 
@@ -290,6 +373,76 @@ const canGoLiveCount   = ref(0)
 const saveError        = ref('')
 
 const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
+
+// ── Strikes / standing ────────────────────────────────────────────────────
+const standing       = ref([])          // rows from public.member_standing
+const standingMember = ref(null)        // member whose history is open
+const strikeHistory  = ref([])
+const loadingHistory = ref(false)
+const clearingId     = ref(null)
+
+const { modalRef: standingModalRef } = useModalA11y(
+  () => !!standingMember.value,
+  () => { standingMember.value = null }
+)
+
+const STRIKE_REASON_LABELS = {
+  no_show:        'No-show',
+  late:           'Late',
+  left_early:     'Left early',
+  rule_violation: 'Rule violation',
+  other:          'Other',
+}
+
+function strikeReasonLabel(reason) {
+  return STRIKE_REASON_LABELS[reason] || 'Flagged'
+}
+
+const standingByKey = computed(() => {
+  const map = {}
+  for (const s of standing.value) map[s.username_key] = s
+  return map
+})
+
+function standingFor(username) {
+  if (!username) return null
+  return standingByKey.value[username.toLowerCase()] || null
+}
+
+async function loadStanding() {
+  const { data } = await supabase.from('member_standing').select('*')
+  standing.value = data || []
+}
+
+async function openStandingModal(member) {
+  standingMember.value = member
+  strikeHistory.value  = []
+  loadingHistory.value = true
+
+  const { data } = await supabase
+    .from('member_strikes')
+    .select('*, trains(name)')
+    .eq('username_key', member.username.toLowerCase())
+    .order('created_at', { ascending: false })
+
+  strikeHistory.value  = data || []
+  loadingHistory.value = false
+}
+
+async function clearStrike(strike) {
+  clearingId.value = strike.id
+
+  const { error } = await supabase
+    .from('member_strikes')
+    .update({ cleared_at: new Date().toISOString() })
+    .eq('id', strike.id)
+
+  if (!error) {
+    strike.cleared_at = new Date().toISOString()
+    await loadStanding()
+  }
+  clearingId.value = null
+}
 
 let searchTimer = null
 watch(search, () => {
@@ -417,6 +570,7 @@ async function addMember() {
 onMounted(() => {
   loadMembers()
   loadCanGoLiveCount()
+  loadStanding()
 })
 
 // ── Upload CSV ────────────────────────────────────────────

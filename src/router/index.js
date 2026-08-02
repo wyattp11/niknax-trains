@@ -49,6 +49,11 @@ const routes = [
     component: () => import('../views/admin/Members.vue'),
     meta: { requiresAdmin: true },
   },
+  {
+    path: '/admin/settings',
+    component: () => import('../views/admin/Settings.vue'),
+    meta: { requiresAdmin: true },
+  },
 ]
 
 const router = createRouter({

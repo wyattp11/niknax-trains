@@ -266,6 +266,15 @@
                       <span v-if="slot.username" class="text-tx1 font-medium">{{ slot.username }}</span>
                       <span v-else class="text-tx3 italic text-xs">— open —</span>
                       <span v-if="displaySlotLabel(slot)" class="text-xs text-niknax-400 bg-niknax-900/50 px-1.5 py-0.5 rounded">{{ displaySlotLabel(slot) }}</span>
+                      <button
+                        v-if="slotStrike(slot)"
+                        type="button"
+                        @click="openStrikeModal(slot)"
+                        class="text-xs px-1.5 py-0.5 rounded font-semibold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/70 transition-colors"
+                        :title="`${strikeReasonLabel(slotStrike(slot).reason)}${slotStrike(slot).notes ? ' — ' + slotStrike(slot).notes : ''}`"
+                      >
+                        ⚑ {{ strikeReasonLabel(slotStrike(slot).reason) }}
+                      </button>
                     </span>
                   </td>
                   <td class="px-3 py-2.5 text-tx1 font-bold text-base">{{ zones(slot.start_time)[0].time }}</td>
@@ -291,7 +300,16 @@
                       <button @click="saveSlotUsername(slot)" class="text-green-700 dark:text-green-400 text-xs font-medium">Save</button>
                       <button @click="editingSlot = null" class="text-tx3 text-xs">✕</button>
                     </span>
-                    <span v-else class="flex gap-2 justify-end">
+                    <span v-else class="flex gap-2 justify-end items-center">
+                      <button
+                        v-if="slot.username"
+                        @click="openStrikeModal(slot)"
+                        class="text-xs transition-colors"
+                        :class="slotStrike(slot)
+                          ? 'text-red-600 dark:text-red-400'
+                          : 'text-tx3 hover:text-red-600 dark:hover:text-red-400'"
+                        :title="slotStrike(slot) ? 'Edit or clear this strike' : 'Flag this seller for a no-show or rule violation'"
+                      >⚑</button>
                       <button @click="startEdit(slot)" class="text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300 text-xs">Edit</button>
                       <button
                         @click="deleteSlot(slot, day)"
@@ -406,6 +424,87 @@
         </div>
       </div>
     </div>
+
+    <!-- ── Strike modal ── -->
+    <div v-if="strikeSlot" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" @click.self="strikeSlot = null">
+      <div
+        ref="strikeModalRef"
+        class="bg-surface border border-bd rounded-xl p-6 w-full max-w-md space-y-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="strike-title"
+        tabindex="-1"
+      >
+        <div>
+          <h4 id="strike-title" class="font-semibold text-tx1">
+            {{ existingStrike ? 'Strike' : 'Flag Seller' }} — @{{ strikeSlot.username }}
+          </h4>
+          <p class="text-xs text-tx3 mt-1">
+            An active strike blocks this seller from the next Niknax-sponsored train they try to join.
+            Member-created trains are never affected.
+          </p>
+        </div>
+
+        <!-- Existing strike state -->
+        <div v-if="existingStrike" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded-lg p-3 space-y-2">
+          <p class="text-sm text-red-800 dark:text-red-200 font-medium">
+            ⚑ {{ strikeReasonLabel(existingStrike.reason) }}
+            <span class="font-normal text-xs">· logged {{ formatDate(existingStrike.created_at) }}</span>
+          </p>
+          <p v-if="existingStrike.notes" class="text-xs text-red-700 dark:text-red-300">{{ existingStrike.notes }}</p>
+          <p class="text-xs text-tx3">
+            <template v-if="existingStrike.cleared_at">
+              Cleared {{ formatDate(existingStrike.cleared_at) }}.
+            </template>
+            <template v-else-if="existingStrike.penalty_train_id">
+              Assigned — they've been turned away from a train and will be clear once it's over.
+            </template>
+            <template v-else>
+              Waiting to be served on the next Niknax train they attempt to join.
+            </template>
+          </p>
+        </div>
+
+        <template v-if="!existingStrike || existingStrike.cleared_at">
+          <div>
+            <label class="label" for="strike-reason">Reason</label>
+            <select id="strike-reason" v-model="strikeForm.reason" class="input">
+              <option value="no_show">No-show</option>
+              <option value="late">Showed up late</option>
+              <option value="left_early">Left slot early</option>
+              <option value="rule_violation">Rule violation</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="label" for="strike-notes">Notes (admin only)</label>
+            <textarea id="strike-notes" v-model="strikeForm.notes" class="input" rows="2" placeholder="Optional context — not shown to the seller." />
+          </div>
+        </template>
+
+        <p v-if="strikeError" class="text-red-600 dark:text-red-400 text-sm" role="alert">{{ strikeError }}</p>
+
+        <div class="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+          <button @click="strikeSlot = null" class="btn-secondary w-full sm:w-auto">Cancel</button>
+          <button
+            v-if="existingStrike && !existingStrike.cleared_at"
+            @click="clearStrike"
+            :disabled="savingStrike"
+            class="btn-primary w-full sm:w-auto"
+          >
+            {{ savingStrike ? '…' : 'Clear Strike' }}
+          </button>
+          <button
+            v-else
+            @click="saveStrike"
+            :disabled="savingStrike"
+            class="btn-primary w-full sm:w-auto !bg-red-600 hover:!bg-red-500"
+          >
+            {{ savingStrike ? '…' : 'Log Strike' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -490,6 +589,101 @@ const { modalRef: addSlotModalRef } = useModalA11y(
 )
 const savingSlot   = ref(false)
 const newSlot = ref({ username: '', start_time: '12:00', duration_min: 30, label: '', is_pre_assigned: false })
+
+// ── Strikes ───────────────────────────────────────────────────────────────
+const strikes      = ref([])
+const strikeSlot   = ref(null)
+const savingStrike = ref(false)
+const strikeError  = ref('')
+const strikeForm   = ref({ reason: 'no_show', notes: '' })
+
+const { modalRef: strikeModalRef } = useModalA11y(
+  () => !!strikeSlot.value,
+  () => { strikeSlot.value = null }
+)
+
+const STRIKE_REASON_LABELS = {
+  no_show:        'No-show',
+  late:           'Late',
+  left_early:     'Left early',
+  rule_violation: 'Rule violation',
+  other:          'Other',
+}
+
+function strikeReasonLabel(reason) {
+  return STRIKE_REASON_LABELS[reason] || 'Flagged'
+}
+
+/** The active (uncleared) strike attached to this slot, if any. */
+function slotStrike(slot) {
+  return strikes.value.find(s => s.slot_id === slot.id && !s.cleared_at) || null
+}
+
+const existingStrike = computed(() => {
+  if (!strikeSlot.value) return null
+  return strikes.value.find(s => s.slot_id === strikeSlot.value.id) || null
+})
+
+async function loadStrikes() {
+  const { data } = await supabase
+    .from('member_strikes')
+    .select('*')
+    .eq('train_id', route.params.id)
+    .order('created_at', { ascending: false })
+  strikes.value = data || []
+}
+
+function openStrikeModal(slot) {
+  strikeError.value = ''
+  strikeForm.value  = { reason: 'no_show', notes: '' }
+  strikeSlot.value  = slot
+}
+
+async function saveStrike() {
+  if (!strikeSlot.value) return
+  strikeError.value  = ''
+  savingStrike.value = true
+
+  const username = strikeSlot.value.username
+  const { data: userData } = await supabase.auth.getUser()
+
+  const { error } = await supabase.from('member_strikes').insert({
+    username,
+    username_key: username.toLowerCase(),
+    train_id:     route.params.id,
+    slot_id:      strikeSlot.value.id,
+    reason:       strikeForm.value.reason,
+    notes:        strikeForm.value.notes.trim() || null,
+    created_by:   userData?.user?.id || null,
+  })
+
+  if (error) {
+    strikeError.value = error.message || 'Could not save the strike.'
+  } else {
+    await loadStrikes()
+    strikeSlot.value = null
+  }
+  savingStrike.value = false
+}
+
+async function clearStrike() {
+  if (!existingStrike.value) return
+  strikeError.value  = ''
+  savingStrike.value = true
+
+  const { error } = await supabase
+    .from('member_strikes')
+    .update({ cleared_at: new Date().toISOString() })
+    .eq('id', existingStrike.value.id)
+
+  if (error) {
+    strikeError.value = error.message || 'Could not clear the strike.'
+  } else {
+    await loadStrikes()
+    strikeSlot.value = null
+  }
+  savingStrike.value = false
+}
 
 // Drag-and-drop
 const dragSource = ref(null)   // slot object being dragged
@@ -996,7 +1190,7 @@ async function confirmDelete() {
   router.push('/admin/dashboard')
 }
 
-onMounted(() => { load(); loadTeamMembers() })
+onMounted(() => { load(); loadTeamMembers(); loadStrikes() })
 onUnmounted(() => {
   if (slotsChannel) supabase.removeChannel(slotsChannel)
 })
