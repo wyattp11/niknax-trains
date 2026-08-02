@@ -311,6 +311,20 @@
           </p>
         </div>
 
+        <!-- Chat access -->
+        <label class="flex items-center justify-between gap-3 bg-sur2 rounded-lg px-3 py-2.5 cursor-pointer select-none">
+          <span class="min-w-0">
+            <span class="text-sm font-medium text-tx1 block">Block from train chat</span>
+            <span class="text-xs text-tx3">They can still read messages, but can't post on any train.</span>
+          </span>
+          <input
+            type="checkbox"
+            class="accent-red-600 w-4 h-4 shrink-0"
+            :checked="standingMember.chat_blocked"
+            @change="toggleChatBlocked(standingMember, $event.target.checked)"
+          />
+        </label>
+
         <div v-if="loadingHistory" class="text-tx3 text-sm py-6 text-center">Loading…</div>
 
         <div v-else-if="strikeHistory.length === 0" class="text-tx3 text-sm py-6 text-center">
@@ -429,6 +443,19 @@ async function openStandingModal(member) {
   loadingHistory.value = false
 }
 
+async function toggleChatBlocked(member, blocked) {
+  const { error } = await supabase
+    .from('members')
+    .update({ chat_blocked: blocked, updated_at: new Date().toISOString() })
+    .eq('id', member.id)
+
+  if (!error) {
+    member.chat_blocked = blocked
+    const row = rows.value.find(r => r.id === member.id)
+    if (row) row.chat_blocked = blocked
+  }
+}
+
 async function clearStrike(strike) {
   clearingId.value = strike.id
 
@@ -458,7 +485,7 @@ async function loadMembers() {
 
   let query = supabase
     .from('members')
-    .select('id, username, full_name, email, role, can_go_live', { count: 'exact' })
+    .select('id, username, full_name, email, role, can_go_live, chat_blocked', { count: 'exact' })
     .order('username')
 
   const term = search.value.trim()

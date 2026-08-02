@@ -102,6 +102,29 @@
               {{ savingDetails ? 'Saving…' : 'Save Details' }}
             </button>
           </div>
+
+          <div class="border-t border-bd pt-4 flex items-center justify-between gap-4">
+            <div>
+              <p class="text-sm font-medium text-tx1">Lock train chat</p>
+              <p class="text-xs text-tx3 mt-0.5">
+                Freezes posting on your train's chat. Existing messages stay visible.
+                You can delete individual messages from the chat panel on your public page.
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="toggleChatLocked"
+              :disabled="savingChatLock"
+              :aria-pressed="!!train.chat_locked"
+              :class="train.chat_locked ? 'bg-red-500 hover:bg-red-400' : 'bg-sur2 hover:bg-bd'"
+              class="relative inline-flex items-center shrink-0 w-11 h-6 rounded-full transition-colors disabled:opacity-50"
+            >
+              <span
+                :class="train.chat_locked ? 'translate-x-6' : 'translate-x-1'"
+                class="inline-block w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
+              />
+            </button>
+          </div>
         </section>
 
         <!-- Days & slots -->
@@ -384,6 +407,24 @@ async function saveDetails() {
     setTimeout(() => detailsSaved.value = false, 2000)
   }
   savingDetails.value = false
+}
+
+const savingChatLock = ref(false)
+
+async function toggleChatLocked() {
+  savingChatLock.value = true
+  const val = !train.value.chat_locked
+  const { error } = await supabase.rpc('set_member_train_chat_locked', {
+    p_train_id:  train.value.id,
+    p_conductor: authedUsername.value,
+    p_locked:    val,
+  })
+  if (error) {
+    detailsError.value = error.message
+  } else {
+    train.value.chat_locked = val
+  }
+  savingChatLock.value = false
 }
 
 // ── Delete train ───────────────────────────────────────────────────────────

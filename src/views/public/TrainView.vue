@@ -146,6 +146,16 @@
               Rules &amp; Criteria
             </button>
           </div>
+
+          <!-- Train chat -->
+          <div class="mt-4">
+            <TrainChat
+              :train-id="train.id"
+              :locked="!!train.chat_locked"
+              :can-moderate="isConductor"
+              :actor="conductorUsername"
+            />
+          </div>
         </div>
       </div>
 
@@ -690,6 +700,8 @@ import { useThemeStore } from '../../stores/theme.js'
 import { useOnboardingStore } from '../../stores/onboarding.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 import { renderMarkdown } from '../../lib/renderMarkdown.js'
+import { getConductorSession } from '../../lib/conductorAuth.js'
+import TrainChat from '../../components/TrainChat.vue'
 
 const route = useRoute()
 const theme = useThemeStore()
@@ -707,6 +719,15 @@ const signupSuccess  = ref(null)   // { username, slot, day } after successful c
 const signupUsername = ref('')
 const signupError    = ref('')
 const signupBlocked  = ref(false)   // true when an active strike blocks this claim
+
+// Conductor identity — lets the creator of a member train moderate its chat.
+// Admins moderate from the admin side; this is only the public-side path.
+const conductorUsername = ref('')
+const isConductor = computed(() =>
+  !!conductorUsername.value &&
+  !!train.value?.is_member_train &&
+  conductorUsername.value.toLowerCase() === String(train.value?.conductor_username || '').toLowerCase()
+)
 const signingUp      = ref(false)
 const pageLinkCopied = ref(false)
 const graphicCopied  = ref(false)
@@ -1612,6 +1633,7 @@ function copyPageLink() {
 async function loadAndScroll() {
   document.addEventListener('pointerdown', closeCalendarMenusOnOutsideClick)
   await load()
+  conductorUsername.value = getConductorSession(route.params.id) || ''
   clockInterval = setInterval(() => { nowET.value = getCurrentET() }, 30_000)
   await nextTick()
   if (activeSlotId.value) {

@@ -76,6 +76,31 @@
           </button>
         </div>
 
+        <!-- ── Chat lock ── -->
+        <div class="card mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p class="font-medium text-tx1">Lock Train Chat</p>
+            <p class="text-sm text-tx3 mt-0.5">
+              Freezes posting on this train's public chat. Existing messages stay visible.
+              Delete individual messages from the chat panel on the public page.
+            </p>
+          </div>
+          <button
+            @click="toggleChatLocked"
+            :disabled="savingChatLock"
+            :aria-pressed="!!train.chat_locked"
+            :class="train.chat_locked
+              ? 'bg-red-500 hover:bg-red-400'
+              : 'bg-sur2 hover:bg-bd'"
+            class="relative inline-flex items-center shrink-0 w-11 h-6 rounded-full transition-colors disabled:opacity-50"
+          >
+            <span
+              :class="train.chat_locked ? 'translate-x-6' : 'translate-x-1'"
+              class="inline-block w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
+            />
+          </button>
+        </div>
+
         <!-- ── Edit Details ── -->
         <div class="card mb-6">
           <button
@@ -1068,6 +1093,16 @@ async function toggleUpcoming() {
   const val = !train.value.is_upcoming
   await supabase.from('trains').update({ is_upcoming: val }).eq('id', train.value.id)
   train.value.is_upcoming = val
+}
+
+const savingChatLock = ref(false)
+
+async function toggleChatLocked() {
+  savingChatLock.value = true
+  const val = !train.value.chat_locked
+  const { error } = await supabase.from('trains').update({ chat_locked: val }).eq('id', train.value.id)
+  if (!error) train.value.chat_locked = val
+  savingChatLock.value = false
 }
 
 async function publish() {
