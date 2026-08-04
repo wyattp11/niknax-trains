@@ -208,6 +208,7 @@ import { ref, computed, onMounted } from 'vue'
 import AdminNav from '../../components/AdminNav.vue'
 import { supabase } from '../../lib/supabase.js'
 import { formatDate } from '../../lib/timeUtils.js'
+import { isStaffRole } from '../../lib/roles.js'
 
 const REASON_LABELS = {
   no_show:        'No-show',
@@ -216,7 +217,6 @@ const REASON_LABELS = {
   rule_violation: 'Rule violation',
   other:          'Other',
 }
-const STAFF_ROLES = ['nn owner', 'nn admin', 'nn moderator']
 
 function reasonLabel(r) { return REASON_LABELS[r] || 'Flagged' }
 
@@ -240,10 +240,7 @@ const addError         = ref('')
 const addedMsg         = ref('')
 const form = ref({ reason: 'no_show', notes: '', train_id: null })
 
-const selectedIsStaff = computed(() =>
-  !!selectedMember.value?.role &&
-  STAFF_ROLES.includes(String(selectedMember.value.role).toLowerCase())
-)
+const selectedIsStaff = computed(() => isStaffRole(selectedMember.value?.role))
 
 let searchTimer = null
 function onMemberInput() {

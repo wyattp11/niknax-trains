@@ -80,7 +80,13 @@
             </div>
 
             <div>
-              <label class="label" :for="`member-role-${row.id}`">Badge</label>
+              <label class="label" :for="`member-role-${row.id}`">
+                Badge
+                <span
+                  v-if="isStaffRole(row.role)"
+                  class="ml-1 text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-niknax-100 dark:bg-niknax-900/50 text-niknax-700 dark:text-niknax-300"
+                >STAFF</span>
+              </label>
               <input
                 :id="`member-role-${row.id}`"
                 v-model="row.role"
@@ -149,13 +155,20 @@
                 />
               </td>
               <td class="px-4 py-2">
-                <input
-                  v-model="row.role"
-                  class="input py-1"
-                  placeholder="Badge label"
-                  @blur="saveField(row, 'role')"
-                  @keyup.enter="saveField(row, 'role')"
-                />
+                <div class="flex items-center gap-1.5">
+                  <input
+                    v-model="row.role"
+                    class="input py-1"
+                    placeholder="Badge label"
+                    @blur="saveField(row, 'role')"
+                    @keyup.enter="saveField(row, 'role')"
+                  />
+                  <span
+                    v-if="isStaffRole(row.role)"
+                    class="shrink-0 text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-niknax-100 dark:bg-niknax-900/50 text-niknax-700 dark:text-niknax-300"
+                    title="This badge grants staff access — reserved slots, kickoff slots, and exemption from the strike gate."
+                  >STAFF</span>
+                </div>
               </td>
               <td class="px-4 py-2 text-center whitespace-nowrap">
                 <button
@@ -374,6 +387,7 @@ import AdminNav from '../../components/AdminNav.vue'
 import { supabase } from '../../lib/supabase.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 import { formatDate } from '../../lib/timeUtils.js'
+import { isStaffRole } from '../../lib/roles.js'
 
 const PAGE_SIZE = 50
 

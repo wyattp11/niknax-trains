@@ -701,6 +701,7 @@ import { useOnboardingStore } from '../../stores/onboarding.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 import { renderMarkdown } from '../../lib/renderMarkdown.js'
 import { getConductorSession } from '../../lib/conductorAuth.js'
+import { isStaffRole, staffTier } from '../../lib/roles.js'
 import TrainChat from '../../components/TrainChat.vue'
 
 const route = useRoute()
@@ -961,15 +962,15 @@ function memberBadge(username) {
 }
 
 function memberBadgeClass(label) {
-  const key = String(label || '').trim().toLowerCase()
-  if (key === 'nn owner') return 'bg-[#FEA0CE] text-[#2A2118]'
-  if (key === 'nn admin') return 'bg-[#A8401F] text-white'
-  if (key === 'nn moderator') return 'bg-niknax-600 text-white'
+  const tier = staffTier(label)
+  if (tier === 'owner')     return 'bg-[#FEA0CE] text-[#2A2118]'
+  if (tier === 'admin')     return 'bg-[#A8401F] text-white'
+  if (tier === 'moderator') return 'bg-niknax-600 text-white'
   return 'bg-olive-600 text-white'
 }
 
 function shouldShowMemberBadge(label) {
-  return ['nn owner', 'nn admin', 'nn moderator'].includes(String(label || '').trim().toLowerCase())
+  return isStaffRole(label)
 }
 
 async function loadMemberBadges() {
