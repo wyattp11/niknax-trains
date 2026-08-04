@@ -50,6 +50,11 @@ const routes = [
     meta: { requiresAdmin: true },
   },
   {
+    path: '/admin/strikes',
+    component: () => import('../views/admin/Strikes.vue'),
+    meta: { requiresAdmin: true },
+  },
+  {
     path: '/admin/settings',
     component: () => import('../views/admin/Settings.vue'),
     meta: { requiresAdmin: true },
