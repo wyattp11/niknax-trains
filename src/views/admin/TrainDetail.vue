@@ -238,7 +238,23 @@
           </h3>
 
           <div class="card overflow-x-auto p-0">
-            <p class="text-xs text-tx3 px-4 pt-3 pb-1">Drag a row to move or swap sellers between slots.</p>
+            <!-- Move-mode banner: the tap-based path. Native drag is unreliable on
+                 touch, where the confirm dialog could be missed entirely. -->
+            <div
+              v-if="moveMode && moveMode.train_day_id === day.id"
+              class="bg-niknax-600 text-white px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap sticky top-0 z-10"
+            >
+              <p class="text-sm font-medium min-w-0">
+                Moving <strong>{{ moveMode.username || '(empty slot)' }}</strong>
+                from {{ zones(moveMode.start_time)[0].time }} ET — pick a destination row.
+              </p>
+              <button @click="cancelMove" class="text-sm underline underline-offset-2 shrink-0">Cancel</button>
+            </div>
+
+            <p v-else class="text-xs text-tx3 px-4 pt-3 pb-1">
+              Use <strong>Move</strong> to place a seller in another slot, or drag a row on desktop.
+              Slot times never change — edit the schedule above to adjust times.
+            </p>
             <table class="w-full text-sm">
               <thead>
                 <tr class="bg-sur2 text-tx3">
@@ -258,7 +274,7 @@
                 <tr
                   v-for="(slot, slotIdx) in slotsByDay[day.id] || []"
                   :key="slot.id"
-                  :draggable="true"
+                  :draggable="!isTouch && !moveMode"
                   @dragstart="onDragStart(slot, $event)"
                   @dragend="onDragEnd"
                   @dragover.prevent="onDragOver(slot)"
@@ -270,8 +286,12 @@
                     dragOver === slot.id && dragSource?.id !== slot.id
                       ? 'bg-niknax-900/60 outline outline-2 outline-niknax-500' : '',
                     dragSource?.id === slot.id ? 'opacity-40' : '',
+                    moveMode?.id === slot.id ? 'bg-niknax-900/60 outline outline-2 outline-niknax-500' : '',
+                    moveMode && moveMode.id !== slot.id && moveMode.train_day_id === slot.train_day_id
+                      ? 'cursor-pointer hover:bg-niknax-900/40' : '',
                   ]"
-                  class="hover:bg-sur2/40 transition-colors cursor-grab active:cursor-grabbing"
+                  class="hover:bg-sur2/40 transition-colors"
+                  :style="!isTouch && !moveMode ? 'cursor: grab' : ''"
                 >
                   <!-- Drag handle -->
                   <td class="px-3 py-2.5 text-tx3 select-none text-base">⠿</td>
@@ -321,11 +341,30 @@
                     </button>
                   </td>
                   <td class="px-3 py-2.5 text-right">
-                    <span v-if="editingSlot === slot.id" class="flex gap-1 justify-end">
+                    <!-- Move mode takes over the row actions so a tap can't
+                         accidentally hit Edit or Delete while placing a seller. -->
+                    <span v-if="moveMode" class="flex gap-2 justify-end items-center">
+                      <button
+                        v-if="moveMode.id === slot.id"
+                        @click="cancelMove"
+                        class="text-tx3 hover:text-tx1 text-xs whitespace-nowrap"
+                      >Cancel</button>
+                      <button
+                        v-else-if="moveMode.train_day_id === slot.train_day_id"
+                        @click="placeMove(slot)"
+                        class="text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300 text-xs font-semibold whitespace-nowrap"
+                      >Place here</button>
+                    </span>
+                    <span v-else-if="editingSlot === slot.id" class="flex gap-1 justify-end">
                       <button @click="saveSlotUsername(slot)" class="text-green-700 dark:text-green-400 text-xs font-medium">Save</button>
                       <button @click="editingSlot = null" class="text-tx3 text-xs">✕</button>
                     </span>
                     <span v-else class="flex gap-2 justify-end items-center">
+                      <button
+                        @click="startMove(slot)"
+                        class="text-tx3 hover:text-niknax-600 dark:hover:text-niknax-400 text-xs whitespace-nowrap"
+                        title="Move this seller to another slot — the slot times stay put"
+                      >Move</button>
                       <button
                         v-if="slot.username"
                         @click="openStrikeModal(slot)"
@@ -381,6 +420,9 @@
             <p class="text-tx3">
               to <span class="text-tx2">{{ zones(dndModal.target.start_time)[0].time }} ET</span>
               currently held by <span class="text-tx1 font-semibold">{{ dndModal.target.username }}</span>
+            </p>
+            <p class="text-xs text-tx3 pt-1">
+              Only the seller moves — both slots keep their existing times.
             </p>
           </div>
 
@@ -736,45 +778,91 @@ function onDragLeave(slot) {
   if (dragOver.value === slot.id) dragOver.value = null
 }
 
+// ── Tap-to-move ───────────────────────────────────────────────────────────
+// Native HTML5 drag-and-drop is unreliable on touch: the drop can fire without
+// the confirm dialog ever becoming visible, so sellers got swapped with no
+// prompt. Move mode is an explicit two-tap flow that works on every device.
+const isTouch = ref(false)
+const moveMode = ref(null)   // the slot whose seller is being moved
+
+function startMove(slot) {
+  moveMode.value = slot
+}
+
+function cancelMove() {
+  moveMode.value = null
+}
+
+async function placeMove(target) {
+  const source = moveMode.value
+  moveMode.value = null
+  if (!source || source.id === target.id) return
+  await beginMove(source, target)
+}
+
+// ── Drag-and-drop (desktop shortcut) ──────────────────────────────────────
 async function onDrop(target) {
   dragOver.value = null
   const source = dragSource.value
   dragSource.value = null
   if (!source || source.id === target.id) return
+  await beginMove(source, target)
+}
 
-  // If target is empty, just move source there silently
+/**
+ * Shared entry point for both paths. Only the *seller* moves — the slot's
+ * start_time, duration, and order are never touched here. Times are fixed and
+ * change only via the schedule form (start time / duration / slot count).
+ */
+async function beginMove(source, target) {
+  // Empty destination — nothing to overwrite, so move straight in.
   if (!target.username) {
-    await applyMove(source, target.username ?? null, target, source.username)
+    await applyMove(source, null, target, source)
     return
   }
-
-  // Both slots have users — ask swap or replace
+  // Destination is occupied — always confirm before overwriting anyone.
   dndModal.value = { source, target }
 }
 
 async function doSwap() {
   const { source, target } = dndModal.value
   dndModal.value = null
-  await applyMove(source, target.username, target, source.username)
+  await applyMove(source, target, target, source)
 }
 
 async function doReplace() {
   const { source, target } = dndModal.value
   dndModal.value = null
-  await applyMove(source, null, target, source.username)
+  await applyMove(source, null, target, source)
 }
 
-async function applyMove(source, newSourceUsername, target, newTargetUsername) {
-  // Update DB
+/**
+ * Writes seller identity between two slots. `newSourceSeller` / `newTargetSeller`
+ * are whole slot objects to copy the seller from, or null to clear.
+ *
+ * The seller's District link travels with them. Previously only `username` moved,
+ * which stranded `seller_link` on the old row — so that slot's "Watch on District"
+ * button pointed at whoever used to hold it.
+ */
+async function applyMove(source, newSourceSeller, target, newTargetSeller) {
+  const sourcePatch = {
+    username:    newSourceSeller?.username ?? null,
+    seller_link: newSourceSeller?.seller_link ?? null,
+  }
+  const targetPatch = {
+    username:    newTargetSeller?.username ?? null,
+    seller_link: newTargetSeller?.seller_link ?? null,
+  }
+
   await Promise.all([
-    supabase.from('slots').update({ username: newSourceUsername }).eq('id', source.id),
-    supabase.from('slots').update({ username: newTargetUsername }).eq('id', target.id),
+    supabase.from('slots').update(sourcePatch).eq('id', source.id),
+    supabase.from('slots').update(targetPatch).eq('id', target.id),
   ])
-  // Update local state
+
   const srcSlot = slots.value.find(s => s.id === source.id)
   const tgtSlot = slots.value.find(s => s.id === target.id)
-  if (srcSlot) srcSlot.username = newSourceUsername
-  if (tgtSlot) tgtSlot.username = newTargetUsername
+  if (srcSlot) Object.assign(srcSlot, sourcePatch)
+  if (tgtSlot) Object.assign(tgtSlot, targetPatch)
 }
 
 const publicUrl = computed(() => `${location.origin}/train/${train.value?.id}`)
@@ -1225,7 +1313,13 @@ async function confirmDelete() {
   router.push('/admin/dashboard')
 }
 
-onMounted(() => { load(); loadTeamMembers(); loadStrikes() })
+onMounted(() => {
+  // Coarse pointers get the tap-to-move flow instead of native drag, which
+  // can fire a drop without ever showing the confirm dialog.
+  isTouch.value = typeof window !== 'undefined' &&
+    (window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window)
+  load(); loadTeamMembers(); loadStrikes()
+})
 onUnmounted(() => {
   if (slotsChannel) supabase.removeChannel(slotsChannel)
 })
