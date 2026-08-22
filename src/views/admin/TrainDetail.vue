@@ -322,7 +322,12 @@
                       </button>
                     </span>
                   </td>
-                  <td class="px-3 py-2.5 text-tx1 font-bold text-base">{{ zones(slot.start_time)[0].time }}</td>
+                  <td class="px-3 py-2.5 text-tx1 font-bold text-base whitespace-nowrap">
+                    {{ zones(slot.start_time)[0].time }}
+                    <span v-if="slotOffset(slot) > 0" class="block text-[0.6rem] font-semibold text-niknax-600 dark:text-niknax-400 uppercase tracking-wide">
+                      {{ nextDayLabel(day, slot) }}
+                    </span>
+                  </td>
                   <td class="px-3 py-2.5 text-tx2 font-semibold">{{ zones(slot.start_time)[1].time }}</td>
                   <td class="px-3 py-2.5 text-tx2 font-semibold">{{ zones(slot.start_time)[2].time }}</td>
                   <td class="px-3 py-2.5 text-tx2 font-semibold">{{ zones(slot.start_time)[3].time }}</td>
@@ -581,7 +586,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
-import { allZones, addMinutes, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS } from '../../lib/timeUtils.js'
+import { allZones, addMinutes, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS, slotDayOffsets, slotDateTime } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 
@@ -885,6 +890,30 @@ const slotsByDay = computed(() => {
 })
 
 function zones(t) { return allZones(t) }
+
+// Trains that run past midnight store their late slots against the start date
+// with only a clock time. Surface the real calendar date on those rows so a
+// 12:10 AM slot doesn't read as the morning of the start day.
+const dayOffsetBySlotId = computed(() => {
+  const map = new Map()
+  for (const day of days.value) {
+    for (const [id, offset] of slotDayOffsets(slotsByDay.value[day.id] || [])) {
+      map.set(id, offset)
+    }
+  }
+  return map
+})
+
+function slotOffset(slot) {
+  return dayOffsetBySlotId.value.get(slot.id) || 0
+}
+
+function nextDayLabel(day, slot) {
+  const offset = slotOffset(slot)
+  if (!offset) return ''
+  return slotDateTime(day, slot, offset)
+    .toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
 
 function timeInputValue(time) {
   return String(time || '12:00').slice(0, 5)

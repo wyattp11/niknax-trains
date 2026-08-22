@@ -214,7 +214,12 @@
                     >{{ displaySlotLabel(slot) }}</span>
                   </div>
                 </div>
-                <p class="text-tx1 font-bold text-lg shrink-0">{{ zones(slot.start_time)[0].time }}</p>
+                <p class="text-tx1 font-bold text-lg shrink-0">
+                  {{ zones(slot.start_time)[0].time }}
+                  <span v-if="slotOffset(slot) > 0" class="block text-[0.6rem] font-semibold text-niknax-600 dark:text-niknax-400 uppercase tracking-wide">
+                    {{ nextDayLabel(day, slot) }}
+                  </span>
+                </p>
               </div>
 
               <div class="grid grid-cols-3 gap-2 text-sm mb-4">
@@ -363,7 +368,12 @@
                       >{{ displaySlotLabel(slot) }}</span>
                     </div>
                   </td>
-                  <td class="px-4 py-3 text-tx1 font-bold text-base">{{ zones(slot.start_time)[0].time }}</td>
+                  <td class="px-4 py-3 text-tx1 font-bold text-base whitespace-nowrap">
+                    {{ zones(slot.start_time)[0].time }}
+                    <span v-if="slotOffset(slot) > 0" class="block text-[0.6rem] font-semibold text-niknax-600 dark:text-niknax-400 uppercase tracking-wide">
+                      {{ nextDayLabel(day, slot) }}
+                    </span>
+                  </td>
                   <td class="px-4 py-3 text-tx2 font-semibold">{{ zones(slot.start_time)[1].time }}</td>
                   <td class="px-4 py-3 text-tx2 font-semibold">{{ zones(slot.start_time)[2].time }}</td>
                   <td class="px-4 py-3 text-tx2 font-semibold">{{ zones(slot.start_time)[3].time }}</td>
@@ -695,7 +705,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { supabase } from '../../lib/supabase.js'
-import { allZones, formatDate, parseTime, trainStatus, STATUS_BADGE_CLASS, isPastTrain } from '../../lib/timeUtils.js'
+import { allZones, formatDate, parseTime, trainStatus, STATUS_BADGE_CLASS, isPastTrain, slotDayOffsets, slotDateTime } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
 import { useOnboardingStore } from '../../stores/onboarding.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
@@ -1070,10 +1080,34 @@ function subscribeToTrainChanges(trainId) {
     .subscribe()
 }
 
+/**
+ * Whole-day offset for every slot, so past-midnight slots resolve to the next
+ * calendar date instead of the small hours of the start date.
+ */
+const dayOffsetBySlotId = computed(() => {
+  const map = new Map()
+  for (const day of days.value) {
+    for (const [id, offset] of slotDayOffsets(slotsByDay.value[day.id] || [])) {
+      map.set(id, offset)
+    }
+  }
+  return map
+})
+
+function slotOffset(slot) {
+  return dayOffsetBySlotId.value.get(slot.id) || 0
+}
+
+/** "Sep 6" label for slots that land past midnight, so the date is unambiguous. */
+function nextDayLabel(day, slot) {
+  const offset = slotOffset(slot)
+  if (!offset) return ''
+  return slotDateTime(day, slot, offset)
+    .toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
 function slotCalendarDate(day, slot, offsetMinutes = 0) {
-  const [year, month, date] = day.day_date.split('-').map(Number)
-  const { hours, minutes } = parseTime(slot.start_time)
-  return new Date(year, month - 1, date, hours, minutes + offsetMinutes)
+  return slotDateTime(day, slot, slotOffset(slot), offsetMinutes)
 }
 
 function calendarStamp(date) {
@@ -1262,22 +1296,21 @@ function getCurrentET() {
 const nowET = ref(getCurrentET())
 let clockInterval = null
 
+/**
+ * Compares real Dates rather than matching day_date as a string. A train that
+ * runs past midnight has its late slots stored under the *start* date, so the
+ * old string match found no day at all once the clock rolled over — nothing
+ * showed as live for the whole after-midnight stretch of the event.
+ */
 const activeSlotId = computed(() => {
-  const d = nowET.value
-  const dateStr = [
-    d.getFullYear(),
-    String(d.getMonth() + 1).padStart(2, '0'),
-    String(d.getDate()).padStart(2, '0'),
-  ].join('-')
-  const nowMin = d.getHours() * 60 + d.getMinutes()
+  const now = nowET.value
 
   for (const day of days.value) {
-    if (day.day_date !== dateStr) continue
     for (const slot of (slotsByDay.value[day.id] || [])) {
-      const { hours, minutes } = parseTime(slot.start_time)
-      const startMin = hours * 60 + minutes
-      const endMin   = startMin + (slot.duration_min || 30)
-      if (nowMin >= startMin && nowMin < endMin) return slot.id
+      const offset = slotOffset(slot)
+      const start  = slotDateTime(day, slot, offset)
+      const end    = slotDateTime(day, slot, offset, slot.duration_min || 30)
+      if (now >= start && now < end) return slot.id
     }
   }
   return null
@@ -1327,10 +1360,7 @@ const flatSlotsChrono = computed(() => {
 })
 
 function slotEndsAt(day, slot) {
-  const [y, m, d] = day.day_date.split('-').map(Number)
-  const { hours, minutes } = parseTime(slot.start_time)
-  const start = new Date(y, m - 1, d, hours, minutes)
-  return new Date(start.getTime() + (slot.duration_min || 30) * 60000)
+  return slotDateTime(day, slot, slotOffset(slot), slot.duration_min || 30)
 }
 
 const firstOpenSlotId = computed(() => {

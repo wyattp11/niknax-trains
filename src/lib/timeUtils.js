@@ -40,6 +40,47 @@ export function allZones(etTimeStr) {
 }
 
 /**
+ * Live-selling trains routinely run past midnight — a 4:30 PM kickoff with 21
+ * half-hour slots ends at 2:40 AM the NEXT calendar day. Slots store only a
+ * clock time against a single day_date, so anything after midnight looks
+ * (naively) like it happened in the small hours of the *start* date, i.e.
+ * ~16 hours before the train began.
+ *
+ * Walk a day's slots in schedule order and roll the date forward every time
+ * the clock goes backwards. Returns a Map of slot id → whole days to add.
+ *
+ * @param {Array} daySlots slots for one day, already sorted by slot_order
+ */
+export function slotDayOffsets(daySlots) {
+  const offsets = new Map()
+  let dayOffset = 0
+  let prevMinutes = null
+
+  for (const slot of daySlots || []) {
+    const { hours, minutes } = parseTime(slot.start_time)
+    const mins = hours * 60 + minutes
+    if (prevMinutes !== null && mins < prevMinutes) dayOffset++
+    offsets.set(slot.id, dayOffset)
+    prevMinutes = mins
+  }
+  return offsets
+}
+
+/**
+ * Real Date for a slot, accounting for past-midnight rollover.
+ *
+ * @param {object} day           the train_day (needs day_date "YYYY-MM-DD")
+ * @param {object} slot          the slot (needs start_time)
+ * @param {number} dayOffset     whole days to add, from slotDayOffsets()
+ * @param {number} extraMinutes  added to the start — pass duration for an end time
+ */
+export function slotDateTime(day, slot, dayOffset = 0, extraMinutes = 0) {
+  const [year, month, date] = String(day.day_date).split('-').map(Number)
+  const { hours, minutes } = parseTime(slot.start_time)
+  return new Date(year, month - 1, date + dayOffset, hours, minutes + extraMinutes)
+}
+
+/**
  * Calculate the end time string (HH:MM) after adding duration minutes.
  */
 export function addMinutes(timeStr, durationMin) {
