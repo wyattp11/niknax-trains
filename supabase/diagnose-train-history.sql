@@ -70,4 +70,6 @@ from target t
 join public.train_days d on d.train_id = t.id
 join public.slots      s on s.train_day_id = d.id
 group by date_trunc('minute', s.created_at)
-order by 1;
+-- Order by the timestamp, not its formatted text — 'Jul 26' sorts before
+-- 'Aug 22' alphabetically, which puts the original batch last.
+order by date_trunc('minute', s.created_at);
