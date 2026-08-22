@@ -101,6 +101,62 @@
           </button>
         </div>
 
+        <!-- ── Change history ── -->
+        <div class="card mb-6">
+          <button
+            @click="toggleHistory"
+            class="flex items-center justify-between w-full text-left"
+            :aria-expanded="showHistory"
+          >
+            <span class="font-semibold text-niknax-600 dark:text-niknax-300">
+              Change History
+              <span v-if="history.length" class="text-tx3 font-normal text-sm">({{ history.length }})</span>
+            </span>
+            <span class="text-tx3 text-lg">{{ showHistory ? '▲' : '▼' }}</span>
+          </button>
+
+          <div v-if="showHistory" class="mt-4">
+            <p v-if="loadingHistory" class="text-tx3 text-sm py-4 text-center">Loading…</p>
+
+            <p v-else-if="history.length === 0" class="text-tx3 text-sm py-4">
+              No changes recorded yet. History starts from when the audit log was
+              installed — anything before that isn't captured.
+            </p>
+
+            <div v-else>
+              <div class="flex flex-wrap gap-2 mb-3">
+                <button
+                  v-for="f in historyFilters"
+                  :key="f.value"
+                  @click="historyFilter = f.value"
+                  class="text-xs px-2.5 py-1 rounded-full border transition-colors"
+                  :class="historyFilter === f.value
+                    ? 'border-niknax-500 bg-niknax-500/10 text-niknax-600 dark:text-niknax-300'
+                    : 'border-bd text-tx3 hover:text-tx1'"
+                >{{ f.label }}</button>
+              </div>
+
+              <ol class="space-y-2 max-h-96 overflow-y-auto">
+                <li
+                  v-for="h in filteredHistory"
+                  :key="h.id"
+                  class="border-l-2 pl-3 py-1.5"
+                  :class="{
+                    'border-green-500': h.action === 'INSERT',
+                    'border-amber-500': h.action === 'UPDATE',
+                    'border-red-500':   h.action === 'DELETE',
+                  }"
+                >
+                  <p class="text-sm text-tx1">{{ h.summary }}</p>
+                  <p class="text-xs text-tx3">
+                    {{ h.actor ? '@' + h.actor : 'unknown' }} · {{ formatTimestamp(h.created_at) }}
+                  </p>
+                </li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
         <!-- ── Edit Details ── -->
         <div class="card mb-6">
           <button
@@ -1210,6 +1266,55 @@ async function toggleUpcoming() {
   const val = !train.value.is_upcoming
   await supabase.from('trains').update({ is_upcoming: val }).eq('id', train.value.id)
   train.value.is_upcoming = val
+}
+
+// ── Change history ────────────────────────────────────────────────────────
+const history        = ref([])
+const showHistory    = ref(false)
+const loadingHistory = ref(false)
+const historyFilter  = ref('all')
+
+const historyFilters = [
+  { value: 'all',        label: 'Everything' },
+  { value: 'slots',      label: 'Slots' },
+  { value: 'signups',    label: 'Sign-ups' },
+  { value: 'trains',     label: 'Event details' },
+  { value: 'train_days', label: 'Days' },
+]
+
+const filteredHistory = computed(() => {
+  if (historyFilter.value === 'all') return history.value
+  if (historyFilter.value === 'signups') {
+    return history.value.filter(h =>
+      h.table_name === 'slots' &&
+      Array.isArray(h.changed_cols) &&
+      h.changed_cols.includes('username')
+    )
+  }
+  return history.value.filter(h => h.table_name === historyFilter.value)
+})
+
+async function toggleHistory() {
+  showHistory.value = !showHistory.value
+  if (showHistory.value && history.value.length === 0) await loadHistory()
+}
+
+async function loadHistory() {
+  loadingHistory.value = true
+  const { data } = await supabase
+    .from('train_history')
+    .select('*')
+    .eq('train_id', route.params.id)
+    .order('created_at', { ascending: false })
+    .limit(500)
+  history.value = data || []
+  loadingHistory.value = false
+}
+
+function formatTimestamp(iso) {
+  return new Date(iso).toLocaleString(undefined, {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+  })
 }
 
 const savingChatLock = ref(false)
