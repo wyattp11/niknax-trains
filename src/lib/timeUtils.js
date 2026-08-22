@@ -81,6 +81,40 @@ export function slotDateTime(day, slot, dayOffset = 0, extraMinutes = 0) {
 }
 
 /**
+ * Absolute minutes within a show night, anchored to the day's first slot.
+ * A bare clock time is ambiguous on a train that runs past midnight — anything
+ * earlier than the anchor belongs to the next morning. Mirrors
+ * public.slot_abs_minutes() in the SQL migrations.
+ */
+export function absMinutes(timeStr, baseMinutes = 0) {
+  const { hours, minutes } = parseTime(timeStr)
+  const mins = hours * 60 + minutes
+  return mins < baseMinutes ? mins + 1440 : mins
+}
+
+/**
+ * Where a new slot belongs in a day, and how the existing slots renumber
+ * around it. Slot order is derived from the clock so the two can never
+ * disagree — appending blindly is what made schedules read as scrambled.
+ *
+ * @returns {{ order:number, shifted:Array<{id:string, slot_order:number}> }}
+ */
+export function slotInsertPosition(daySlots, newStartTime) {
+  const existing = [...(daySlots || [])].sort((a, b) => a.slot_order - b.slot_order)
+  if (!existing.length) return { order: 0, shifted: [] }
+
+  const base = absMinutes(existing[0].start_time, 0)
+  const newAbs = absMinutes(newStartTime, base)
+
+  const order = existing.filter(s => absMinutes(s.start_time, base) < newAbs).length
+  const shifted = existing
+    .filter(s => absMinutes(s.start_time, base) >= newAbs)
+    .map(s => ({ id: s.id, slot_order: s.slot_order + 1 }))
+
+  return { order, shifted }
+}
+
+/**
  * Calculate the end time string (HH:MM) after adding duration minutes.
  */
 export function addMinutes(timeStr, durationMin) {

@@ -295,7 +295,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import PublicNav from '../../components/PublicNav.vue'
 import { supabase } from '../../lib/supabase.js'
 import { getConductorSession, setConductorSession } from '../../lib/conductorAuth.js'
-import { formatDate, parseTime } from '../../lib/timeUtils.js'
+import { formatDate, parseTime, addMinutes } from '../../lib/timeUtils.js'
 
 const route  = useRoute()
 const router = useRouter()
@@ -365,7 +365,7 @@ async function load() {
   // Seed per-day new slot forms
   for (const day of days.value) {
     if (!newSlots.value[day.id]) {
-      newSlots.value[day.id] = { start_time: '10:30', duration_min: 30, label: '' }
+      newSlots.value[day.id] = defaultNewSlot(day.id)
     }
   }
 
@@ -474,7 +474,7 @@ async function addDay() {
     const result = typeof data === 'string' ? JSON.parse(data) : data
     days.value.push(result.day)
     slots.value.push(...(result.slots || []))
-    newSlots.value[result.day.id] = { start_time: '10:30', duration_min: 30, label: '' }
+    newSlots.value[result.day.id] = defaultNewSlot(result.day.id)
     newDay.value = { day_date: '', day_label: '', start_time: '10:30', slot_duration: 30, slot_count: 24 }
     showAddDay.value = false
   }
@@ -572,6 +572,23 @@ async function confirmDeleteSlot(slot, day) {
 // ── Add slot ───────────────────────────────────────────────────────────────
 const addingSlotDayId = ref(null)
 
+/**
+ * Default a new slot to the moment the day's last slot ends. The old hardcoded
+ * 10:30 was wrong for any evening train — on a 4:30 PM start it read as the
+ * next morning and sorted to the bottom of the day.
+ */
+function defaultNewSlot(dayId) {
+  const daySlots = slots.value
+    .filter(s => s.train_day_id === dayId)
+    .sort((a, b) => a.slot_order - b.slot_order)
+  const last = daySlots[daySlots.length - 1]
+  return {
+    start_time:   last ? addMinutes(last.start_time, last.duration_min || 30) : '10:30',
+    duration_min: last?.duration_min || 30,
+    label:        '',
+  }
+}
+
 async function addSlot(day) {
   addingSlotDayId.value = day.id
   const ns = newSlots.value[day.id]
@@ -587,9 +604,21 @@ async function addSlot(day) {
     actionError.value = error.message
   } else {
     slots.value.push(data)
-    ns.label = ''
+    // The RPC renumbers slot_order around the insert — reload so the local
+    // list matches the server rather than drifting out of order.
+    await reloadSlots()
+    newSlots.value[day.id] = defaultNewSlot(day.id)
   }
   addingSlotDayId.value = null
+}
+
+async function reloadSlots() {
+  const { data } = await supabase
+    .from('slots')
+    .select('*')
+    .in('train_day_id', days.value.map(d => d.id))
+    .order('slot_order')
+  if (data) slots.value = data
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────

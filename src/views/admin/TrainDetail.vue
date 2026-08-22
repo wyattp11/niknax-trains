@@ -586,7 +586,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
-import { allZones, addMinutes, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS, slotDayOffsets, slotDateTime } from '../../lib/timeUtils.js'
+import { allZones, addMinutes, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS, slotDayOffsets, slotDateTime, slotInsertPosition } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 
@@ -1317,12 +1317,42 @@ async function toggleSlotReserved(slot) {
 
 function addSlotToDay(day) {
   addSlotDay.value = day
-  newSlot.value = { username: '', start_time: '12:00', duration_min: 30, label: '', is_pre_assigned: false }
+
+  // Default to the moment the day's last slot ends — the usual intent is
+  // "one more show on the end", and it can't create an out-of-order schedule.
+  const daySlots = [...(slotsByDay.value[day.id] || [])].sort((a, b) => a.slot_order - b.slot_order)
+  const last = daySlots[daySlots.length - 1]
+  const duration = last?.duration_min || 30
+
+  newSlot.value = {
+    username: '',
+    start_time: last ? addMinutes(last.start_time, last.duration_min || 30) : '12:00',
+    duration_min: duration,
+    label: '',
+    is_pre_assigned: false,
+  }
 }
 
 async function saveNewSlot() {
   savingSlot.value = true
-  const maxOrder = (slotsByDay.value[addSlotDay.value.id] || []).reduce((m, s) => Math.max(m, s.slot_order), 0)
+
+  // Derive slot_order from the clock instead of appending. A slot added with a
+  // time earlier than the last one used to land at the bottom of the list while
+  // showing an early time, so order and times disagreed and the day read as
+  // scrambled. Existing slots at or after the new time shift down one.
+  const daySlots = slotsByDay.value[addSlotDay.value.id] || []
+  const { order, shifted } = slotInsertPosition(daySlots, newSlot.value.start_time)
+
+  if (shifted.length) {
+    await Promise.all(
+      shifted.map(s => supabase.from('slots').update({ slot_order: s.slot_order }).eq('id', s.id))
+    )
+    for (const s of shifted) {
+      const local = slots.value.find(x => x.id === s.id)
+      if (local) local.slot_order = s.slot_order
+    }
+  }
+
   const { data, error } = await supabase.from('slots').insert({
     train_day_id: addSlotDay.value.id,
     start_time: newSlot.value.start_time,
@@ -1330,8 +1360,9 @@ async function saveNewSlot() {
     username: newSlot.value.username || null,
     label: newSlot.value.label || null,
     is_pre_assigned: newSlot.value.is_pre_assigned,
-    slot_order: maxOrder + 1,
+    slot_order: order,
   }).select().single()
+
   if (!error) { slots.value.push(data); addSlotDay.value = null }
   savingSlot.value = false
 }
