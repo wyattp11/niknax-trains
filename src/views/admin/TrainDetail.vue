@@ -264,6 +264,35 @@
                       <input v-model.number="scheduleForms[day.id].slot_count" type="number" min="1" max="100" class="input" />
                     </div>
                   </div>
+
+                  <div class="flex flex-wrap items-end gap-4 mt-3">
+                    <label class="flex items-center gap-2 text-sm text-tx2 cursor-pointer select-none">
+                      <input
+                        v-model="scheduleForms[day.id].include_kickoff"
+                        type="checkbox"
+                        class="accent-niknax-600 w-4 h-4"
+                      />
+                      Include a Kickoff slot
+                    </label>
+                    <div v-if="scheduleForms[day.id].include_kickoff" class="w-32">
+                      <label class="label">Kickoff (min)</label>
+                      <input
+                        v-model.number="scheduleForms[day.id].kickoff_duration"
+                        type="number" min="5" max="120"
+                        class="input py-1.5"
+                      />
+                    </div>
+                  </div>
+
+                  <p class="text-xs text-tx3 mt-2">
+                    <template v-if="scheduleForms[day.id].include_kickoff">
+                      Kickoff at {{ scheduleForms[day.id].start_time }} ET, seller slots follow.
+                    </template>
+                    <template v-else>
+                      No Kickoff — seller slots begin right at {{ scheduleForms[day.id].start_time }} ET.
+                      Unchecking removes the existing Kickoff row.
+                    </template>
+                  </p>
                 </div>
               </template>
 
@@ -985,6 +1014,8 @@ function initScheduleForms() {
       start_time: timeInputValue(kickoff?.start_time || sellerSlots[0]?.start_time || '12:00'),
       slot_duration: sellerSlots[0]?.duration_min || 30,
       slot_count: Math.max(1, sellerSlots.length || 1),
+      include_kickoff: !!kickoff,
+      kickoff_duration: kickoff?.duration_min || 10,
     }
   }
   scheduleForms.value = forms
@@ -1174,6 +1205,24 @@ async function applyScheduleChanges() {
       scheduleError.value = 'Slot duration must be 5-120 minutes, and slot count must be 1-100.'
       return
     }
+    if (form.include_kickoff && (form.kickoff_duration < 5 || form.kickoff_duration > 120)) {
+      scheduleError.value = 'Kickoff duration must be 5-120 minutes.'
+      return
+    }
+  }
+
+  // Removing a kickoff that someone has already claimed loses their sign-up,
+  // so call that out specifically rather than burying it in the generic warning.
+  const claimedKickoffs = days.value
+    .filter(day => scheduleForms.value[day.id]?.include_kickoff === false)
+    .map(day => (slotsByDay.value[day.id] || []).find(s => isKickoffSlot(s) && s.username))
+    .filter(Boolean)
+
+  if (claimedKickoffs.length) {
+    const names = claimedKickoffs.map(s => `@${s.username}`).join(', ')
+    if (!confirm(
+      `Removing the Kickoff slot will remove ${names} from the train.\n\nContinue?`
+    )) return
   }
 
   const ok = confirm(
@@ -1187,27 +1236,36 @@ async function applyScheduleChanges() {
     for (const day of days.value) {
       const form = scheduleForms.value[day.id]
       const kickoffTime = form.start_time
-      const desiredTimes = generateSlotTimes(addMinutes(form.start_time, 10), form.slot_duration, form.slot_count)
       const existingSlots = [...(slotsByDay.value[day.id] || [])]
       const kickoff = existingSlots.find(isKickoffSlot)
       const sellerSlots = existingSlots.filter(slot => !isKickoffSlot(slot))
 
-      if (kickoff) {
+      // Kickoff is optional per day. Without one the seller slots start right
+      // at the day's start time instead of after the kickoff.
+      const wantKickoff  = form.include_kickoff !== false
+      const kickoffDur   = wantKickoff ? (form.kickoff_duration || 10) : 0
+      const desiredTimes = generateSlotTimes(
+        addMinutes(form.start_time, kickoffDur),
+        form.slot_duration,
+        form.slot_count
+      )
+
+      if (wantKickoff && kickoff) {
         const { error } = await supabase
           .from('slots')
           .update({
             start_time: kickoffTime,
-            duration_min: 10,
+            duration_min: kickoffDur,
             label: 'Kickoff',
             slot_order: 0,
           })
           .eq('id', kickoff.id)
         if (error) throw error
-      } else {
+      } else if (wantKickoff && !kickoff) {
         const { error } = await supabase.from('slots').insert({
           train_day_id: day.id,
           start_time: kickoffTime,
-          duration_min: 10,
+          duration_min: kickoffDur,
           username: null,
           seller_link: null,
           label: 'Kickoff',
@@ -1215,7 +1273,13 @@ async function applyScheduleChanges() {
           slot_order: 0,
         })
         if (error) throw error
+      } else if (!wantKickoff && kickoff) {
+        const { error } = await supabase.from('slots').delete().eq('id', kickoff.id)
+        if (error) throw error
       }
+
+      // Seller slots start at order 1 when a kickoff holds 0, else at 0.
+      const orderBase = wantKickoff ? 1 : 0
 
       for (let idx = 0; idx < Math.min(sellerSlots.length, desiredTimes.length); idx++) {
         const { error } = await supabase
@@ -1223,7 +1287,7 @@ async function applyScheduleChanges() {
           .update({
             start_time: desiredTimes[idx],
             duration_min: form.slot_duration,
-            slot_order: idx + 1,
+            slot_order: idx + orderBase,
           })
           .eq('id', sellerSlots[idx].id)
         if (error) throw error
@@ -1238,7 +1302,7 @@ async function applyScheduleChanges() {
           seller_link: null,
           label: null,
           is_pre_assigned: false,
-          slot_order: sellerSlots.length + offset + 1,
+          slot_order: sellerSlots.length + offset + orderBase,
         }))
         const { error } = await supabase.from('slots').insert(slotsToInsert)
         if (error) throw error

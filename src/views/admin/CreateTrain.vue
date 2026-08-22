@@ -116,8 +116,27 @@
                   <input v-model.number="day.slot_count" type="number" min="1" max="100" class="input" />
                 </div>
               </div>
+              <div class="flex flex-wrap items-end gap-4 pt-1">
+                <label class="flex items-center gap-2 text-sm text-tx2 cursor-pointer select-none">
+                  <input v-model="day.include_kickoff" type="checkbox" class="accent-niknax-600 w-4 h-4" />
+                  Include a Kickoff slot
+                </label>
+                <div v-if="day.include_kickoff" class="w-32">
+                  <label class="label">Kickoff (min)</label>
+                  <input v-model.number="day.kickoff_duration" type="number" min="5" max="120" class="input py-1.5" />
+                </div>
+              </div>
+
               <p class="text-xs text-tx3">
-                This adds a 10-minute Kickoff row at {{ formatDisplayTime(day.start_time) }} ET, then generates {{ day.slot_count }} open seller slots of {{ day.slot_duration }} min each.
+                <template v-if="day.include_kickoff">
+                  Adds a {{ day.kickoff_duration }}-minute Kickoff row at {{ formatDisplayTime(day.start_time) }} ET, then
+                  {{ day.slot_count }} open seller slots of {{ day.slot_duration }} min each starting at
+                  {{ formatDisplayTime(addMinutes(day.start_time, day.kickoff_duration)) }} ET.
+                </template>
+                <template v-else>
+                  No Kickoff row — the {{ day.slot_count }} open seller slots of {{ day.slot_duration }} min each
+                  begin right at {{ formatDisplayTime(day.start_time) }} ET.
+                </template>
                 Pre-assigned slots below will overwrite matching times.
               </p>
             </div>
@@ -214,6 +233,8 @@ function addDay() {
     start_time: '10:30',
     slot_duration: 30,
     slot_count: 24,
+    include_kickoff: true,
+    kickoff_duration: 10,
     pre_assigned: [],
   })
 }
@@ -301,19 +322,24 @@ async function saveAndContinue() {
         if (p.time) preMap[p.time] = p
       }
 
-      const kickoffSlot = {
-        train_day_id: trainDay.id,
-        start_time: day.start_time,
-        duration_min: 10,
-        username: null,
-        label: 'Kickoff',
-        is_pre_assigned: false,
-        slot_order: 0,
-      }
+      // Kickoff is optional per day. Without one, seller slots begin right at
+      // the day's start time rather than after the kickoff.
+      const kickoffDuration = day.include_kickoff ? (day.kickoff_duration || 10) : 0
 
-      // Generate open slot times after the 10-minute Kickoff row.
+      const kickoffSlot = day.include_kickoff
+        ? {
+            train_day_id: trainDay.id,
+            start_time: day.start_time,
+            duration_min: kickoffDuration,
+            username: null,
+            label: 'Kickoff',
+            is_pre_assigned: false,
+            slot_order: 0,
+          }
+        : null
+
       const openTimes = generateSlotTimes(
-        addMinutes(day.start_time, 10),
+        addMinutes(day.start_time, kickoffDuration),
         day.slot_duration,
         day.slot_count
       )
@@ -321,6 +347,9 @@ async function saveAndContinue() {
       // Merge: open slots, overwritten by pre-assigned where times match
       const allTimes = new Set([...openTimes, ...day.pre_assigned.map(p => p.time)])
       const sortedTimes = [...allTimes].sort()
+
+      // Seller slots start at 1 when there's a kickoff at 0, else at 0.
+      const orderBase = kickoffSlot ? 1 : 0
 
       const slotsToInsert = sortedTimes.map((t, idx) => {
         const pre = preMap[t]
@@ -332,7 +361,7 @@ async function saveAndContinue() {
             username: pre.username || null,
             label: pre.label || null,
             is_pre_assigned: true,
-            slot_order: idx + 1,
+            slot_order: idx + orderBase,
           }
         }
         return {
@@ -342,11 +371,13 @@ async function saveAndContinue() {
           username: null,
           label: null,
           is_pre_assigned: false,
-          slot_order: idx + 1,
+          slot_order: idx + orderBase,
         }
       })
 
-      const { error: slotsErr } = await supabase.from('slots').insert([kickoffSlot, ...slotsToInsert])
+      const { error: slotsErr } = await supabase
+        .from('slots')
+        .insert(kickoffSlot ? [kickoffSlot, ...slotsToInsert] : slotsToInsert)
       if (slotsErr) throw slotsErr
     }
 

@@ -161,6 +161,18 @@
                 <input v-model.number="newDay.slot_count" type="number" min="1" max="100" class="input" />
               </div>
             </div>
+
+            <div class="flex flex-wrap items-end gap-4">
+              <label class="flex items-center gap-2 text-sm text-tx2 cursor-pointer select-none">
+                <input v-model="newDay.include_kickoff" type="checkbox" class="accent-niknax-600 w-4 h-4" />
+                Include a Kickoff slot
+              </label>
+              <div v-if="newDay.include_kickoff" class="w-32">
+                <label class="label">Kickoff (min)</label>
+                <input v-model.number="newDay.kickoff_duration" type="number" min="5" max="120" class="input py-1.5" />
+              </div>
+            </div>
+
             <p v-if="addDayError" class="text-red-600 dark:text-red-400 text-sm">{{ addDayError }}</p>
             <div class="flex gap-2 justify-end">
               <button @click="showAddDay = false" class="btn-secondary text-sm py-1.5">Cancel</button>
@@ -450,7 +462,7 @@ async function confirmDeleteTrain() {
 const showAddDay  = ref(false)
 const addingDay   = ref(false)
 const addDayError = ref('')
-const newDay      = ref({ day_date: '', day_label: '', start_time: '10:30', slot_duration: 30, slot_count: 24 })
+const newDay      = ref({ day_date: '', day_label: '', start_time: '10:30', slot_duration: 30, slot_count: 24, include_kickoff: true, kickoff_duration: 10 })
 const newSlots    = ref({})
 
 async function addDay() {
@@ -464,8 +476,10 @@ async function addDay() {
     p_day_date:      newDay.value.day_date,
     p_day_label:     newDay.value.day_label || null,
     p_start_time:    newDay.value.start_time,
-    p_slot_duration: newDay.value.slot_duration,
-    p_slot_count:    newDay.value.slot_count,
+    p_slot_duration:    newDay.value.slot_duration,
+    p_slot_count:       newDay.value.slot_count,
+    p_include_kickoff:  newDay.value.include_kickoff,
+    p_kickoff_duration: newDay.value.kickoff_duration,
   })
 
   if (error) {
@@ -475,7 +489,7 @@ async function addDay() {
     days.value.push(result.day)
     slots.value.push(...(result.slots || []))
     newSlots.value[result.day.id] = defaultNewSlot(result.day.id)
-    newDay.value = { day_date: '', day_label: '', start_time: '10:30', slot_duration: 30, slot_count: 24 }
+    newDay.value = { day_date: '', day_label: '', start_time: '10:30', slot_duration: 30, slot_count: 24, include_kickoff: true, kickoff_duration: 10 }
     showAddDay.value = false
   }
   addingDay.value = false

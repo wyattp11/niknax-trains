@@ -147,9 +147,26 @@
                       <input v-model.number="day.slot_count" type="number" min="1" max="100" class="input" />
                     </div>
                   </div>
+                  <div class="flex flex-wrap items-end gap-4 pt-1">
+                    <label class="flex items-center gap-2 text-sm text-tx2 cursor-pointer select-none">
+                      <input v-model="day.include_kickoff" type="checkbox" class="accent-niknax-600 w-4 h-4" />
+                      Include a Kickoff slot
+                    </label>
+                    <div v-if="day.include_kickoff" class="w-32">
+                      <label class="label">Kickoff (min)</label>
+                      <input v-model.number="day.kickoff_duration" type="number" min="5" max="120" class="input py-1.5" />
+                    </div>
+                  </div>
+
                   <p class="text-xs text-tx3">
-                    Generates a 10-min Kickoff row at {{ displayTime(day.start_time) }} ET, then
-                    {{ day.slot_count }} open seller slots of {{ day.slot_duration }} min each.
+                    <template v-if="day.include_kickoff">
+                      Generates a {{ day.kickoff_duration }}-min Kickoff row at {{ displayTime(day.start_time) }} ET, then
+                      {{ day.slot_count }} open seller slots of {{ day.slot_duration }} min each.
+                    </template>
+                    <template v-else>
+                      No Kickoff row — {{ day.slot_count }} open seller slots of {{ day.slot_duration }} min each,
+                      starting at {{ displayTime(day.start_time) }} ET.
+                    </template>
                   </p>
                 </div>
               </div>
@@ -216,11 +233,13 @@ const saveError      = ref('')
 const createdTrainId = ref(null)
 
 const defaultDay = () => ({
-  day_date:      '',
-  day_label:     '',
-  start_time:    '10:30',
-  slot_duration: 30,
-  slot_count:    24,
+  day_date:         '',
+  day_label:        '',
+  start_time:       '10:30',
+  slot_duration:    30,
+  slot_count:       24,
+  include_kickoff:  true,
+  kickoff_duration: 10,
 })
 
 const form = ref({
