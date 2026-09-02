@@ -370,13 +370,20 @@
             </span>
           </h3>
 
-          <p
-            v-if="hasOutOfOrderSlots(slotsByDay[group.day.id] || [])"
-            class="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-lg px-3 py-2 mb-3"
+          <div
+            v-if="group.offset === 0 && hasOutOfOrderSlots(slotsByDay[group.day.id] || [])"
+            class="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-lg px-3 py-2.5 mb-3 flex flex-wrap items-center justify-between gap-3"
           >
-            ⚠ These slots aren't in chronological order — a row may have been left behind by an
-            earlier edit. Re-apply the schedule below to rebuild the day cleanly.
-          </p>
+            <p class="min-w-0">
+              ⚠ This day's slot order doesn't match the clock, so part of it may render under the
+              wrong date. The times themselves are usually fine — reordering by time fixes it.
+            </p>
+            <button
+              @click="resequenceDay(group.day)"
+              :disabled="resequencingDayId === group.day.id"
+              class="btn-secondary text-xs py-1 px-2.5 shrink-0 disabled:opacity-50"
+            >{{ resequencingDayId === group.day.id ? 'Fixing…' : 'Fix order' }}</button>
+          </div>
 
 
           <div class="card overflow-x-auto p-0">
@@ -1068,6 +1075,54 @@ const calendarGroups = computed(() =>
       .map(g => ({ ...g, day, key: `${day.id}-${g.offset}` }))
   )
 )
+
+/**
+ * Renumber a day's slots so slot_order matches the clock.
+ *
+ * Editing a single slot's time doesn't renumber the day, so a handful of
+ * manual time changes can leave the order disagreeing with the schedule —
+ * which is what makes half a day render under the wrong date. This repairs
+ * it without touching times, sellers, links, or labels.
+ */
+const resequencingDayId = ref(null)
+
+async function resequenceDay(day) {
+  const daySlots = [...(slotsByDay.value[day.id] || [])]
+  if (!daySlots.length) return
+
+  const byTime = [...daySlots].sort((a, b) =>
+    String(a.start_time).localeCompare(String(b.start_time)) ||
+    String(a.id).localeCompare(String(b.id))
+  )
+
+  if (!confirm(
+    `Reorder this day's ${byTime.length} slots by start time?\n\n` +
+    `First: ${byTime[0].start_time}   Last: ${byTime[byTime.length - 1].start_time}\n\n` +
+    'Times, sellers, links and labels are left untouched.'
+  )) return
+
+  resequencingDayId.value = day.id
+  scheduleError.value = ''
+
+  const updates = byTime
+    .map((slot, i) => ({ slot, order: i }))
+    .filter(({ slot, order }) => slot.slot_order !== order)
+
+  const results = await Promise.all(
+    updates.map(({ slot, order }) =>
+      supabase.from('slots').update({ slot_order: order }).eq('id', slot.id)
+    )
+  )
+
+  const failed = results.find(r => r.error)
+  if (failed) {
+    scheduleError.value = failed.error.message || 'Could not reorder this day.'
+  } else {
+    await loadSlotsForDays()
+    initScheduleForms()
+  }
+  resequencingDayId.value = null
+}
 
 function timeInputValue(time) {
   return String(time || '12:00').slice(0, 5)
