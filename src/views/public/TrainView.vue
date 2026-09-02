@@ -161,20 +161,26 @@
 
       <!-- Schedule -->
       <main data-tour="schedule-section" class="max-w-4xl mx-auto px-4 py-10 flex-1">
-        <div v-for="(day, dayIdx) in days" :key="day.id" class="mb-12">
+        <!-- One section per calendar day. A train running past midnight stores
+             its late slots under the start date; showing them there reads as a
+             mistake, so they get their own dated section. -->
+        <div v-for="(group, dayIdx) in calendarGroups" :key="group.key" class="mb-12">
           <!-- 60s section header -->
           <div class="flex items-center gap-4 mb-4">
             <h2 class="font-display text-2xl sm:text-3xl text-tx1 shrink-0">
-              {{ day.day_label ? `${day.day_label} — ` : '' }}{{ formatDate(day.day_date) }}
+              {{ group.day.day_label && group.offset === 0 ? `${group.day.day_label} — ` : '' }}{{ formatDate(group.dateKey) }}
             </h2>
             <div class="flex-1 h-[3px] bg-niknax-600 rounded-full"></div>
           </div>
+          <p v-if="group.offset > 0" class="text-tx3 text-xs mb-2 -mt-2">
+            Continues from {{ formatDate(group.day.day_date) }}
+          </p>
           <p class="text-tx3 text-xs font-mono mb-5 tracking-widest">ALL TIMES SHOWN · ET IS PRIMARY</p>
 
           <!-- Mobile slot list -->
           <div class="md:hidden space-y-3">
             <div
-              v-for="(slot, slotIdx) in slotsByDay[day.id] || []"
+              v-for="(slot, slotIdx) in group.slots"
               :key="slot.id"
               :id="`slot-mobile-${slot.id}`"
               :data-tour="(dayIdx === 0 && slotIdx === 0) ? 'first-slot-row' : undefined"
@@ -217,7 +223,7 @@
                 <p class="text-tx1 font-bold text-lg shrink-0">
                   {{ zones(slot.start_time)[0].time }}
                   <span v-if="slotOffset(slot) > 0" class="block text-[0.6rem] font-semibold text-niknax-600 dark:text-niknax-400 uppercase tracking-wide">
-                    {{ nextDayLabel(day, slot) }}
+                    {{ nextDayLabel(group.day, slot) }}
                   </span>
                 </p>
               </div>
@@ -239,7 +245,7 @@
 
               <button
                 v-if="canAttemptSignup && !slot.username"
-                @click="openSignup(slot, day)"
+                @click="openSignup(slot, group.day)"
                 :data-tour="slot.id === firstOpenSlotId ? 'first-signup-btn' : undefined"
                 class="w-full bg-niknax-600 hover:bg-niknax-500 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
               >
@@ -260,7 +266,7 @@
                     </summary>
                     <div class="mt-1 sm:absolute sm:right-0 sm:z-20 sm:w-44 bg-surface border-2 border-[#FEA0CE] rounded-lg p-1 shadow-lg shadow-[#FEA0CE]/20">
                       <a
-                        :href="googleCalendarUrl(day, slot)"
+                        :href="googleCalendarUrl(group.day, slot)"
                         target="_blank"
                         rel="noopener"
                         class="block rounded-md px-3 py-2 text-sm font-semibold text-tx1 hover:bg-[#FEA0CE]/20"
@@ -329,7 +335,7 @@
               </thead>
               <tbody class="divide-y divide-bd">
                 <tr
-                  v-for="(slot, slotIdx) in slotsByDay[day.id] || []"
+                  v-for="(slot, slotIdx) in group.slots"
                   :key="slot.id"
                   :id="`slot-desktop-${slot.id}`"
                   :data-tour="(dayIdx === 0 && slotIdx === 0) ? 'first-slot-row' : undefined"
@@ -371,7 +377,7 @@
                   <td class="px-4 py-3 text-tx1 font-bold text-base whitespace-nowrap">
                     {{ zones(slot.start_time)[0].time }}
                     <span v-if="slotOffset(slot) > 0" class="block text-[0.6rem] font-semibold text-niknax-600 dark:text-niknax-400 uppercase tracking-wide">
-                      {{ nextDayLabel(day, slot) }}
+                      {{ nextDayLabel(group.day, slot) }}
                     </span>
                   </td>
                   <td class="px-4 py-3 text-tx2 font-semibold">{{ zones(slot.start_time)[1].time }}</td>
@@ -380,7 +386,7 @@
                   <td class="px-4 py-3 text-right">
                     <button
                       v-if="canAttemptSignup && !slot.username"
-                      @click="openSignup(slot, day)"
+                      @click="openSignup(slot, group.day)"
                       :data-tour="slot.id === firstOpenSlotId ? 'first-signup-btn' : undefined"
                       class="bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                     >
@@ -401,7 +407,7 @@
                           </summary>
                           <div class="absolute right-0 z-20 mt-1 w-44 bg-surface border-2 border-[#FEA0CE] rounded-lg p-1 text-left shadow-lg shadow-[#FEA0CE]/20">
                             <a
-                              :href="googleCalendarUrl(day, slot)"
+                              :href="googleCalendarUrl(group.day, slot)"
                               target="_blank"
                               rel="noopener"
                               class="block rounded-md px-3 py-2 text-xs font-semibold text-tx1 hover:bg-[#FEA0CE]/20"
@@ -705,7 +711,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { supabase } from '../../lib/supabase.js'
-import { allZones, formatDate, parseTime, trainStatus, STATUS_BADGE_CLASS, isPastTrain, slotDayOffsets, slotDateTime } from '../../lib/timeUtils.js'
+import { allZones, formatDate, parseTime, trainStatus, STATUS_BADGE_CLASS, isPastTrain, slotDayOffsets, slotDateTime, groupSlotsByCalendarDay } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
 import { useOnboardingStore } from '../../stores/onboarding.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
@@ -1094,6 +1100,17 @@ const dayOffsetBySlotId = computed(() => {
 function slotOffset(slot) {
   return dayOffsetBySlotId.value.get(slot.id) || 0
 }
+
+/**
+ * One section per calendar day, so an overnight train's after-midnight slots
+ * appear under their own date instead of inside the start date's section.
+ */
+const calendarGroups = computed(() =>
+  days.value.flatMap(day =>
+    groupSlotsByCalendarDay(day, slotsByDay.value[day.id] || [])
+      .map(g => ({ ...g, day, key: `${day.id}-${g.offset}` }))
+  )
+)
 
 /** "Sep 6" label for slots that land past midnight, so the date is unambiguous. */
 function nextDayLabel(day, slot) {

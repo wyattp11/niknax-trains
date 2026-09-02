@@ -358,17 +358,32 @@
           </div>
         </div>
 
-        <!-- ── Schedule ── -->
-        <div v-for="day in days" :key="day.id" class="mb-10">
-          <h3 class="text-lg font-semibold text-niknax-600 dark:text-niknax-300 mb-4">
-            {{ day.day_label ? `${day.day_label} — ` : '' }}{{ formatDate(day.day_date) }}
+        <!-- ── Schedule ──
+             One container per calendar day. An overnight train stores its
+             after-midnight slots under the start date, but showing them there
+             reads as a mistake, so they get their own dated section. -->
+        <div v-for="group in calendarGroups" :key="group.key" class="mb-10">
+          <h3 class="text-lg font-semibold text-niknax-600 dark:text-niknax-300 mb-1">
+            {{ group.day.day_label && group.offset === 0 ? `${group.day.day_label} — ` : '' }}{{ formatDate(group.dateKey) }}
+            <span v-if="group.offset > 0" class="text-sm font-normal text-tx3">
+              (continued from {{ formatDate(group.day.day_date) }})
+            </span>
           </h3>
+
+          <p
+            v-if="hasOutOfOrderSlots(slotsByDay[group.day.id] || [])"
+            class="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-lg px-3 py-2 mb-3"
+          >
+            ⚠ These slots aren't in chronological order — a row may have been left behind by an
+            earlier edit. Re-apply the schedule below to rebuild the day cleanly.
+          </p>
+
 
           <div class="card overflow-x-auto p-0">
             <!-- Move-mode banner: the tap-based path. Native drag is unreliable on
                  touch, where the confirm dialog could be missed entirely. -->
             <div
-              v-if="moveMode && moveMode.train_day_id === day.id"
+              v-if="moveMode && moveMode.train_day_id === group.day.id"
               class="bg-niknax-600 text-white px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap sticky top-0 z-10"
             >
               <p class="text-sm font-medium min-w-0">
@@ -399,7 +414,7 @@
               </thead>
               <tbody class="divide-y divide-gray-800">
                 <tr
-                  v-for="(slot, slotIdx) in slotsByDay[day.id] || []"
+                  v-for="(slot, slotIdx) in group.slots"
                   :key="slot.id"
                   :draggable="!isTouch && !moveMode"
                   @dragstart="onDragStart(slot, $event)"
@@ -452,7 +467,7 @@
                   <td class="px-3 py-2.5 text-tx1 font-bold text-base whitespace-nowrap">
                     {{ zones(slot.start_time)[0].time }}
                     <span v-if="slotOffset(slot) > 0" class="block text-[0.6rem] font-semibold text-niknax-600 dark:text-niknax-400 uppercase tracking-wide">
-                      {{ nextDayLabel(day, slot) }}
+                      {{ nextDayLabel(group.day, slot) }}
                     </span>
                   </td>
                   <td class="px-3 py-2.5 text-tx2 font-semibold">{{ zones(slot.start_time)[1].time }}</td>
@@ -508,7 +523,7 @@
                       >⚑</button>
                       <button @click="startEdit(slot)" class="text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300 text-xs">Edit</button>
                       <button
-                        @click="deleteSlot(slot, day)"
+                        @click="deleteSlot(slot, group.day)"
                         :disabled="deletingSlotId === slot.id"
                         class="text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300 text-xs disabled:opacity-50"
                       >{{ deletingSlotId === slot.id ? '…' : 'Delete' }}</button>
@@ -518,7 +533,7 @@
               </tbody>
             </table>
           </div>
-          <button @click="addSlotToDay(day)" class="mt-3 w-full sm:w-auto text-sm text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300">
+          <button @click="addSlotToDay(group.day)" class="mt-3 w-full sm:w-auto text-sm text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300">
             + Add slot
           </button>
         </div>
@@ -713,7 +728,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
-import { allZones, addMinutes, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS, slotDayOffsets, slotDateTime, slotInsertPosition } from '../../lib/timeUtils.js'
+import { allZones, addMinutes, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS, slotDayOffsets, slotDateTime, slotInsertPosition, groupSlotsByCalendarDay, hasOutOfOrderSlots } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 
@@ -1042,6 +1057,18 @@ function nextDayLabel(day, slot) {
     .toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
+/**
+ * Flattens the train's days into one section per calendar date. A day that
+ * runs past midnight yields two sections, so a container never shows slots
+ * belonging to another date.
+ */
+const calendarGroups = computed(() =>
+  days.value.flatMap(day =>
+    groupSlotsByCalendarDay(day, slotsByDay.value[day.id] || [])
+      .map(g => ({ ...g, day, key: `${day.id}-${g.offset}` }))
+  )
+)
+
 function timeInputValue(time) {
   return String(time || '12:00').slice(0, 5)
 }
@@ -1279,8 +1306,24 @@ async function applyScheduleChanges() {
       const form = scheduleForms.value[day.id]
       const kickoffTime = form.start_time
       const existingSlots = [...(slotsByDay.value[day.id] || [])]
-      const kickoff = existingSlots.find(isKickoffSlot)
-      const sellerSlots = existingSlots.filter(slot => !isKickoffSlot(slot))
+
+      // Only ONE row can be the kickoff. If a day somehow carries more than
+      // one 'Kickoff' label, the extras were previously excluded from the
+      // seller list too — so nothing ever rewrote their times and they sat at
+      // a stale hour, throwing the whole day out of chronological order.
+      // Treat the first as the kickoff and demote the rest to seller slots.
+      const kickoffMatches = existingSlots.filter(isKickoffSlot)
+      const kickoff        = kickoffMatches[0] || null
+      const strays         = kickoffMatches.slice(1)
+      const sellerSlots    = existingSlots.filter(
+        slot => !isKickoffSlot(slot) || strays.some(s => s.id === slot.id)
+      )
+
+      if (strays.length) {
+        await Promise.all(
+          strays.map(s => supabase.from('slots').update({ label: null }).eq('id', s.id))
+        )
+      }
 
       // Kickoff is optional per day. Without one the seller slots start right
       // at the day's start time instead of after the kickoff.
@@ -1359,6 +1402,17 @@ async function applyScheduleChanges() {
 
     await loadSlotsForDays()
     initScheduleForms()
+
+    // Catch a broken save rather than letting it render as a mysterious
+    // "next day" label. If any day ends up non-chronological, say so.
+    const broken = days.value.filter(d => hasOutOfOrderSlots(slotsByDay.value[d.id] || []))
+    if (broken.length) {
+      scheduleError.value =
+        'Schedule saved, but some slots are out of chronological order. ' +
+        'Check the times below — a row may have been left behind.'
+      return
+    }
+
     scheduleSaved.value = true
     setTimeout(() => { scheduleSaved.value = false }, 2000)
   } catch (err) {

@@ -53,17 +53,99 @@ export function allZones(etTimeStr) {
  */
 export function slotDayOffsets(daySlots) {
   const offsets = new Map()
-  let dayOffset = 0
-  let prevMinutes = null
+  const list = daySlots || []
+  if (!list.length) return offsets
 
-  for (const slot of daySlots || []) {
+  // Anchor on the day's first slot rather than accumulating step by step.
+  //
+  // The step-by-step version incremented the offset every time the clock went
+  // backwards, so a single out-of-order row shifted every slot after it onto
+  // the wrong date — one stale kickoff was enough to relabel a whole day.
+  // Anchoring caps the damage at one rollover and keeps a bad row local to
+  // itself. A show night is always under 24 hours, so one is the true maximum.
+  const { hours: baseH, minutes: baseM } = parseTime(list[0].start_time)
+  const baseMinutes = baseH * 60 + baseM
+
+  for (const slot of list) {
     const { hours, minutes } = parseTime(slot.start_time)
     const mins = hours * 60 + minutes
-    if (prevMinutes !== null && mins < prevMinutes) dayOffset++
-    offsets.set(slot.id, dayOffset)
-    prevMinutes = mins
+    offsets.set(slot.id, mins < baseMinutes ? 1 : 0)
   }
   return offsets
+}
+
+/**
+ * Group a day's slots by the calendar date they actually fall on.
+ *
+ * A train day stores one date plus bare clock times, so an overnight event
+ * keeps its 12:10 AM slots under the start date. Rendering those inside the
+ * start date's container reads as a mistake. This splits them, so each
+ * container holds exactly one calendar day.
+ *
+ * @returns {Array<{date: Date, dateKey: string, offset: number, slots: Array}>}
+ */
+export function groupSlotsByCalendarDay(day, daySlots) {
+  const list = daySlots || []
+  if (!list.length) return []
+
+  const offsets = slotDayOffsets(list)
+  const groups = new Map()
+
+  for (const slot of list) {
+    const offset = offsets.get(slot.id) || 0
+    if (!groups.has(offset)) {
+      const [y, m, d] = String(day.day_date).split('-').map(Number)
+      groups.set(offset, {
+        offset,
+        date: new Date(y, m - 1, d + offset),
+        slots: [],
+      })
+    }
+    groups.get(offset).slots.push(slot)
+  }
+
+  return [...groups.values()]
+    .sort((a, b) => a.offset - b.offset)
+    .map(g => ({
+      ...g,
+      dateKey: `${g.date.getFullYear()}-${String(g.date.getMonth() + 1).padStart(2, '0')}-${String(g.date.getDate()).padStart(2, '0')}`,
+    }))
+}
+
+/** Gap between consecutive slots beyond this is treated as a broken schedule. */
+const MAX_PLAUSIBLE_GAP_MIN = 240   // 4 hours
+
+/**
+ * True when a day's schedule looks broken — worth warning an admin about.
+ *
+ * Checking only for "times go backwards" isn't enough: once rollover is
+ * anchored, a stale row simply lands on the next day and the sequence still
+ * reads as ascending. The reliable signal is an implausible jump. A kickoff
+ * left at 4:30 PM while its sellers moved to 11:40 AM shows up as a 19-hour
+ * gap, which no real schedule has.
+ *
+ * Overlaps count too — a slot starting before the previous one has finished.
+ */
+export function hasOutOfOrderSlots(daySlots) {
+  const list = daySlots || []
+  if (list.length < 2) return false
+
+  const offsets = slotDayOffsets(list)
+  const abs = (slot) => {
+    const { hours, minutes } = parseTime(slot.start_time)
+    return (offsets.get(slot.id) || 0) * 1440 + hours * 60 + minutes
+  }
+
+  for (let i = 1; i < list.length; i++) {
+    const prevStart = abs(list[i - 1])
+    const prevEnd   = prevStart + (list[i - 1].duration_min || 30)
+    const thisStart = abs(list[i])
+
+    if (thisStart < prevStart) return true                        // out of order
+    if (thisStart < prevEnd) return true                          // overlap
+    if (thisStart - prevEnd > MAX_PLAUSIBLE_GAP_MIN) return true  // stranded row
+  }
+  return false
 }
 
 /**
