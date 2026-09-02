@@ -11,10 +11,16 @@
       <div v-if="createdTrainId" class="card text-center py-14">
         <div class="text-5xl mb-4">🚂</div>
         <h1 class="text-2xl font-display font-bold text-tx1 mb-2">Train submitted!</h1>
-        <p class="text-tx3 mb-2">Your train is pending review by the Niknax team.</p>
+        <p class="text-tx3 mb-4">Your train is pending review by the Niknax team.</p>
+        <div class="bg-sur2 rounded-lg p-4 max-w-md mx-auto mb-6 text-left">
+          <p class="text-sm text-tx2">
+            📬 We've emailed an access code to <strong class="text-tx1">{{ createdEmail }}</strong>.
+            Enter it on the manage page to unlock editing — it's good for 30 minutes, and once
+            you're in you'll stay signed in on this device for 90 days.
+          </p>
+        </div>
         <p class="text-tx3 mb-8 text-sm">
           Once approved, it'll appear on the public schedule and sellers can start signing up.
-          You'll get a notification when it's live.
         </p>
         <div class="flex flex-col sm:flex-row gap-3 justify-center">
           <RouterLink :to="`/train/${createdTrainId}/conductor`" class="btn-primary">
@@ -73,6 +79,22 @@
             <!-- Event details -->
             <section class="card space-y-5">
               <h2 class="text-lg font-semibold text-niknax-600 dark:text-niknax-300">Event Details</h2>
+
+              <div>
+                <label class="label">Your Email *</label>
+                <input
+                  v-model="form.email"
+                  type="email"
+                  class="input"
+                  placeholder="you@example.com"
+                  required
+                  autocomplete="email"
+                />
+                <p class="text-xs text-tx3 mt-1.5">
+                  We'll email you an access code so you can manage this train. You'll need it
+                  every time you sign in on a new device, so use an address you check.
+                </p>
+              </div>
 
               <div>
                 <label class="label">Event Name *</label>
@@ -199,7 +221,6 @@ import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import PublicNav from '../../components/PublicNav.vue'
 import { supabase } from '../../lib/supabase.js'
-import { setConductorSession } from '../../lib/conductorAuth.js'
 import { DEFAULT_RULES_TEMPLATE } from '../../lib/defaultRulesTemplate.js'
 
 // ── Gate ──────────────────────────────────────────────────────────────────
@@ -231,6 +252,7 @@ async function verifyUsername() {
 const saving         = ref(false)
 const saveError      = ref('')
 const createdTrainId = ref(null)
+const createdEmail   = ref('')
 
 const defaultDay = () => ({
   day_date:         '',
@@ -243,6 +265,7 @@ const defaultDay = () => ({
 })
 
 const form = ref({
+  email:        '',
   name:         '',
   tagline:      '',
   description:  '',
@@ -268,6 +291,7 @@ async function submitTrain() {
 
   const { data, error } = await supabase.rpc('create_member_train', {
     p_username:      conductorUsername.value,
+    p_email:         form.value.email.trim(),
     p_name:          form.value.name.trim(),
     p_tagline:       form.value.tagline.trim() || null,
     p_description:   form.value.description.trim() || null,
@@ -279,9 +303,9 @@ async function submitTrain() {
   if (error) {
     saveError.value = error.message || 'Could not create train. Please try again.'
   } else {
-    // Store conductor session so they land on the management view immediately
-    setConductorSession(data.id, conductorUsername.value)
+    // No session yet — they prove ownership with the code just emailed to them.
     createdTrainId.value = data.id
+    createdEmail.value   = form.value.email.trim()
   }
 
   saving.value = false

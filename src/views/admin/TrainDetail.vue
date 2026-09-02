@@ -101,6 +101,48 @@
           </button>
         </div>
 
+        <!-- ── Conductors (member trains only) ── -->
+        <div v-if="train.is_member_train" class="card mb-6">
+          <h3 class="font-semibold text-niknax-600 dark:text-niknax-300 mb-1">Conductors</h3>
+          <p class="text-xs text-tx3 mb-4">
+            These people can manage this train. They sign in with a code emailed to them —
+            resend one if someone is locked out.
+          </p>
+
+          <p v-if="loadingConductors" class="text-tx3 text-sm">Loading…</p>
+
+          <p v-else-if="conductors.length === 0" class="text-tx3 text-sm">
+            No conductors registered. This train predates conductor accounts.
+          </p>
+
+          <ul v-else class="space-y-2">
+            <li
+              v-for="c in conductors"
+              :key="c.id"
+              class="flex flex-wrap items-center justify-between gap-3 bg-sur2 rounded-lg px-3 py-2"
+            >
+              <div class="min-w-0">
+                <p class="text-sm text-tx1 truncate">
+                  {{ c.email }}
+                  <span v-if="c.is_primary" class="ml-1 text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-niknax-100 dark:bg-niknax-900/50 text-niknax-700 dark:text-niknax-300">PRIMARY</span>
+                </p>
+                <p class="text-xs text-tx3">
+                  <span v-if="c.username">@{{ c.username }} · </span>
+                  <span v-if="c.last_seen_at">last active {{ formatTimestamp(c.last_seen_at) }}</span>
+                  <span v-else>never signed in</span>
+                </p>
+              </div>
+              <button
+                @click="resendConductorCode(c)"
+                :disabled="resendingId === c.id"
+                class="btn-secondary text-xs py-1 px-2.5 shrink-0 disabled:opacity-50"
+              >{{ resendingId === c.id ? 'Sending…' : resentId === c.id ? 'Sent ✓' : 'Resend code' }}</button>
+            </li>
+          </ul>
+
+          <p v-if="conductorError" class="text-red-600 dark:text-red-400 text-sm mt-3">{{ conductorError }}</p>
+        </div>
+
         <!-- ── Change history ── -->
         <div class="card mb-6">
           <button
@@ -1332,6 +1374,43 @@ async function toggleUpcoming() {
   train.value.is_upcoming = val
 }
 
+// ── Conductors ────────────────────────────────────────────────────────────
+const conductors        = ref([])
+const loadingConductors = ref(false)
+const resendingId       = ref(null)
+const resentId          = ref(null)
+const conductorError    = ref('')
+
+async function loadConductors() {
+  if (!train.value?.is_member_train) return
+  loadingConductors.value = true
+  const { data } = await supabase
+    .from('train_conductors_admin')
+    .select('*')
+    .eq('train_id', route.params.id)
+    .order('is_primary', { ascending: false })
+  conductors.value = data || []
+  loadingConductors.value = false
+}
+
+async function resendConductorCode(c) {
+  conductorError.value = ''
+  resendingId.value    = c.id
+
+  const { error } = await supabase.rpc('admin_resend_conductor_code', {
+    p_train_id: route.params.id,
+    p_email:    c.email,
+  })
+
+  if (error) {
+    conductorError.value = error.message || 'Could not send that code.'
+  } else {
+    resentId.value = c.id
+    setTimeout(() => { if (resentId.value === c.id) resentId.value = null }, 4000)
+  }
+  resendingId.value = null
+}
+
 // ── Change history ────────────────────────────────────────────────────────
 const history        = ref([])
 const showHistory    = ref(false)
@@ -1547,7 +1626,9 @@ onMounted(() => {
   // can fire a drop without ever showing the confirm dialog.
   isTouch.value = typeof window !== 'undefined' &&
     (window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window)
-  load(); loadTeamMembers(); loadStrikes()
+  load().then(loadConductors)
+  loadTeamMembers()
+  loadStrikes()
 })
 onUnmounted(() => {
   if (slotsChannel) supabase.removeChannel(slotsChannel)

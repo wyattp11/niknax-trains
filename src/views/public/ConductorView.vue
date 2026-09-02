@@ -13,30 +13,80 @@
         <RouterLink to="/" class="btn-secondary mt-4">Back to home</RouterLink>
       </div>
 
-      <!-- Username gate -->
-      <div v-else-if="!authedUsername" class="max-w-md mx-auto mt-12">
+      <!-- Access gate: email → emailed passcode -->
+      <div v-else-if="!authToken" class="max-w-md mx-auto mt-12">
         <div class="card space-y-5">
-          <h1 class="text-xl font-semibold text-tx1">Conductor Access</h1>
-          <p class="text-sm text-tx3">
-            Enter your conductor username to manage <strong class="text-tx2">{{ train.name }}</strong>.
-          </p>
-          <form @submit.prevent="verifyCondutor" class="space-y-4">
-            <div class="relative">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-tx3 select-none">@</span>
+          <div>
+            <h1 class="text-xl font-semibold text-tx1">Conductor Access</h1>
+            <p class="text-sm text-tx3 mt-1">
+              Manage <strong class="text-tx2">{{ train.name }}</strong>.
+            </p>
+          </div>
+
+          <!-- Step 1: email -->
+          <form v-if="gateStep === 'email'" @submit.prevent="requestCode" class="space-y-4">
+            <div>
+              <label class="label" for="gate-email">Your email</label>
               <input
-                v-model="gateInput"
-                class="input pl-7"
-                placeholder="yourhandle"
+                id="gate-email"
+                v-model="gateEmail"
+                type="email"
+                class="input"
+                placeholder="you@example.com"
                 required
-                maxlength="60"
+                autocomplete="email"
+                :disabled="gateLoading"
+              />
+              <p class="text-xs text-tx3 mt-1.5">
+                We'll send a 6-digit code to the address registered for this train.
+              </p>
+            </div>
+            <p v-if="gateError" class="text-red-600 dark:text-red-400 text-sm" role="alert">{{ gateError }}</p>
+            <button type="submit" :disabled="gateLoading" class="btn-primary w-full">
+              {{ gateLoading ? 'Sending…' : 'Email me a code →' }}
+            </button>
+          </form>
+
+          <!-- Step 2: code -->
+          <form v-else @submit.prevent="submitCode" class="space-y-4">
+            <p class="text-sm text-tx2 bg-sur2 rounded-lg p-3">
+              If <strong>{{ gateEmail }}</strong> is a conductor on this train, a code is on its way.
+              It expires in 30 minutes.
+            </p>
+            <div>
+              <label class="label" for="gate-code">6-digit code</label>
+              <input
+                id="gate-code"
+                v-model="gateCode"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                class="input text-center text-2xl tracking-[0.5em] font-mono"
+                placeholder="000000"
+                required
                 :disabled="gateLoading"
               />
             </div>
             <p v-if="gateError" class="text-red-600 dark:text-red-400 text-sm" role="alert">{{ gateError }}</p>
-            <button type="submit" :disabled="gateLoading" class="btn-primary w-full">
-              {{ gateLoading ? 'Checking…' : 'Access Train →' }}
+            <button type="submit" :disabled="gateLoading || gateCode.length < 6" class="btn-primary w-full">
+              {{ gateLoading ? 'Checking…' : 'Unlock train →' }}
             </button>
+            <div class="flex justify-between text-xs">
+              <button type="button" @click="gateStep = 'email'; gateError = ''" class="text-tx3 hover:text-tx1">
+                ← Use a different email
+              </button>
+              <button
+                type="button"
+                @click="requestCode"
+                :disabled="gateLoading"
+                class="text-niknax-600 dark:text-niknax-400 hover:underline disabled:opacity-50"
+              >Resend code</button>
+            </div>
           </form>
+
+          <p class="text-xs text-tx3 border-t border-bd pt-4">
+            Not sure which email is registered? Ask the Niknax team — they can resend your code.
+          </p>
         </div>
       </div>
 
@@ -65,13 +115,20 @@
           <div>
             <h1 class="text-2xl font-display font-bold text-tx1">{{ train.name }}</h1>
             <p v-if="train.tagline" class="text-tx3 mt-1">{{ train.tagline }}</p>
-            <p class="text-xs text-tx3 mt-1">Conductor: <strong>@{{ train.conductor_username }}</strong></p>
+            <p class="text-xs text-tx3 mt-1">
+              Signed in as <strong>{{ authEmail }}</strong>
+              <span v-if="isPrimary"> · primary conductor</span>
+            </p>
           </div>
-          <button
-            @click="confirmDeleteTrain"
-            :disabled="deleting"
-            class="text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300 text-sm disabled:opacity-50 shrink-0"
-          >{{ deleting ? 'Deleting…' : 'Delete Train' }}</button>
+          <div class="flex items-center gap-3 shrink-0">
+            <button @click="signOutConductor" class="text-tx3 hover:text-tx1 text-sm">Sign out</button>
+            <button
+              v-if="isPrimary"
+              @click="confirmDeleteTrain"
+              :disabled="deleting"
+              class="text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300 text-sm disabled:opacity-50"
+            >{{ deleting ? 'Deleting…' : 'Delete Train' }}</button>
+          </div>
         </div>
 
         <!-- Edit details -->
@@ -189,10 +246,65 @@
                 <span class="font-semibold text-tx1">{{ formatDate(day.day_date) }}</span>
                 <span v-if="day.day_label" class="text-tx3 text-sm ml-2">{{ day.day_label }}</span>
               </div>
-              <button
-                @click="confirmRemoveDay(day)"
-                class="text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300 text-xs"
-              >Remove day</button>
+              <div class="flex items-center gap-3">
+                <button
+                  @click="toggleScheduleForm(day)"
+                  class="text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300 text-xs"
+                >{{ openScheduleDayId === day.id ? 'Close' : 'Adjust schedule' }}</button>
+                <button
+                  @click="confirmRemoveDay(day)"
+                  class="text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300 text-xs"
+                >Remove day</button>
+              </div>
+            </div>
+
+            <!-- Schedule regeneration -->
+            <div
+              v-if="openScheduleDayId === day.id && scheduleForms[day.id]"
+              class="bg-sur2 rounded-lg p-4 mb-4 space-y-4"
+            >
+              <p class="text-sm font-medium text-tx2">Adjust this day's schedule</p>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label class="label">Start Time (ET)</label>
+                  <input v-model="scheduleForms[day.id].start_time" type="time" step="60" class="input py-1.5" />
+                </div>
+                <div>
+                  <label class="label">Slot Duration (min)</label>
+                  <input v-model.number="scheduleForms[day.id].slot_duration" type="number" min="5" max="120" class="input py-1.5" />
+                </div>
+                <div>
+                  <label class="label">Number of Slots</label>
+                  <input v-model.number="scheduleForms[day.id].slot_count" type="number" min="1" max="100" class="input py-1.5" />
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-end gap-4">
+                <label class="flex items-center gap-2 text-sm text-tx2 cursor-pointer select-none">
+                  <input v-model="scheduleForms[day.id].include_kickoff" type="checkbox" class="accent-niknax-600 w-4 h-4" />
+                  Include a Kickoff slot
+                </label>
+                <div v-if="scheduleForms[day.id].include_kickoff" class="w-32">
+                  <label class="label">Kickoff (min)</label>
+                  <input v-model.number="scheduleForms[day.id].kickoff_duration" type="number" min="5" max="120" class="input py-1.5" />
+                </div>
+              </div>
+
+              <p class="text-xs text-tx3">
+                Sellers keep their position — the first seller slot stays first. Reducing the
+                slot count removes rows from the end, along with anyone signed up in them.
+              </p>
+
+              <p v-if="scheduleError" class="text-red-600 dark:text-red-400 text-sm">{{ scheduleError }}</p>
+
+              <div class="flex gap-2 justify-end">
+                <button @click="openScheduleDayId = null" class="btn-secondary text-sm py-1.5">Cancel</button>
+                <button
+                  @click="applySchedule(day)"
+                  :disabled="savingSchedule"
+                  class="btn-primary text-sm py-1.5"
+                >{{ savingSchedule ? 'Applying…' : 'Apply Changes' }}</button>
+              </div>
             </div>
 
             <!-- Slot table -->
@@ -223,7 +335,15 @@
                       <td class="px-2 py-2 text-tx3 text-xs">{{ slot.duration_min }}m</td>
                       <td class="px-2 py-2 text-tx3 text-xs">{{ slot.label || '—' }}</td>
                       <td class="px-2 py-2">
-                        <span v-if="slot.username" class="text-tx1 text-xs font-medium">@{{ slot.username }}</span>
+                        <span v-if="slot.username" class="flex items-center gap-1.5">
+                          <span class="text-tx1 text-xs font-medium">@{{ slot.username }}</span>
+                          <button
+                            @click="confirmClearSeller(slot)"
+                            :disabled="clearingSlotId === slot.id"
+                            class="text-tx3 hover:text-red-600 dark:hover:text-red-400 text-xs disabled:opacity-50"
+                            :title="`Release this slot — removes @${slot.username} from the train`"
+                          >{{ clearingSlotId === slot.id ? '…' : '✕' }}</button>
+                        </span>
                         <span v-else class="text-tx3 text-xs italic">— open —</span>
                       </td>
                       <td class="px-2 py-2 text-right">
@@ -294,6 +414,54 @@
           <div v-if="days.length === 0" class="text-tx3 text-sm italic">No days scheduled yet.</div>
         </section>
 
+        <!-- Co-conductors -->
+        <section class="card space-y-4 mb-8">
+          <div>
+            <h2 class="text-base font-semibold text-tx1">Conductors</h2>
+            <p class="text-xs text-tx3 mt-1">
+              Anyone listed here can manage this train. They sign in with their own email
+              and get their own access code — no sharing passwords.
+            </p>
+          </div>
+
+          <ul class="space-y-2">
+            <li
+              v-for="c in conductors"
+              :key="c.email"
+              class="flex items-center justify-between gap-3 bg-sur2 rounded-lg px-3 py-2"
+            >
+              <div class="min-w-0">
+                <p class="text-sm text-tx1 truncate">{{ c.email }}</p>
+                <p class="text-xs text-tx3">
+                  <span v-if="c.username">@{{ c.username }}</span>
+                  <span v-if="c.is_primary"><span v-if="c.username"> · </span>primary</span>
+                </p>
+              </div>
+              <button
+                v-if="!c.is_primary"
+                @click="removeConductor(c)"
+                :disabled="removingEmail === c.email"
+                class="text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300 text-xs shrink-0 disabled:opacity-50"
+              >{{ removingEmail === c.email ? '…' : 'Remove' }}</button>
+            </li>
+          </ul>
+
+          <form @submit.prevent="addConductor" class="flex flex-col sm:flex-row gap-2">
+            <input
+              v-model="newConductorEmail"
+              type="email"
+              class="input flex-1"
+              placeholder="co-conductor@example.com"
+              required
+            />
+            <button type="submit" :disabled="addingConductor" class="btn-secondary text-sm py-2 shrink-0">
+              {{ addingConductor ? 'Adding…' : 'Add conductor' }}
+            </button>
+          </form>
+
+          <p v-if="conductorError" class="text-red-600 dark:text-red-400 text-sm">{{ conductorError }}</p>
+        </section>
+
         <!-- Error -->
         <p v-if="actionError" class="text-red-600 dark:text-red-400 text-sm mb-4" role="alert">{{ actionError }}</p>
       </template>
@@ -306,7 +474,7 @@ import { ref, computed, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import PublicNav from '../../components/PublicNav.vue'
 import { supabase } from '../../lib/supabase.js'
-import { getConductorSession, setConductorSession } from '../../lib/conductorAuth.js'
+import { getConductorSession, setConductorSession, clearConductorSession } from '../../lib/conductorAuth.js'
 import { formatDate, parseTime, addMinutes } from '../../lib/timeUtils.js'
 
 const route  = useRoute()
@@ -318,22 +486,245 @@ const days    = ref([])
 const slots   = ref([])
 
 // ── Auth gate ──────────────────────────────────────────────────────────────
-const authedUsername = ref(null)
-const gateInput      = ref('')
-const gateLoading    = ref(false)
-const gateError      = ref('')
+// Access is proven by receiving a one-time code at a registered email, not by
+// typing a username. Every write RPC takes the resulting session token.
+const authToken      = ref('')
+const authEmail      = ref('')
+const authedUsername = ref(null)   // display only
+const isPrimary      = ref(false)
+const conductors     = ref([])
 
-function verifyCondutor() {
+const gateStep    = ref('email')   // 'email' | 'code'
+const gateEmail   = ref('')
+const gateCode    = ref('')
+const gateLoading = ref(false)
+const gateError   = ref('')
+
+async function requestCode() {
   gateError.value   = ''
   gateLoading.value = true
-  const handle = gateInput.value.trim().replace(/^@+/, '')
-  if (train.value?.conductor_username && handle.toLowerCase() === train.value.conductor_username.toLowerCase()) {
-    setConductorSession(train.value.id, handle)
-    authedUsername.value = handle
+
+  const { error } = await supabase.rpc('request_conductor_code', {
+    p_train_id: train.value.id,
+    p_email:    gateEmail.value.trim(),
+  })
+
+  if (error) {
+    gateError.value = error.message || 'Could not send a code. Please try again.'
   } else {
-    gateError.value = 'That username doesn\'t match the conductor on file for this train.'
+    // Deliberately the same response whether or not the email is registered,
+    // so this page can't be used to discover who runs a train.
+    gateStep.value = 'code'
+    gateCode.value = ''
   }
   gateLoading.value = false
+}
+
+async function submitCode() {
+  gateError.value   = ''
+  gateLoading.value = true
+
+  const { data, error } = await supabase.rpc('verify_conductor_code', {
+    p_train_id: train.value.id,
+    p_email:    gateEmail.value.trim(),
+    p_code:     gateCode.value.trim(),
+  })
+
+  if (error) {
+    gateError.value = error.message || 'That code did not work.'
+  } else {
+    setConductorSession(train.value.id, {
+      token:     data.token,
+      email:     data.email,
+      username:  data.username,
+      expiresAt: data.expires_at,
+    })
+    applySession({ token: data.token, email: data.email, username: data.username })
+    await loadSessionInfo()
+  }
+  gateLoading.value = false
+}
+
+function applySession(session) {
+  authToken.value      = session.token
+  authEmail.value      = session.email || ''
+  authedUsername.value = session.username || session.email || 'conductor'
+}
+
+async function loadSessionInfo() {
+  if (!authToken.value) return
+  const { data } = await supabase.rpc('conductor_session_info', {
+    p_train_id: train.value.id,
+    p_token:    authToken.value,
+  })
+  if (data?.valid) {
+    isPrimary.value  = !!data.is_primary
+    conductors.value = data.conductors || []
+    if (data.username) authedUsername.value = data.username
+    if (data.email)    authEmail.value      = data.email
+  } else {
+    signOutConductor()
+  }
+}
+
+function signOutConductor() {
+  clearConductorSession(train.value?.id)
+  authToken.value = ''
+  authEmail.value = ''
+  authedUsername.value = null
+  conductors.value = []
+  gateStep.value = 'email'
+  gateCode.value = ''
+}
+
+/**
+ * Server-side session expiry surfaces as an error with detail
+ * 'conductor_auth'. Drop the local session so the gate reappears rather than
+ * leaving the conductor clicking buttons that silently fail.
+ */
+function handleRpcError(error, fallback) {
+  if (error?.details === 'conductor_auth') {
+    signOutConductor()
+    return 'Your access has expired. Request a new code to continue.'
+  }
+  return error?.message || fallback
+}
+
+// ── Schedule regeneration ─────────────────────────────────────────────────
+const openScheduleDayId = ref(null)
+const scheduleForms     = ref({})
+const savingSchedule    = ref(false)
+const scheduleError     = ref('')
+
+function isKickoff(slot) {
+  return String(slot?.label || '').trim().toLowerCase() === 'kickoff'
+}
+
+function toggleScheduleForm(day) {
+  scheduleError.value = ''
+  if (openScheduleDayId.value === day.id) {
+    openScheduleDayId.value = null
+    return
+  }
+
+  // Seed from what's actually on the day, so the form reflects reality.
+  const daySlots = (slotsByDay.value[day.id] || [])
+  const kickoff  = daySlots.find(isKickoff)
+  const sellers  = daySlots.filter(s => !isKickoff(s))
+
+  scheduleForms.value[day.id] = {
+    start_time:       String(kickoff?.start_time || sellers[0]?.start_time || '10:30').slice(0, 5),
+    slot_duration:    sellers[0]?.duration_min || 30,
+    slot_count:       Math.max(1, sellers.length || 1),
+    include_kickoff:  !!kickoff,
+    kickoff_duration: kickoff?.duration_min || 10,
+  }
+  openScheduleDayId.value = day.id
+}
+
+async function applySchedule(day) {
+  const form = scheduleForms.value[day.id]
+  scheduleError.value = ''
+
+  const daySlots   = (slotsByDay.value[day.id] || [])
+  const sellers    = daySlots.filter(s => !isKickoff(s))
+  const losing     = sellers.slice(form.slot_count).filter(s => s.username)
+  const kickoff    = daySlots.find(isKickoff)
+  const losingKick = !form.include_kickoff && kickoff?.username ? [kickoff] : []
+  const atRisk     = [...losingKick, ...losing]
+
+  if (atRisk.length) {
+    const names = atRisk.map(s => `@${s.username}`).join(', ')
+    if (!confirm(`This removes ${names} from the train.\n\nContinue?`)) return
+  }
+
+  savingSchedule.value = true
+  const { error } = await supabase.rpc('regenerate_member_train_schedule', {
+    p_train_id:         train.value.id,
+    p_token:            authToken.value,
+    p_day_id:           day.id,
+    p_start_time:       form.start_time,
+    p_slot_duration:    form.slot_duration,
+    p_slot_count:       form.slot_count,
+    p_include_kickoff:  form.include_kickoff,
+    p_kickoff_duration: form.kickoff_duration,
+  })
+
+  if (error) {
+    scheduleError.value = handleRpcError(error, 'Could not update the schedule.')
+  } else {
+    await reloadSlots()
+    openScheduleDayId.value = null
+  }
+  savingSchedule.value = false
+}
+
+// ── Release a slot ────────────────────────────────────────────────────────
+const clearingSlotId = ref(null)
+
+async function confirmClearSeller(slot) {
+  if (!confirm(`Remove @${slot.username} from this slot?\n\nThe slot stays and becomes open for someone else.`)) return
+
+  clearingSlotId.value = slot.id
+  const { error } = await supabase.rpc('clear_member_train_slot_seller', {
+    p_train_id: train.value.id,
+    p_token:    authToken.value,
+    p_slot_id:  slot.id,
+  })
+
+  if (error) {
+    actionError.value = handleRpcError(error, 'Could not release that slot.')
+  } else {
+    const local = slots.value.find(s => s.id === slot.id)
+    if (local) { local.username = null; local.seller_link = null }
+  }
+  clearingSlotId.value = null
+}
+
+// ── Co-conductors ─────────────────────────────────────────────────────────
+const newConductorEmail = ref('')
+const addingConductor   = ref(false)
+const removingEmail     = ref(null)
+const conductorError    = ref('')
+
+async function addConductor() {
+  conductorError.value = ''
+  addingConductor.value = true
+
+  const { error } = await supabase.rpc('add_train_conductor', {
+    p_train_id: train.value.id,
+    p_token:    authToken.value,
+    p_email:    newConductorEmail.value.trim(),
+    p_username: null,
+  })
+
+  if (error) {
+    conductorError.value = handleRpcError(error, 'Could not add that conductor.')
+  } else {
+    newConductorEmail.value = ''
+    await loadSessionInfo()
+  }
+  addingConductor.value = false
+}
+
+async function removeConductor(c) {
+  if (!confirm(`Remove ${c.email} as a conductor?\n\nThey'll lose access immediately.`)) return
+
+  conductorError.value = ''
+  removingEmail.value  = c.email
+
+  const { error } = await supabase.rpc('remove_train_conductor', {
+    p_train_id: train.value.id,
+    p_token:    authToken.value,
+    p_email:    c.email,
+  })
+
+  if (error) {
+    conductorError.value = handleRpcError(error, 'Could not remove that conductor.')
+  } else {
+    await loadSessionInfo()
+  }
+  removingEmail.value = null
 }
 
 // ── Data loading ───────────────────────────────────────────────────────────
@@ -357,10 +748,12 @@ async function load() {
   if (!t || !t.is_member_train) { loading.value = false; return }
   train.value = t
 
-  // Check conductor session
+  // Restore a stored session. The server re-validates the token, so a revoked
+  // or expired one is rejected even though it's still in localStorage.
   const session = getConductorSession(id)
-  if (session && t.conductor_username && session.toLowerCase() === t.conductor_username.toLowerCase()) {
-    authedUsername.value = session
+  if (session?.token) {
+    applySession(session)
+    await loadSessionInfo()
   }
 
   const { data: d } = await supabase.from('train_days').select('*').eq('train_id', id).order('day_order')
@@ -405,7 +798,7 @@ async function saveDetails() {
   savingDetails.value = true
   const { data, error } = await supabase.rpc('update_member_train', {
     p_train_id:      train.value.id,
-    p_conductor:     authedUsername.value,
+    p_conductor:     authToken.value,
     p_name:          editForm.value.name.trim(),
     p_tagline:       editForm.value.tagline.trim() || null,
     p_description:   editForm.value.description.trim() || null,
@@ -428,7 +821,7 @@ async function toggleChatLocked() {
   const val = !train.value.chat_locked
   const { error } = await supabase.rpc('set_member_train_chat_locked', {
     p_train_id:  train.value.id,
-    p_conductor: authedUsername.value,
+    p_conductor: authToken.value,
     p_locked:    val,
   })
   if (error) {
@@ -448,7 +841,7 @@ async function confirmDeleteTrain() {
   deleting.value = true
   const { error } = await supabase.rpc('delete_member_train', {
     p_train_id:  train.value.id,
-    p_conductor: authedUsername.value,
+    p_conductor: authToken.value,
   })
   if (error) {
     actionError.value = error.message
@@ -472,7 +865,7 @@ async function addDay() {
 
   const { data, error } = await supabase.rpc('add_member_train_day', {
     p_train_id:      train.value.id,
-    p_conductor:     authedUsername.value,
+    p_conductor:     authToken.value,
     p_day_date:      newDay.value.day_date,
     p_day_label:     newDay.value.day_label || null,
     p_start_time:    newDay.value.start_time,
@@ -501,7 +894,7 @@ async function confirmRemoveDay(day) {
 
   const { error } = await supabase.rpc('remove_member_train_day', {
     p_train_id:  train.value.id,
-    p_conductor: authedUsername.value,
+    p_conductor: authToken.value,
     p_day_id:    day.id,
   })
   if (error) {
@@ -531,7 +924,7 @@ async function saveSlotEdit(slot, day) {
   savingSlotId.value = slot.id
   const { data, error } = await supabase.rpc('edit_member_train_slot', {
     p_train_id:   train.value.id,
-    p_conductor:  authedUsername.value,
+    p_conductor:  authToken.value,
     p_slot_id:    slot.id,
     p_start_time: slotEdit.value.start_time || null,
     p_duration:   slotEdit.value.duration_min,
@@ -562,7 +955,7 @@ async function confirmDeleteSlot(slot, day) {
   deletingSlotId.value = slot.id
   const { error } = await supabase.rpc('delete_member_train_slot', {
     p_train_id:  train.value.id,
-    p_conductor: authedUsername.value,
+    p_conductor: authToken.value,
     p_slot_id:   slot.id,
   })
   if (error) {
@@ -608,7 +1001,7 @@ async function addSlot(day) {
   const ns = newSlots.value[day.id]
   const { data, error } = await supabase.rpc('add_member_train_slot', {
     p_train_id:   train.value.id,
-    p_conductor:  authedUsername.value,
+    p_conductor:  authToken.value,
     p_day_id:     day.id,
     p_start_time: ns.start_time,
     p_duration:   ns.duration_min,

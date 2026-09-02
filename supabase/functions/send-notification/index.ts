@@ -3,10 +3,15 @@
  *
  * Receives Supabase Database Webhook POST payloads and sends email via Resend.
  *
- * Handles three webhooks (configure all in Supabase Dashboard → Database → Webhooks):
+ * Handles four webhooks (configure all in Supabase Dashboard → Database → Webhooks):
  *   1. Table: slots          | Event: UPDATE → checks if train is now full, emails if so
  *   2. Table: train_proposals| Event: INSERT → emails the proposal details immediately
  *   3. Table: trains         | Event: INSERT → emails when a member submits a new train
+ *   4. Table: email_outbox   | Event: INSERT → sends conductor access codes
+ *
+ * Note that 1–3 notify NOTIFY_EMAIL (you), while 4 emails the conductor
+ * directly, so a verified Resend domain is required for it to reach anyone
+ * other than your own verified address.
  *
  * Required secrets (set in Supabase Dashboard → Settings → Edge Functions → Secrets,
  * or via `supabase secrets set KEY=value`):
@@ -29,9 +34,9 @@ const SERVICE_KEY    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
 // ── Resend helper ──────────────────────────────────────────────────────────
 
-async function sendEmail(subject: string, html: string) {
-  if (!RESEND_API_KEY || !NOTIFY_EMAIL) {
-    console.warn('send-notification: RESEND_API_KEY or NOTIFY_EMAIL not set — skipping email')
+async function sendEmail(subject: string, html: string, to: string = NOTIFY_EMAIL) {
+  if (!RESEND_API_KEY || !to) {
+    console.warn('send-notification: RESEND_API_KEY or recipient not set — skipping email')
     return
   }
   const res = await fetch('https://api.resend.com/emails', {
@@ -42,7 +47,7 @@ async function sendEmail(subject: string, html: string) {
     },
     body: JSON.stringify({
       from:    FROM_EMAIL,
-      to:      NOTIFY_EMAIL,
+      to,
       subject,
       html,
     }),
@@ -154,6 +159,58 @@ async function handleMemberTrainInsert(record: Record<string, unknown>) {
   console.log(`send-notification: sent member train email for "${name}" (id: ${id})`)
 }
 
+// ── Conductor access code ──────────────────────────────────────────────────
+// The codes table stores only hashes, so the plaintext arrives via the
+// email_outbox row. Clear it once sent so the code isn't left sitting around.
+
+async function handleOutboxInsert(record: Record<string, unknown>) {
+  if (record.kind !== 'conductor_code' || record.sent_at) return
+
+  const payload   = (record.payload ?? {}) as Record<string, unknown>
+  const code      = String(payload.code ?? '')
+  const trainName = String(payload.train_name ?? 'your train')
+  const trainId   = String(payload.train_id ?? '')
+  const isWelcome = payload.is_welcome === true
+  const recipient = String(record.recipient ?? '')
+
+  if (!code || !recipient) return
+
+  const siteUrl   = Deno.env.get('PUBLIC_SITE_URL') ?? ''
+  const manageUrl = siteUrl && trainId ? `${siteUrl}/train/${trainId}/conductor` : ''
+
+  await sendEmail(
+    `${code} is your Niknax access code`,
+    `
+    <div style="font-family:sans-serif;max-width:520px;margin:0 auto">
+      <h2 style="color:#7c3aed">🚂 ${isWelcome ? 'Your train is created!' : 'Your access code'}</h2>
+      <p>${isWelcome
+          ? `<strong>${trainName}</strong> has been submitted for review. Use the code below to manage it.`
+          : `Here's your code to manage <strong>${trainName}</strong>.`}</p>
+      <p style="font-size:34px;font-weight:bold;letter-spacing:8px;
+                background:#f4f0ff;color:#4c1d95;padding:18px;text-align:center;
+                border-radius:10px;margin:22px 0">${code}</p>
+      <p style="color:#666;font-size:14px">This code expires in 30 minutes. Once you enter it,
+         you'll stay signed in on this device for 90 days.</p>
+      ${manageUrl ? `<p><a href="${manageUrl}" style="color:#7c3aed">Manage your train →</a></p>` : ''}
+      <p style="color:#999;font-size:12px;margin-top:26px">
+        If you didn't request this, you can ignore this email — the code only works for
+        someone who already has it.
+      </p>
+    </div>
+    `,
+    recipient,
+  )
+
+  // Mark sent and drop the plaintext code from the row
+  const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
+  await supabase
+    .from('email_outbox')
+    .update({ sent_at: new Date().toISOString(), payload: { train_id: trainId, sent: true } })
+    .eq('id', record.id as string)
+
+  console.log(`send-notification: sent conductor code to ${recipient} for ${trainName}`)
+}
+
 // ── Main handler ───────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
@@ -175,6 +232,10 @@ Deno.serve(async (req: Request) => {
 
     if (table === 'trains' && type === 'INSERT') {
       await handleMemberTrainInsert(record)
+    }
+
+    if (table === 'email_outbox' && type === 'INSERT') {
+      await handleOutboxInsert(record)
     }
 
     return new Response(JSON.stringify({ ok: true }), {

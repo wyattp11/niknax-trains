@@ -153,7 +153,7 @@
               :train-id="train.id"
               :locked="!!train.chat_locked"
               :can-moderate="isConductor"
-              :actor="conductorUsername"
+              :actor="conductorToken"
             />
           </div>
         </div>
@@ -710,7 +710,7 @@ import { useThemeStore } from '../../stores/theme.js'
 import { useOnboardingStore } from '../../stores/onboarding.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 import { renderMarkdown } from '../../lib/renderMarkdown.js'
-import { getConductorSession } from '../../lib/conductorAuth.js'
+import { getConductorToken } from '../../lib/conductorAuth.js'
 import { isStaffRole, staffTier } from '../../lib/roles.js'
 import TrainChat from '../../components/TrainChat.vue'
 
@@ -731,14 +731,11 @@ const signupUsername = ref('')
 const signupError    = ref('')
 const signupBlocked  = ref(false)   // true when an active strike blocks this claim
 
-// Conductor identity — lets the creator of a member train moderate its chat.
-// Admins moderate from the admin side; this is only the public-side path.
-const conductorUsername = ref('')
-const isConductor = computed(() =>
-  !!conductorUsername.value &&
-  !!train.value?.is_member_train &&
-  conductorUsername.value.toLowerCase() === String(train.value?.conductor_username || '').toLowerCase()
-)
+// Conductor session token — lets a verified conductor moderate their train's
+// chat from the public page. The server validates the token, so an expired or
+// revoked session simply can't delete anything.
+const conductorToken = ref('')
+const isConductor = computed(() => !!conductorToken.value && !!train.value?.is_member_train)
 const signingUp      = ref(false)
 const pageLinkCopied = ref(false)
 const graphicCopied  = ref(false)
@@ -1664,7 +1661,7 @@ function copyPageLink() {
 async function loadAndScroll() {
   document.addEventListener('pointerdown', closeCalendarMenusOnOutsideClick)
   await load()
-  conductorUsername.value = getConductorSession(route.params.id) || ''
+  conductorToken.value = getConductorToken(route.params.id)
   clockInterval = setInterval(() => { nowET.value = getCurrentET() }, 30_000)
   await nextTick()
   if (activeSlotId.value) {
