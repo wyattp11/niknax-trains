@@ -252,13 +252,21 @@
                 </div>
               </div>
 
+              <!-- Reserved rows stay clickable — whoever they're held for still
+                   claims them here, and claim_slot decides who's allowed. The
+                   public just doesn't need to know who that is. -->
               <button
                 v-if="canAttemptSignup && !slot.username"
                 @click="openSignup(slot, group.day)"
                 :data-tour="slot.id === firstOpenSlotId ? 'first-signup-btn' : undefined"
-                class="w-full bg-niknax-600 hover:bg-niknax-500 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                class="w-full text-sm font-semibold px-3 py-2 rounded-lg transition-colors
+                       inline-flex items-center justify-center gap-1.5"
+                :class="isReservedSlot(slot)
+                  ? 'bg-sur2 text-tx2 border border-bd hover:bg-bd'
+                  : 'bg-niknax-600 hover:bg-niknax-500 text-white'"
               >
-                {{ !train.published || isKickoffSlot(slot) || slot.is_pre_assigned ? 'Moderator Sign Up' : 'Sign Up' }}
+                <ion-icon v-if="isReservedSlot(slot)" name="lock-closed" aria-hidden="true"></ion-icon>
+                {{ isReservedSlot(slot) ? 'Reserved' : 'Sign Up' }}
               </button>
 
               <template v-else-if="slot.username">
@@ -397,9 +405,14 @@
                       v-if="canAttemptSignup && !slot.username"
                       @click="openSignup(slot, group.day)"
                       :data-tour="slot.id === firstOpenSlotId ? 'first-signup-btn' : undefined"
-                      class="bg-niknax-600 hover:bg-niknax-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                      class="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors
+                             inline-flex items-center gap-1.5 whitespace-nowrap"
+                      :class="isReservedSlot(slot)
+                        ? 'bg-sur2 text-tx2 border border-bd hover:bg-bd'
+                        : 'bg-niknax-600 hover:bg-niknax-500 text-white'"
                     >
-                      {{ !train.published || isKickoffSlot(slot) || slot.is_pre_assigned ? 'Moderator Sign Up' : 'Sign Up' }}
+                      <ion-icon v-if="isReservedSlot(slot)" name="lock-closed" aria-hidden="true"></ion-icon>
+                      {{ isReservedSlot(slot) ? 'Reserved' : 'Sign Up' }}
                     </button>
 
                     <template v-else-if="slot.username">
@@ -1064,6 +1077,19 @@ function zones(t) { return allZones(t) }
 
 function isKickoffSlot(slot) {
   return String(slot?.label || '').trim().toLowerCase() === 'kickoff'
+}
+
+/**
+ * Slots the general public can't claim: explicitly reserved rows, the kickoff,
+ * and everything on a train that isn't published yet (where only staff can
+ * sign up early).
+ *
+ * Publicly these all read simply as "Reserved". Who a slot is held for is
+ * nobody else's business — and the old "Moderator Sign Up" label was often
+ * wrong anyway, since reserved rows get used for guests and features too.
+ */
+function isReservedSlot(slot) {
+  return !train.value?.published || isKickoffSlot(slot) || !!slot.is_pre_assigned
 }
 
 function displaySlotLabel(slot) {
