@@ -16,10 +16,14 @@
 -- Codes expire in 30 minutes. Sessions last 90 days — trains get planned
 -- months ahead and re-authenticating on every visit would be miserable.
 --
--- Notes on the hashing: sha256() is core Postgres (11+), so this needs no
--- extension. Each code and token gets its own random salt, so two identical
+-- Notes on the hashing: sha256() is core Postgres (11+). Salts come from
+-- pgcrypto's gen_random_bytes(), which Supabase installs into the
+-- `extensions` schema — hence `search_path = public, extensions` on the
+-- functions below. Each code and token gets its own salt, so two identical
 -- codes never share a hash.
 -- ============================================================
+
+create extension if not exists pgcrypto with schema extensions;
 
 
 -- ── Conductors ────────────────────────────────────────────────────────────
@@ -136,7 +140,7 @@ create or replace function public.request_conductor_code(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions   -- pgcrypto lives in extensions
 as $$
 declare
   v_email_key   text;
@@ -227,7 +231,7 @@ create or replace function public.verify_conductor_code(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions   -- pgcrypto lives in extensions
 as $$
 declare
   v_email_key text;
@@ -489,7 +493,7 @@ create or replace function public.admin_resend_conductor_code(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions   -- pgcrypto lives in extensions
 as $$
 declare
   v_email_key  text;

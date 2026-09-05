@@ -28,7 +28,7 @@ create or replace function public.create_member_train(
 returns public.trains
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions   -- pgcrypto lives in extensions
 as $$
 declare
   clean_username text;
