@@ -473,6 +473,86 @@
           </div>
         </div>
 
+        <!-- ── Lobby ──
+             Appears once every claimable slot is taken. Reserved and kickoff
+             rows sitting empty don't count — a seller can't take those. -->
+        <section v-if="lobbyOpen && !trainIsPast" class="mt-14">
+          <div class="flex items-center gap-4 mb-4">
+            <h2 class="font-display text-2xl sm:text-3xl text-tx1 shrink-0">The Lobby</h2>
+            <div class="flex-1 h-[3px] bg-[#FEA0CE] rounded-full"></div>
+          </div>
+
+          <div class="card">
+            <p class="text-sm text-tx2 mb-1">
+              This train is full — but people drop out. Join the lobby and you'll be first in
+              line if a slot opens up.
+            </p>
+            <p class="text-xs text-tx3 mb-5">
+              The conductor picks from the lobby when a vacancy appears. No guarantee, but
+              it's how most last-minute spots get filled.
+            </p>
+
+            <!-- Waiting list -->
+            <div v-if="lobbyMembers.length" class="mb-5">
+              <p class="text-xs font-semibold text-tx3 uppercase tracking-wide mb-2">
+                Waiting ({{ lobbyMembers.length }})
+              </p>
+              <ol class="flex flex-wrap gap-2">
+                <li
+                  v-for="(m, i) in lobbyMembers"
+                  :key="m.username"
+                  class="inline-flex items-center gap-1.5 bg-sur2 rounded-full pl-2 pr-3 py-1"
+                  :title="m.note || ''"
+                >
+                  <span class="w-5 h-5 rounded-full bg-[#FEA0CE] text-[#2A2118] text-[0.65rem] font-bold flex items-center justify-center">
+                    {{ i + 1 }}
+                  </span>
+                  <span class="text-sm text-tx1">@{{ m.username }}</span>
+                </li>
+              </ol>
+            </div>
+            <p v-else class="text-sm text-tx3 italic mb-5">
+              Nobody waiting yet — you'd be first in line.
+            </p>
+
+            <!-- Join -->
+            <form @submit.prevent="joinLobby" class="space-y-3">
+              <div class="flex flex-col sm:flex-row gap-2">
+                <div class="relative flex-1">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-tx3 select-none">@</span>
+                  <input
+                    v-model="lobbyUsername"
+                    class="input pl-7"
+                    placeholder="your username"
+                    maxlength="60"
+                    required
+                    :disabled="lobbyBusy"
+                  />
+                </div>
+                <input
+                  v-model="lobbyNote"
+                  class="input sm:w-64"
+                  placeholder="Note (optional) — e.g. any time works"
+                  maxlength="120"
+                  :disabled="lobbyBusy"
+                />
+                <button
+                  type="submit"
+                  :disabled="lobbyBusy || !lobbyUsername.trim()"
+                  class="bg-[#FEA0CE] hover:bg-[#F9927C] text-[#2A2118] font-bold px-5 py-2 rounded-lg
+                         transition-colors shrink-0 disabled:opacity-50"
+                >{{ lobbyBusy ? '…' : 'Join the Lobby' }}</button>
+              </div>
+
+              <p v-if="lobbyError" class="text-red-600 dark:text-red-400 text-sm" role="alert">{{ lobbyError }}</p>
+              <p v-else-if="lobbyJoined" class="text-green-700 dark:text-green-400 text-sm" aria-live="polite">
+                You're in the lobby. The conductor will be in touch if a slot frees up.
+                <button type="button" @click="leaveLobby" class="underline underline-offset-2 ml-1">Leave</button>
+              </p>
+            </form>
+          </div>
+        </section>
+
       </main>
     </template>
 
@@ -746,6 +826,66 @@ const signupUsername = ref('')
 const signupError    = ref('')
 const signupBlocked  = ref(false)   // true when an active strike blocks this claim
 
+// ── Lobby ─────────────────────────────────────────────────────────────────
+// A waiting list that only appears once every claimable slot is taken.
+const lobbyOpen     = ref(false)
+const lobbyMembers  = ref([])
+const lobbyUsername = ref('')
+const lobbyNote     = ref('')
+const lobbyBusy     = ref(false)
+const lobbyError    = ref('')
+const lobbyJoined   = ref(false)
+
+async function loadLobby() {
+  const { data } = await supabase.rpc('train_lobby_state', { p_train_id: route.params.id })
+  lobbyOpen.value    = !!data?.open
+  lobbyMembers.value = data?.members || []
+
+  // Remember them across visits so they can leave again later.
+  try {
+    const saved = localStorage.getItem(`niknax_lobby_${route.params.id}`)
+    if (saved) {
+      lobbyUsername.value = saved
+      lobbyJoined.value = lobbyMembers.value
+        .some(m => m.username.toLowerCase() === saved.toLowerCase())
+    }
+  } catch { /* private mode */ }
+}
+
+async function joinLobby() {
+  lobbyError.value = ''
+  lobbyBusy.value  = true
+
+  const who = lobbyUsername.value.trim().replace(/^@+/, '')
+  const { error } = await supabase.rpc('join_train_lobby', {
+    p_train_id: route.params.id,
+    p_username: who,
+    p_note:     lobbyNote.value.trim() || null,
+  })
+
+  if (error) {
+    lobbyError.value = error.message || 'Could not join the lobby.'
+  } else {
+    lobbyJoined.value = true
+    lobbyNote.value = ''
+    try { localStorage.setItem(`niknax_lobby_${route.params.id}`, who) } catch { /* private mode */ }
+    await loadLobby()
+  }
+  lobbyBusy.value = false
+}
+
+async function leaveLobby() {
+  lobbyBusy.value = true
+  await supabase.rpc('leave_train_lobby', {
+    p_train_id: route.params.id,
+    p_username: lobbyUsername.value.trim().replace(/^@+/, ''),
+  })
+  lobbyJoined.value = false
+  try { localStorage.removeItem(`niknax_lobby_${route.params.id}`) } catch { /* private mode */ }
+  await loadLobby()
+  lobbyBusy.value = false
+}
+
 // Conductor session token — lets a verified conductor moderate their train's
 // chat from the public page. The server validates the token, so an expired or
 // revoked session simply can't delete anything.
@@ -957,6 +1097,10 @@ function safeUrl(raw) {
 function applySlotRealtimeChange(payload) {
   const nextSlot = payload.new
   const oldSlot = payload.old
+
+  // Any slot change can flip the lobby open or shut — a claim fills the last
+  // vacancy, a release opens one back up.
+  loadLobby()
 
   if (payload.eventType === 'DELETE') {
     slots.value = slots.value.filter(slot => slot.id !== oldSlot?.id)
@@ -1695,6 +1839,7 @@ async function loadAndScroll() {
   document.addEventListener('pointerdown', closeCalendarMenusOnOutsideClick)
   await load()
   conductorToken.value = getConductorToken(route.params.id)
+  await loadLobby()
   clockInterval = setInterval(() => { nowET.value = getCurrentET() }, 30_000)
   await nextTick()
   if (activeSlotId.value) {

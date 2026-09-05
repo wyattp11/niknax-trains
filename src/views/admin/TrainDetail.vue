@@ -101,6 +101,31 @@
           </button>
         </div>
 
+        <!-- ── Lobby ── -->
+        <div v-if="lobbyMembers.length" class="card mb-6">
+          <h3 class="font-semibold text-[#B3123C] mb-1">
+            The Lobby
+            <span class="text-tx3 font-normal text-sm">({{ lobbyMembers.length }} waiting)</span>
+          </h3>
+          <p class="text-xs text-tx3 mb-4">
+            Sellers waiting for a vacancy. Use <strong>Sub</strong> on any slot row to swap
+            one of them in — that removes whoever holds the slot and clears their show link.
+          </p>
+          <ol class="flex flex-wrap gap-2">
+            <li
+              v-for="(m, i) in lobbyMembers"
+              :key="m.username"
+              class="inline-flex items-center gap-1.5 bg-sur2 rounded-full pl-2 pr-3 py-1"
+              :title="`${m.note || 'No note'} · waiting since ${formatTimestamp(m.created_at)}`"
+            >
+              <span class="w-5 h-5 rounded-full bg-[#FEA0CE] text-[#2A2118] text-[0.65rem] font-bold flex items-center justify-center">
+                {{ i + 1 }}
+              </span>
+              <span class="text-sm text-tx1">@{{ m.username }}</span>
+            </li>
+          </ol>
+        </div>
+
         <!-- ── Conductors (member trains only) ── -->
         <div v-if="train.is_member_train" class="card mb-6">
           <h3 class="font-semibold text-niknax-600 dark:text-niknax-300 mb-1">Conductors</h3>
@@ -596,6 +621,14 @@
                         title="Move this seller to another slot — the slot times stay put"
                       >Move</button>
                       <button
+                        v-if="lobbyMembers.length"
+                        @click="openSubstitute(slot)"
+                        class="text-xs whitespace-nowrap text-[#B3123C] hover:opacity-75 font-semibold"
+                        :title="slot.username
+                          ? `Swap ${slot.username} out for someone from the lobby`
+                          : 'Fill this open slot from the lobby'"
+                      >Sub</button>
+                      <button
                         v-if="slot.username"
                         @click="openStrikeModal(slot)"
                         class="text-xs transition-colors"
@@ -718,6 +751,60 @@
           <button @click="saveNewSlot" :disabled="savingSlot" class="btn-primary w-full sm:w-auto">
             {{ savingSlot ? '…' : 'Add Slot' }}
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Substitute modal ── -->
+    <div v-if="substituteSlot" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" @click.self="substituteSlot = null">
+      <div
+        ref="substituteModalRef"
+        class="bg-surface border border-bd rounded-xl p-6 w-full max-w-md space-y-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="substitute-title"
+        tabindex="-1"
+      >
+        <div>
+          <h4 id="substitute-title" class="font-semibold text-tx1">
+            Substitute into {{ zones(substituteSlot.start_time)[0].time }} ET
+          </h4>
+          <p class="text-xs text-tx3 mt-1">
+            <template v-if="substituteSlot.username">
+              <strong>@{{ substituteSlot.username }}</strong> will be removed from the train and
+              replaced. Their show link is cleared too.
+            </template>
+            <template v-else>
+              This slot is open — pick someone from the lobby to fill it.
+            </template>
+          </p>
+        </div>
+
+        <ol class="space-y-2 max-h-72 overflow-y-auto">
+          <li
+            v-for="(m, i) in lobbyMembers"
+            :key="m.username"
+            class="flex items-center justify-between gap-3 bg-sur2 rounded-lg px-3 py-2"
+          >
+            <div class="min-w-0">
+              <p class="text-sm text-tx1">
+                <span class="text-tx3 font-mono text-xs mr-1.5">{{ i + 1 }}.</span>@{{ m.username }}
+              </p>
+              <p v-if="m.note" class="text-xs text-tx3 truncate">{{ m.note }}</p>
+              <p class="text-xs text-tx3">waiting since {{ formatTimestamp(m.created_at) }}</p>
+            </div>
+            <button
+              @click="doSubstitute(m)"
+              :disabled="substituting"
+              class="btn-primary text-xs py-1 px-3 shrink-0 disabled:opacity-50"
+            >{{ substituting === m.username ? '…' : 'Swap in' }}</button>
+          </li>
+        </ol>
+
+        <p v-if="substituteError" class="text-red-600 dark:text-red-400 text-sm" role="alert">{{ substituteError }}</p>
+
+        <div class="flex justify-end">
+          <button @click="substituteSlot = null" class="btn-secondary w-full sm:w-auto">Cancel</button>
         </div>
       </div>
     </div>
@@ -1565,6 +1652,49 @@ async function toggleUpcoming() {
   train.value.is_upcoming = val
 }
 
+// ── Lobby & substitution ──────────────────────────────────────────────────
+const lobbyMembers    = ref([])
+const substituteSlot  = ref(null)
+const substituting    = ref(null)
+const substituteError = ref('')
+
+const { modalRef: substituteModalRef } = useModalA11y(
+  () => !!substituteSlot.value,
+  () => { substituteSlot.value = null }
+)
+
+async function loadLobby() {
+  const { data } = await supabase.rpc('train_lobby_state', { p_train_id: route.params.id })
+  lobbyMembers.value = data?.members || []
+}
+
+function openSubstitute(slot) {
+  substituteError.value = ''
+  substituteSlot.value  = slot
+}
+
+async function doSubstitute(member) {
+  substituteError.value = ''
+  substituting.value    = member.username
+
+  const { data, error } = await supabase.rpc('substitute_from_lobby', {
+    p_slot_id:  substituteSlot.value.id,
+    p_username: member.username,
+  })
+
+  if (error) {
+    substituteError.value = error.message || 'Could not substitute that person in.'
+    // They may have been removed from the lobby by the RPC's own guard.
+    await loadLobby()
+  } else {
+    const local = slots.value.find(s => s.id === data.id)
+    if (local) Object.assign(local, data)
+    substituteSlot.value = null
+    await loadLobby()
+  }
+  substituting.value = null
+}
+
 // ── Conductors ────────────────────────────────────────────────────────────
 const conductors        = ref([])
 const loadingConductors = ref(false)
@@ -1933,6 +2063,7 @@ onMounted(() => {
   load().then(loadConductors)
   loadTeamMembers()
   loadStrikes()
+  loadLobby()
 })
 onUnmounted(() => {
   if (slotsChannel) supabase.removeChannel(slotsChannel)
