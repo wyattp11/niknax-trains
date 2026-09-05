@@ -14,9 +14,9 @@
         <p class="text-tx3 mb-4">Your train is pending review by the Niknax team.</p>
         <div class="bg-sur2 rounded-lg p-4 max-w-md mx-auto mb-6 text-left">
           <p class="text-sm text-tx2">
-            📬 We've emailed an access code to <strong class="text-tx1">{{ createdEmail }}</strong>.
-            Enter it on the manage page to unlock editing — it's good for 30 minutes, and once
-            you're in you'll stay signed in on this device for 90 days.
+            🔑 The Niknax team will send you an access code so you can manage this train.
+            You'll enter it once on the manage page and stay signed in on this device
+            for 90 days.
           </p>
         </div>
         <p class="text-tx3 mb-8 text-sm">
@@ -91,8 +91,8 @@
                   autocomplete="email"
                 />
                 <p class="text-xs text-tx3 mt-1.5">
-                  We'll email you an access code so you can manage this train. You'll need it
-                  every time you sign in on a new device, so use an address you check.
+                  So the Niknax team can reach you about this train. Your access code is
+                  sent to you separately.
                 </p>
               </div>
 

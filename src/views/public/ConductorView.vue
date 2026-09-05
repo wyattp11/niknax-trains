@@ -23,69 +23,37 @@
             </p>
           </div>
 
-          <!-- Step 1: email -->
-          <form v-if="gateStep === 'email'" @submit.prevent="requestCode" class="space-y-4">
+          <form @submit.prevent="submitCode" class="space-y-4">
             <div>
-              <label class="label" for="gate-email">Your email</label>
-              <input
-                id="gate-email"
-                v-model="gateEmail"
-                type="email"
-                class="input"
-                placeholder="you@example.com"
-                required
-                autocomplete="email"
-                :disabled="gateLoading"
-              />
-              <p class="text-xs text-tx3 mt-1.5">
-                We'll send a 6-digit code to the address registered for this train.
-              </p>
-            </div>
-            <p v-if="gateError" class="text-red-600 dark:text-red-400 text-sm" role="alert">{{ gateError }}</p>
-            <button type="submit" :disabled="gateLoading" class="btn-primary w-full">
-              {{ gateLoading ? 'Sending…' : 'Email me a code →' }}
-            </button>
-          </form>
-
-          <!-- Step 2: code -->
-          <form v-else @submit.prevent="submitCode" class="space-y-4">
-            <p class="text-sm text-tx2 bg-sur2 rounded-lg p-3">
-              If <strong>{{ gateEmail }}</strong> is a conductor on this train, a code is on its way.
-              It expires in 30 minutes.
-            </p>
-            <div>
-              <label class="label" for="gate-code">6-digit code</label>
+              <label class="label" for="gate-code">Access code</label>
               <input
                 id="gate-code"
                 v-model="gateCode"
-                inputmode="numeric"
-                autocomplete="one-time-code"
-                maxlength="6"
-                class="input text-center text-2xl tracking-[0.5em] font-mono"
-                placeholder="000000"
+                autocomplete="off"
+                autocapitalize="characters"
+                spellcheck="false"
+                maxlength="9"
+                class="input text-center text-2xl tracking-[0.25em] font-mono uppercase"
+                placeholder="XXXX-XXXX"
                 required
                 :disabled="gateLoading"
+                @input="gateCode = formatCodeInput(gateCode)"
               />
+              <p class="text-xs text-tx3 mt-1.5">
+                The 8-character code from your Niknax admin. Codes are good for 48 hours —
+                once you're in, you'll stay signed in on this device for 90 days.
+              </p>
             </div>
+
             <p v-if="gateError" class="text-red-600 dark:text-red-400 text-sm" role="alert">{{ gateError }}</p>
-            <button type="submit" :disabled="gateLoading || gateCode.length < 6" class="btn-primary w-full">
+
+            <button type="submit" :disabled="gateLoading || gateCode.length < 9" class="btn-primary w-full">
               {{ gateLoading ? 'Checking…' : 'Unlock train →' }}
             </button>
-            <div class="flex justify-between text-xs">
-              <button type="button" @click="gateStep = 'email'; gateError = ''" class="text-tx3 hover:text-tx1">
-                ← Use a different email
-              </button>
-              <button
-                type="button"
-                @click="requestCode"
-                :disabled="gateLoading"
-                class="text-niknax-600 dark:text-niknax-400 hover:underline disabled:opacity-50"
-              >Resend code</button>
-            </div>
           </form>
 
           <p class="text-xs text-tx3 border-t border-bd pt-4">
-            Not sure which email is registered? Ask the Niknax team — they can resend your code.
+            Don't have a code, or has yours expired? Ask the Niknax team for a new one.
           </p>
         </div>
       </div>
@@ -494,39 +462,26 @@ const authedUsername = ref(null)   // display only
 const isPrimary      = ref(false)
 const conductors     = ref([])
 
-const gateStep    = ref('email')   // 'email' | 'code'
-const gateEmail   = ref('')
 const gateCode    = ref('')
 const gateLoading = ref(false)
 const gateError   = ref('')
 
-async function requestCode() {
-  gateError.value   = ''
-  gateLoading.value = true
-
-  const { error } = await supabase.rpc('request_conductor_code', {
-    p_train_id: train.value.id,
-    p_email:    gateEmail.value.trim(),
-  })
-
-  if (error) {
-    gateError.value = error.message || 'Could not send a code. Please try again.'
-  } else {
-    // Deliberately the same response whether or not the email is registered,
-    // so this page can't be used to discover who runs a train.
-    gateStep.value = 'code'
-    gateCode.value = ''
-  }
-  gateLoading.value = false
+/**
+ * Keeps the field readable as they type: uppercase, drop anything outside the
+ * code alphabet, and re-insert the dash after four characters. Means a code
+ * pasted as "abcd efgh" or typed without the dash still works.
+ */
+function formatCodeInput(value) {
+  const cleaned = String(value || '').toUpperCase().replace(/[^2-9A-HJ-NP-Z]/g, '').slice(0, 8)
+  return cleaned.length > 4 ? `${cleaned.slice(0, 4)}-${cleaned.slice(4)}` : cleaned
 }
 
 async function submitCode() {
   gateError.value   = ''
   gateLoading.value = true
 
-  const { data, error } = await supabase.rpc('verify_conductor_code', {
+  const { data, error } = await supabase.rpc('redeem_conductor_code', {
     p_train_id: train.value.id,
-    p_email:    gateEmail.value.trim(),
     p_code:     gateCode.value.trim(),
   })
 
@@ -573,8 +528,8 @@ function signOutConductor() {
   authEmail.value = ''
   authedUsername.value = null
   conductors.value = []
-  gateStep.value = 'email'
   gateCode.value = ''
+  gateError.value = ''
 }
 
 /**

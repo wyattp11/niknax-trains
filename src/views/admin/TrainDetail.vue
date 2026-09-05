@@ -123,11 +123,11 @@
             >
               <div class="min-w-0">
                 <p class="text-sm text-tx1 truncate">
-                  {{ c.email }}
+                  {{ c.username ? '@' + c.username : c.email }}
                   <span v-if="c.is_primary" class="ml-1 text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-niknax-100 dark:bg-niknax-900/50 text-niknax-700 dark:text-niknax-300">PRIMARY</span>
                 </p>
                 <p class="text-xs text-tx3">
-                  <span v-if="c.username">@{{ c.username }} · </span>
+                  <span v-if="c.username && c.email">{{ c.email }} · </span>
                   <span v-if="c.last_seen_at">last active {{ formatTimestamp(c.last_seen_at) }}</span>
                   <span v-else>never signed in</span>
                 </p>
@@ -141,10 +141,10 @@
                   title="The primary conductor can't be removed by other conductors"
                 >Make primary</button>
                 <button
-                  @click="resendConductorCode(c)"
+                  @click="generateConductorCode(c)"
                   :disabled="resendingId === c.id"
                   class="btn-secondary text-xs py-1 px-2.5 disabled:opacity-50"
-                >{{ resendingId === c.id ? 'Sending…' : resentId === c.id ? 'Sent ✓' : 'Resend code' }}</button>
+                >{{ resendingId === c.id ? '…' : 'Generate code' }}</button>
                 <button
                   @click="removeConductor(c)"
                   :disabled="savingConductor"
@@ -157,25 +157,24 @@
           <!-- Add a conductor -->
           <form @submit.prevent="addConductor" class="flex flex-col sm:flex-row gap-2">
             <input
-              v-model="newConductor.email"
-              type="email"
+              v-model="newConductor.username"
               class="input flex-1"
-              placeholder="conductor@example.com"
-              required
+              placeholder="username"
+              maxlength="60"
             />
             <input
-              v-model="newConductor.username"
-              class="input sm:w-44"
-              placeholder="username (optional)"
-              maxlength="60"
+              v-model="newConductor.email"
+              type="email"
+              class="input sm:w-56"
+              placeholder="email (optional)"
             />
             <button type="submit" :disabled="savingConductor" class="btn-secondary text-sm py-2 shrink-0">
               {{ savingConductor ? 'Adding…' : 'Add' }}
             </button>
           </form>
           <p class="text-xs text-tx3 mt-1.5">
-            Adding someone doesn't email them automatically — use <strong>Resend code</strong> once
-            they're listed.
+            Username or email — either identifies them. Then hit
+            <strong>Generate code</strong> and send them the code.
           </p>
 
           <!-- The generated code, shown so it can be passed along directly.
@@ -186,12 +185,16 @@
           >
             <div class="flex items-start justify-between gap-3 flex-wrap">
               <div>
-                <p class="text-xs text-tx3 mb-1">Access code for <strong class="text-tx1">{{ revealedCode.email }}</strong></p>
-                <p class="text-3xl font-mono font-bold tracking-[0.3em] text-niknax-700 dark:text-niknax-300">
+                <p class="text-xs text-tx3 mb-1">Access code for <strong class="text-tx1">{{ revealedCode.label }}</strong></p>
+                <p class="text-3xl font-mono font-bold tracking-[0.2em] text-niknax-700 dark:text-niknax-300">
                   {{ revealedCode.code }}
                 </p>
                 <p class="text-xs text-tx3 mt-1">
-                  Expires {{ formatTimestamp(revealedCode.expires_at) }} · also emailed to them
+                  Good for 48 hours · expires {{ formatTimestamp(revealedCode.expires_at) }}
+                </p>
+                <p class="text-xs text-tx3 mt-1.5 max-w-sm">
+                  Send this to them however you like. They enter it on
+                  <strong>Manage your train</strong> and stay signed in for 90 days.
                 </p>
               </div>
               <div class="flex items-center gap-2 shrink-0">
@@ -1571,24 +1574,30 @@ const newConductor    = ref({ email: '', username: '' })
 const savingConductor = ref(false)
 
 async function addConductor() {
-  const email = newConductor.value.email.trim()
-  if (!email) return
+  const email    = newConductor.value.email.trim()
+  const username = newConductor.value.username.trim().replace(/^@+/, '')
+
+  // Email is no longer used for delivery, so either identifier will do.
+  if (!email && !username) {
+    conductorError.value = 'Enter a username or an email.'
+    return
+  }
 
   conductorError.value  = ''
   savingConductor.value = true
 
   const { error } = await supabase.from('train_conductors').insert({
     train_id:   route.params.id,
-    email,
-    email_key:  email.toLowerCase(),
-    username:   newConductor.value.username.trim().replace(/^@+/, '') || null,
+    email:      email || null,
+    email_key:  email ? email.toLowerCase() : null,
+    username:   username || null,
     // First one added becomes primary, so a train always has an owner.
     is_primary: conductors.value.length === 0,
   })
 
   if (error) {
     conductorError.value = error.code === '23505'
-      ? 'That email is already a conductor on this train.'
+      ? 'That person is already a conductor on this train.'
       : (error.message || 'Could not add that conductor.')
   } else {
     newConductor.value = { email: '', username: '' }
@@ -1606,15 +1615,9 @@ async function removeConductor(c) {
   conductorError.value  = ''
   savingConductor.value = true
 
-  // Revoke live sessions first, so removal takes effect immediately rather
-  // than whenever their 90-day token happens to expire.
-  await supabase
-    .from('conductor_sessions')
-    .update({ revoked_at: new Date().toISOString() })
-    .eq('train_id', route.params.id)
-    .eq('email_key', c.email.toLowerCase())
-    .is('revoked_at', null)
-
+  // The revoke_sessions_on_conductor_delete trigger cuts their live sessions,
+  // so removal takes effect immediately however it's done — and it works for
+  // conductors registered by username with no email.
   const { error } = await supabase.from('train_conductors').delete().eq('id', c.id)
 
   if (error) conductorError.value = error.message || 'Could not remove that conductor.'
@@ -1644,24 +1647,26 @@ async function makePrimaryConductor(c) {
   savingConductor.value = false
 }
 
-async function resendConductorCode(c) {
+/**
+ * Issues a 48-hour access code for one conductor. Shown on screen for the
+ * admin to pass on however they like — no email involved.
+ */
+async function generateConductorCode(c) {
   conductorError.value = ''
   resendingId.value    = c.id
 
-  const { data, error } = await supabase.rpc('admin_resend_conductor_code', {
-    p_train_id: route.params.id,
-    p_email:    c.email,
+  const { data, error } = await supabase.rpc('admin_create_conductor_code', {
+    p_conductor_id: c.id,
   })
 
   if (error) {
-    conductorError.value = error.message || 'Could not send that code.'
+    conductorError.value = error.message || 'Could not generate a code.'
   } else {
-    resentId.value = c.id
-    // Shown alongside the email so it can be relayed directly when delivery
-    // to that address isn't working.
-    revealedCode.value = data?.code ? data : null
+    revealedCode.value = {
+      ...data,
+      label: c.username ? `@${c.username}` : c.email,
+    }
     codeCopied.value = false
-    setTimeout(() => { if (resentId.value === c.id) resentId.value = null }, 4000)
   }
   resendingId.value = null
 }
