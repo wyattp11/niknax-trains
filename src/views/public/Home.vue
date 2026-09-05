@@ -93,10 +93,17 @@
         </div>
 
         <div v-else class="space-y-3">
-          <component
-            :is="ev.published ? RouterLink : 'div'"
+          <!-- Wrapper carries the hover so the popup can sit outside the card
+               without the card's own transform clipping it. -->
+          <div
             v-for="(ev, idx) in events"
             :key="ev.id"
+            class="relative"
+            @mouseenter="ev.rules_md && (hoveredRulesId = ev.id)"
+            @mouseleave="hoveredRulesId = null"
+          >
+          <component
+            :is="ev.published ? RouterLink : 'div'"
             :to="ev.published ? `/train/${ev.id}` : undefined"
             :data-tour="idx === 0 ? 'first-event-card' : undefined"
             class="flex items-stretch gap-4 card transition-all"
@@ -132,6 +139,37 @@
 
             <span v-if="ev.published" class="text-niknax-600 dark:text-niknax-400 group-hover:translate-x-1 transition-transform text-xl shrink-0 font-bold">→</span>
           </component>
+
+          <!-- Guidelines on hover. Desktop only — hidden below lg, where
+               there's no hover and not enough room to place it. -->
+          <Transition
+            enter-active-class="transition duration-150 ease-out"
+            enter-from-class="opacity-0 translate-y-1"
+            leave-active-class="transition duration-100 ease-in"
+            leave-to-class="opacity-0"
+          >
+            <!-- Floats below the card rather than beside it: the events list
+                 is max-w-5xl, so there's no room to the side even on wide
+                 screens. Absolute so it overlays instead of shifting the
+                 list, and pointer-events-none so it can't block the card. -->
+            <div
+              v-if="hoveredRulesId === ev.id"
+              class="hidden md:block absolute z-30 left-0 right-0 top-full mt-2 pointer-events-none"
+              role="tooltip"
+            >
+              <div class="bg-surface border-2 border-niknax-600 rounded-xl shadow-2xl overflow-hidden">
+                <div class="bg-niknax-600 text-white px-4 py-2 flex items-center gap-2">
+                  <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
+                  <span class="text-sm font-semibold">Sign-Up Rules &amp; Criteria</span>
+                </div>
+                <div
+                  class="rules-content px-4 py-3 max-h-[22rem] overflow-y-auto text-sm"
+                  v-html="renderMarkdown(ev.rules_md)"
+                ></div>
+              </div>
+            </div>
+          </Transition>
+          </div>
         </div>
       </section>
 
@@ -201,10 +239,15 @@ import { useThemeStore } from '../../stores/theme.js'
 import { useOnboardingStore } from '../../stores/onboarding.js'
 import EventCalendar from '../../components/EventCalendar.vue'
 import TrainAnimation from '../../components/TrainAnimation.vue'
+import { renderMarkdown } from '../../lib/renderMarkdown.js'
 
 const theme      = useThemeStore()
 const onboarding = useOnboardingStore()
 const rawTrains = ref([])
+
+// Which train's guidelines are showing on hover. Desktop only — the panel is
+// hidden below md, where there's no hover to begin with.
+const hoveredRulesId = ref(null)
 const loading   = ref(true)
 
 async function load() {
