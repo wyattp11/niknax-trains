@@ -166,13 +166,17 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import { supabase } from '../../lib/supabase.js'
-import { trainStatus, STATUS_BADGE_CLASS, isPastTrain } from '../../lib/timeUtils.js'
+import { trainStatus, STATUS_BADGE_CLASS, isPastTrain, isTrainLive } from '../../lib/timeUtils.js'
 
 const router = useRouter()
 
 const trains     = ref([])
 const loading    = ref(true)
 const duplicatingId = ref(null)
+
+// Ticking clock so the Live Now badge updates without a reload.
+const nowTick = ref(new Date())
+let tickInterval = null
 const proposals  = ref([])
 let proposalsSub = null
 
@@ -180,7 +184,7 @@ async function loadTrains() {
   loading.value = true
   const { data, error } = await supabase
     .from('trains')
-    .select('*, days:train_days(day_date, slots(id, username))')
+    .select('*, days:train_days(day_date, slots(id, username, start_time, duration_min, slot_order))')
     .order('created_at', { ascending: false })
   if (!error) trains.value = data
   loading.value = false
@@ -211,7 +215,7 @@ function slotCounts(train) {
 function status(train) {
   if (isPast(train)) return { key: 'past', label: 'Past Event' }
   const { total, filled } = slotCounts(train)
-  return trainStatus(train, total, filled)
+  return trainStatus(train, total, filled, { isLive: isTrainLive(train.days, nowTick.value) })
 }
 
 function statusBadgeClass(train) {
@@ -311,6 +315,13 @@ async function markReviewed(proposal) {
   if (!error) proposal.reviewed = true
 }
 
-onMounted(() => { loadTrains(); loadProposals() })
-onUnmounted(() => { proposalsSub?.unsubscribe() })
+onMounted(() => {
+  loadTrains()
+  loadProposals()
+  tickInterval = setInterval(() => { nowTick.value = new Date() }, 30_000)
+})
+onUnmounted(() => {
+  proposalsSub?.unsubscribe()
+  if (tickInterval) clearInterval(tickInterval)
+})
 </script>

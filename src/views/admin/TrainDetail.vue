@@ -811,7 +811,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
-import { allZones, addMinutes, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS, slotDayOffsets, slotDateTime, slotInsertPosition, groupSlotsByCalendarDay, hasOutOfOrderSlots } from '../../lib/timeUtils.js'
+import { allZones, addMinutes, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS, slotDayOffsets, slotDateTime, slotInsertPosition, groupSlotsByCalendarDay, hasOutOfOrderSlots, isTrainLive } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 
@@ -1098,7 +1098,13 @@ async function applyMove(source, newSourceSeller, target, newTargetSeller) {
 const publicUrl = computed(() => `${location.origin}/train/${train.value?.id}`)
 
 const statusBadge = computed(() => {
-  const s = trainStatus(train.value, slots.value.length, slots.value.filter(sl => sl.username).length)
+  const daysWithSlots = days.value.map(d => ({ ...d, slots: slotsByDay.value[d.id] || [] }))
+  const s = trainStatus(
+    train.value,
+    slots.value.length,
+    slots.value.filter(sl => sl.username).length,
+    { isLive: isTrainLive(daysWithSlots) },
+  )
   return { label: s.label, class: `badge-${STATUS_BADGE_CLASS[s.key]}` }
 })
 

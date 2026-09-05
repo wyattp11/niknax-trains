@@ -246,10 +246,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { RouterLink } from 'vue-router'
 import { supabase, isSupabaseConfigured } from '../../lib/supabase.js'
-import { formatDate, trainStatus, STATUS_BADGE_CLASS, isPastTrain } from '../../lib/timeUtils.js'
+import { formatDate, trainStatus, STATUS_BADGE_CLASS, isPastTrain, isTrainLive } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
 import { useOnboardingStore } from '../../stores/onboarding.js'
 import EventCalendar from '../../components/EventCalendar.vue'
@@ -263,12 +263,19 @@ const rawTrains = ref([])
 // Which train's guidelines are showing on hover. Desktop only — the panel is
 // hidden below md, where there's no hover to begin with.
 const hoveredRulesId = ref(null)
+
+// Ticking clock so the Live Now badge appears and clears on its own. A badge
+// that only updates on reload would be wrong for most of the show.
+const nowTick = ref(new Date())
+let tickInterval = null
 const loading   = ref(true)
 
 async function load() {
   const { data } = await supabase
     .from('trains')
-    .select('*, days:train_days(id, day_date, slots(id, username))')
+    // start_time / duration_min / slot_order are needed to work out whether a
+    // train is airing right now, not just whether sign-ups are open.
+    .select('*, days:train_days(id, day_date, slots(id, username, start_time, duration_min, slot_order))')
     .or('published.eq.true,is_upcoming.eq.true')
     .order('created_at', { ascending: false })
   rawTrains.value = data || []
@@ -286,7 +293,8 @@ function enrich(t) {
   const isPast = isPastTrain(dates)
   const status = isPast
     ? { key: 'past', label: 'Past Event' }
-    : trainStatus(t, allSlots.length, allSlots.filter(s => s.username).length)
+    : trainStatus(t, allSlots.length, allSlots.filter(s => s.username).length,
+                  { isLive: isTrainLive(t.days, nowTick.value) })
   return { ...t, dates, dateRange, isPast, status }
 }
 
@@ -367,5 +375,13 @@ onMounted(async () => {
     onboarding.markIntroSeen()
     nextTick(() => startHomeTour())
   }
+
+  // 30s is fine — slots are 10 minutes at the shortest, so the badge is never
+  // meaningfully stale, and this costs nothing.
+  tickInterval = setInterval(() => { nowTick.value = new Date() }, 30_000)
+})
+
+onUnmounted(() => {
+  if (tickInterval) clearInterval(tickInterval)
 })
 </script>

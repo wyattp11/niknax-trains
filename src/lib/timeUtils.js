@@ -246,9 +246,14 @@ export function formatDate(dateStr) {
  * @param {number} totalSlots   total slot count across all days
  * @param {number} filledSlots  slots with a non-null username
  */
-export function trainStatus(train, totalSlots = 0, filledSlots = 0) {
+export function trainStatus(train, totalSlots = 0, filledSlots = 0, opts = {}) {
   if (!train?.published) {
     return { key: 'pending', label: 'Arriving Soon' }
+  }
+  // Airing right now outranks everything else — it's the most useful thing a
+  // viewer can know, and it's true whether or not sign-ups are full.
+  if (opts.isLive) {
+    return { key: 'live', label: 'Live Now' }
   }
   if (totalSlots > 0 && filledSlots >= totalSlots) {
     return { key: 'full', label: 'All Aboard!' }
@@ -256,10 +261,39 @@ export function trainStatus(train, totalSlots = 0, filledSlots = 0) {
   return { key: 'boarding', label: 'Now Boarding' }
 }
 
+/**
+ * True when the current time falls inside a day's actual running window —
+ * from its first slot's start to its last slot's end.
+ *
+ * Rollover-aware, so a train ending at 2:40 AM is still live at 1 AM rather
+ * than looking finished because the clock wrapped past midnight.
+ *
+ * @param days [{ day_date, slots: [{ id, start_time, duration_min, slot_order }] }]
+ */
+export function isTrainLive(days, now = new Date()) {
+  for (const day of days || []) {
+    const slots = [...(day.slots || [])].sort(
+      (a, b) => (a.slot_order ?? 0) - (b.slot_order ?? 0)
+    )
+    if (!slots.length || !day.day_date) continue
+
+    const offsets = slotDayOffsets(slots)
+    const first   = slots[0]
+    const last    = slots[slots.length - 1]
+
+    const start = slotDateTime(day, first, offsets.get(first.id) || 0)
+    const end   = slotDateTime(day, last, offsets.get(last.id) || 0, last.duration_min || 30)
+
+    if (now >= start && now < end) return true
+  }
+  return false
+}
+
 /** Maps a trainStatus() key to its .badge- (or .chip-) CSS class suffix. */
 export const STATUS_BADGE_CLASS = {
   pending:  'upcoming',
   boarding: 'live',
+  live:     'onair',
   full:     'full',
   past:     'past',
 }

@@ -260,6 +260,28 @@
     color: #0F2A28; /* dark teal text — white fails contrast on turquoise */
     @apply text-xs font-extrabold uppercase tracking-wide px-3 py-1 rounded-full shadow-sm;
   }
+  /* "Live Now" — the show is actually airing. Deliberately the loudest badge
+     in the set, with a pulsing dot, since it's the most time-sensitive thing
+     a viewer can see. #B3123C on white clears WCAG AA at 6.1:1. */
+  .badge-onair {
+    background-color: #B3123C; /* crimson — reserved for on-air only */
+    color: #FFFFFF;
+    @apply text-xs font-extrabold uppercase tracking-wide px-3 py-1 rounded-full shadow-sm
+           inline-flex items-center gap-1.5;
+  }
+  .badge-onair::before {
+    content: '';
+    @apply w-1.5 h-1.5 rounded-full bg-white;
+    animation: onair-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes onair-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.35; transform: scale(0.8); }
+  }
+  /* Respect a reduced-motion preference — the colour still carries it. */
+  @media (prefers-reduced-motion: reduce) {
+    .badge-onair::before { animation: none; }
+  }
   .badge-past {
     background-color: #5C5446; /* muted grey-brown — distinct from draft's warmer walnut */
     color: #FFFFFF;

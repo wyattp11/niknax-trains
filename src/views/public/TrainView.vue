@@ -1345,7 +1345,14 @@ const trainIsPast = computed(() =>
 
 const status = computed(() => {
   if (trainIsPast.value) return { key: 'past', label: 'Past Event' }
-  return trainStatus(train.value, slots.value.length, slots.value.filter(s => s.username).length)
+  // activeSlotId is already the authoritative "a slot is airing now" signal
+  // here, and it reuses the same rollover-aware maths.
+  return trainStatus(
+    train.value,
+    slots.value.length,
+    slots.value.filter(s => s.username).length,
+    { isLive: !!activeSlotId.value },
+  )
 })
 
 const canAttemptSignup = computed(() =>
