@@ -99,8 +99,8 @@
             v-for="(ev, idx) in events"
             :key="ev.id"
             class="relative"
-            @mouseenter="ev.rules_md && (hoveredRulesId = ev.id)"
-            @mouseleave="hoveredRulesId = null"
+            @mouseenter="ev.rules_md && showRules(ev.id)"
+            @mouseleave="scheduleHideRules"
           >
           <component
             :is="ev.published ? RouterLink : 'div'"
@@ -165,20 +165,27 @@
           >
             <!-- Floats below the card rather than beside it: the events list
                  is max-w-5xl, so there's no room to the side even on wide
-                 screens. Absolute so it overlays instead of shifting the
-                 list, and pointer-events-none so it can't block the card. -->
+                 screens. Absolute so it overlays instead of shifting the list.
+                 Padding (not margin) supplies the visual gap, so the panel's
+                 hitbox reaches the card and the cursor can travel between the
+                 two without passing over dead space. -->
             <div
               v-if="hoveredRulesId === ev.id"
-              class="hidden md:block absolute z-30 left-0 right-0 top-full mt-2 pointer-events-none"
+              class="hidden md:block absolute z-30 left-0 right-0 top-full pt-2"
               role="tooltip"
+              @mouseenter="showRules(ev.id)"
+              @mouseleave="scheduleHideRules"
             >
               <div class="bg-surface border-2 border-niknax-600 rounded-xl shadow-2xl overflow-hidden">
-                <div class="bg-niknax-600 text-white px-4 py-2 flex items-center gap-2">
-                  <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
-                  <span class="text-sm font-semibold">Sign-Up Rules &amp; Criteria</span>
+                <div class="bg-niknax-600 text-white px-4 py-2 flex items-center justify-between gap-2">
+                  <span class="flex items-center gap-2">
+                    <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
+                    <span class="text-sm font-semibold">Sign-Up Rules &amp; Criteria</span>
+                  </span>
+                  <span class="text-[0.65rem] uppercase tracking-wide opacity-75">Scroll to read</span>
                 </div>
                 <div
-                  class="rules-content px-4 py-3 max-h-[22rem] overflow-y-auto text-sm"
+                  class="rules-content px-4 py-3 max-h-[22rem] overflow-y-auto overscroll-contain text-sm"
                   v-html="renderMarkdown(ev.rules_md)"
                 ></div>
               </div>
@@ -262,7 +269,22 @@ const rawTrains = ref([])
 
 // Which train's guidelines are showing on hover. Desktop only — the panel is
 // hidden below md, where there's no hover to begin with.
+//
+// Hiding is deferred rather than immediate. Without the delay the panel closes
+// the instant the cursor leaves the card, so there's no way to move onto it and
+// scroll. The grace period also covers the gap between card and panel.
 const hoveredRulesId = ref(null)
+let rulesHideTimer = null
+
+function showRules(id) {
+  clearTimeout(rulesHideTimer)
+  hoveredRulesId.value = id
+}
+
+function scheduleHideRules() {
+  clearTimeout(rulesHideTimer)
+  rulesHideTimer = setTimeout(() => { hoveredRulesId.value = null }, 400)
+}
 
 // Ticking clock so the Live Now badge appears and clears on its own. A badge
 // that only updates on reload would be wrong for most of the show.
@@ -383,5 +405,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (tickInterval) clearInterval(tickInterval)
+  clearTimeout(rulesHideTimer)
 })
 </script>
