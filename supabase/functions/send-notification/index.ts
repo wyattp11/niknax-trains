@@ -178,34 +178,53 @@ async function handleOutboxInsert(record: Record<string, unknown>) {
   const siteUrl   = Deno.env.get('PUBLIC_SITE_URL') ?? ''
   const manageUrl = siteUrl && trainId ? `${siteUrl}/train/${trainId}/conductor` : ''
 
-  await sendEmail(
-    `${code} is your Niknax access code`,
-    `
-    <div style="font-family:sans-serif;max-width:520px;margin:0 auto">
-      <h2 style="color:#7c3aed">🚂 ${isWelcome ? 'Your train is created!' : 'Your access code'}</h2>
-      <p>${isWelcome
-          ? `<strong>${trainName}</strong> has been submitted for review. Use the code below to manage it.`
-          : `Here's your code to manage <strong>${trainName}</strong>.`}</p>
-      <p style="font-size:34px;font-weight:bold;letter-spacing:8px;
-                background:#f4f0ff;color:#4c1d95;padding:18px;text-align:center;
-                border-radius:10px;margin:22px 0">${code}</p>
-      <p style="color:#666;font-size:14px">This code expires in 30 minutes. Once you enter it,
-         you'll stay signed in on this device for 90 days.</p>
-      ${manageUrl ? `<p><a href="${manageUrl}" style="color:#7c3aed">Manage your train →</a></p>` : ''}
-      <p style="color:#999;font-size:12px;margin-top:26px">
-        If you didn't request this, you can ignore this email — the code only works for
-        someone who already has it.
-      </p>
-    </div>
-    `,
-    recipient,
-  )
-
-  // Mark sent and drop the plaintext code from the row
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
+
+  try {
+    await sendEmail(
+      `${code} is your Niknax access code`,
+      `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto">
+        <h2 style="color:#7c3aed">🚂 ${isWelcome ? 'Your train is created!' : 'Your access code'}</h2>
+        <p>${isWelcome
+            ? `<strong>${trainName}</strong> has been submitted for review. Use the code below to manage it.`
+            : `Here's your code to manage <strong>${trainName}</strong>.`}</p>
+        <p style="font-size:34px;font-weight:bold;letter-spacing:8px;
+                  background:#f4f0ff;color:#4c1d95;padding:18px;text-align:center;
+                  border-radius:10px;margin:22px 0">${code}</p>
+        <p style="color:#666;font-size:14px">This code expires in 30 minutes. Once you enter it,
+           you'll stay signed in on this device for 90 days.</p>
+        ${manageUrl ? `<p><a href="${manageUrl}" style="color:#7c3aed">Manage your train →</a></p>` : ''}
+        <p style="color:#999;font-size:12px;margin-top:26px">
+          If you didn't request this, you can ignore this email — the code only works for
+          someone who already has it.
+        </p>
+      </div>
+      `,
+      recipient,
+    )
+  } catch (err: unknown) {
+    // Record why it failed instead of throwing it away. Resend rejects any
+    // recipient other than the account's own verified address until a domain
+    // is verified, and that 403 was previously invisible from the app side.
+    const message = err instanceof Error ? err.message : String(err)
+    await supabase
+      .from('email_outbox')
+      .update({ error: message.slice(0, 500) })
+      .eq('id', record.id as string)
+
+    console.error(`send-notification: FAILED sending code to ${recipient}: ${message}`)
+    return
+  }
+
+  // Sent — mark it and drop the plaintext code from the row
   await supabase
     .from('email_outbox')
-    .update({ sent_at: new Date().toISOString(), payload: { train_id: trainId, sent: true } })
+    .update({
+      sent_at: new Date().toISOString(),
+      error:   null,
+      payload: { train_id: trainId, sent: true },
+    })
     .eq('id', record.id as string)
 
   console.log(`send-notification: sent conductor code to ${recipient} for ${trainName}`)

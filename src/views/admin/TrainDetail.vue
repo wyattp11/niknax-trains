@@ -178,6 +178,31 @@
             they're listed.
           </p>
 
+          <!-- The generated code, shown so it can be passed along directly.
+               Useful whenever email can't reach the recipient. -->
+          <div
+            v-if="revealedCode"
+            class="mt-4 bg-niknax-50 dark:bg-niknax-900/20 border-2 border-niknax-600 rounded-lg p-4"
+          >
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <p class="text-xs text-tx3 mb-1">Access code for <strong class="text-tx1">{{ revealedCode.email }}</strong></p>
+                <p class="text-3xl font-mono font-bold tracking-[0.3em] text-niknax-700 dark:text-niknax-300">
+                  {{ revealedCode.code }}
+                </p>
+                <p class="text-xs text-tx3 mt-1">
+                  Expires {{ formatTimestamp(revealedCode.expires_at) }} · also emailed to them
+                </p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <button @click="copyCode" class="btn-secondary text-xs py-1 px-2.5">
+                  {{ codeCopied ? 'Copied!' : 'Copy' }}
+                </button>
+                <button @click="revealedCode = null" class="text-tx3 hover:text-tx1 text-xs">Hide</button>
+              </div>
+            </div>
+          </div>
+
           <p v-if="conductorError" class="text-red-600 dark:text-red-400 text-sm mt-3">{{ conductorError }}</p>
         </div>
 
@@ -1623,7 +1648,7 @@ async function resendConductorCode(c) {
   conductorError.value = ''
   resendingId.value    = c.id
 
-  const { error } = await supabase.rpc('admin_resend_conductor_code', {
+  const { data, error } = await supabase.rpc('admin_resend_conductor_code', {
     p_train_id: route.params.id,
     p_email:    c.email,
   })
@@ -1632,9 +1657,27 @@ async function resendConductorCode(c) {
     conductorError.value = error.message || 'Could not send that code.'
   } else {
     resentId.value = c.id
+    // Shown alongside the email so it can be relayed directly when delivery
+    // to that address isn't working.
+    revealedCode.value = data?.code ? data : null
+    codeCopied.value = false
     setTimeout(() => { if (resentId.value === c.id) resentId.value = null }, 4000)
   }
   resendingId.value = null
+}
+
+const revealedCode = ref(null)
+const codeCopied   = ref(false)
+
+async function copyCode() {
+  if (!revealedCode.value?.code) return
+  try {
+    await navigator.clipboard.writeText(revealedCode.value.code)
+    codeCopied.value = true
+    setTimeout(() => { codeCopied.value = false }, 2000)
+  } catch {
+    // Clipboard blocked — the code is on screen to read anyway.
+  }
 }
 
 // ── Change history ────────────────────────────────────────────────────────
