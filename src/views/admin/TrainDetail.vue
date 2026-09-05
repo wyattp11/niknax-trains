@@ -1345,6 +1345,10 @@ function applySlotRealtimeChange(payload) {
   const nextSlot = payload.new
   const oldSlot = payload.old
 
+  // A slot change can move someone out of the lobby (a DB trigger removes
+  // them when they're given a slot) or reopen it, so keep the panel honest.
+  loadLobby()
+
   if (payload.eventType === 'DELETE') {
     slots.value = slots.value.filter(slot => slot.id !== oldSlot?.id)
     playRowChangeSound()
@@ -1933,7 +1937,13 @@ function startEdit(slot) {
 
 async function saveSlotUsername(slot) {
   const { error } = await supabase.from('slots').update({ username: editUsername.value || null }).eq('id', slot.id)
-  if (!error) { slot.username = editUsername.value || null; editingSlot.value = null }
+  if (!error) {
+    slot.username = editUsername.value || null
+    editingSlot.value = null
+    // A DB trigger drops them from the lobby if they were waiting. Refresh
+    // directly rather than waiting on the realtime round-trip.
+    if (slot.username) loadLobby()
+  }
 }
 
 // Deleting a slot leaves a gap in the day's schedule — close it by shifting
