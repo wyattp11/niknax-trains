@@ -196,6 +196,16 @@
                   Send this to them however you like. They enter it on
                   <strong>Manage your train</strong> and stay signed in for 90 days.
                 </p>
+                <!-- A train still awaiting review isn't listed publicly, so
+                     its conductor has no way to find the page. Send the link
+                     alongside the code. -->
+                <p class="text-xs text-tx3 mt-2">
+                  <span class="font-medium">Link:</span>
+                  <span class="font-mono select-all break-all">{{ conductorUrl }}</span>
+                  <button @click="copyConductorUrl" class="ml-1.5 text-niknax-600 dark:text-niknax-400 hover:underline">
+                    {{ urlCopied ? 'copied' : 'copy' }}
+                  </button>
+                </p>
               </div>
               <div class="flex items-center gap-2 shrink-0">
                 <button @click="copyCode" class="btn-secondary text-xs py-1 px-2.5">
@@ -1673,6 +1683,19 @@ async function generateConductorCode(c) {
 
 const revealedCode = ref(null)
 const codeCopied   = ref(false)
+const urlCopied    = ref(false)
+
+const conductorUrl = computed(() => `${location.origin}/train/${route.params.id}/conductor`)
+
+async function copyConductorUrl() {
+  try {
+    await navigator.clipboard.writeText(conductorUrl.value)
+    urlCopied.value = true
+    setTimeout(() => { urlCopied.value = false }, 2000)
+  } catch {
+    // Clipboard blocked — the URL is on screen and selectable.
+  }
+}
 
 async function copyCode() {
   if (!revealedCode.value?.code) return

@@ -72,11 +72,42 @@
             <strong>Pending review.</strong> The Niknax team will publish this train once it's approved. You can still edit your train details and schedule while it's pending.
           </p>
         </div>
-        <div v-else-if="train.is_upcoming" class="bg-niknax-50 dark:bg-niknax-900/20 border border-niknax-200 dark:border-niknax-700 rounded-lg px-4 py-3 mb-6">
-          <p class="text-sm text-niknax-700 dark:text-niknax-300"><strong>Approved — Upcoming!</strong> Your train is visible on the public schedule.</p>
-        </div>
-        <div v-else-if="train.published" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg px-4 py-3 mb-6">
-          <p class="text-sm text-green-700 dark:text-green-300"><strong>Live — sign-ups are open!</strong> Sellers can now claim slots on your train.</p>
+        <!-- Status control — available once an admin has approved the train -->
+        <div v-else class="card mb-6">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <p class="text-sm font-semibold text-tx1 mb-0.5">Train Status</p>
+              <p class="text-xs text-tx3">
+                <template v-if="train.published">
+                  Sellers can claim slots right now.
+                </template>
+                <template v-else>
+                  Listed on the public schedule, but sign-ups aren't open yet.
+                </template>
+              </p>
+            </div>
+
+            <div class="flex rounded-lg border border-bd overflow-hidden shrink-0">
+              <button
+                @click="setStatus('upcoming')"
+                :disabled="savingStatus"
+                class="px-3.5 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+                :class="train.is_upcoming
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-surface text-tx3 hover:bg-sur2 hover:text-tx1'"
+              >Arriving Soon</button>
+              <button
+                @click="setStatus('boarding')"
+                :disabled="savingStatus"
+                class="px-3.5 py-2 text-sm font-semibold border-l border-bd transition-colors disabled:opacity-50"
+                :class="train.published
+                  ? 'bg-green-600 text-white'
+                  : 'bg-surface text-tx3 hover:bg-sur2 hover:text-tx1'"
+              >Now Boarding</button>
+            </div>
+          </div>
+
+          <p v-if="statusError" class="text-red-600 dark:text-red-400 text-sm mt-3">{{ statusError }}</p>
         </div>
 
         <div class="flex items-start justify-between gap-4 mb-8 flex-wrap">
@@ -725,6 +756,33 @@ async function confirmClearSeller(slot) {
     if (local) { local.username = null; local.seller_link = null }
   }
   clearingSlotId.value = null
+}
+
+// ── Train status ──────────────────────────────────────────────────────────
+const savingStatus = ref(false)
+const statusError  = ref('')
+
+async function setStatus(status) {
+  if (savingStatus.value) return
+  // Already in that state — nothing to do.
+  if ((status === 'boarding' && train.value.published) ||
+      (status === 'upcoming' && train.value.is_upcoming && !train.value.published)) return
+
+  statusError.value  = ''
+  savingStatus.value = true
+
+  const { data, error } = await supabase.rpc('set_member_train_status', {
+    p_train_id: train.value.id,
+    p_token:    authToken.value,
+    p_status:   status,
+  })
+
+  if (error) {
+    statusError.value = handleRpcError(error, 'Could not change the status.')
+  } else {
+    Object.assign(train.value, data)
+  }
+  savingStatus.value = false
 }
 
 // ── Day date / label ──────────────────────────────────────────────────────

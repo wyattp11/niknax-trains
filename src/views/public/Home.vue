@@ -140,6 +140,21 @@
             <span v-if="ev.published" class="text-niknax-600 dark:text-niknax-400 group-hover:translate-x-1 transition-transform text-xl shrink-0 font-bold">→</span>
           </component>
 
+          <!-- Conductor entry point. Sits outside the card link — nesting a
+               link inside a link isn't valid — and is shown on every member
+               train so a conductor can get back in from any device. -->
+          <div v-if="ev.is_member_train" class="flex justify-end mt-1.5">
+            <RouterLink
+              :to="`/train/${ev.id}/conductor`"
+              class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg
+                     bg-niknax-600 hover:bg-niknax-500 text-white shadow-sm transition-colors"
+            >
+              <ion-icon name="settings-outline" aria-hidden="true"></ion-icon>
+              Manage your train
+              <span v-if="ev.conductor_username" class="font-normal opacity-80">· @{{ ev.conductor_username }}</span>
+            </RouterLink>
+          </div>
+
           <!-- Guidelines on hover. Desktop only — hidden below lg, where
                there's no hover and not enough room to place it. -->
           <Transition
