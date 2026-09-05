@@ -497,8 +497,8 @@
 
           <div class="card">
             <p class="text-sm text-tx2 mb-1">
-              This train is full — but people drop out. Join the lobby and you'll be first in
-              line if a slot opens up.
+              This train is full — but people drop out. Join the lobby and you'll be first to
+              know if a slot opens up.
             </p>
             <p class="text-xs text-tx3 mb-5">
               The conductor picks from the lobby when a vacancy appears. No guarantee, but
@@ -525,7 +525,7 @@
               </ol>
             </div>
             <p v-else class="text-sm text-tx3 italic mb-5">
-              Nobody waiting yet — you'd be first in line.
+              Nobody waiting yet — you'd be first to know.
             </p>
 
             <!-- Join -->
