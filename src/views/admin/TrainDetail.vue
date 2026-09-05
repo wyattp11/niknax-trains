@@ -111,11 +111,11 @@
 
           <p v-if="loadingConductors" class="text-tx3 text-sm">Loading…</p>
 
-          <p v-else-if="conductors.length === 0" class="text-tx3 text-sm">
-            No conductors registered. This train predates conductor accounts.
+          <p v-else-if="conductors.length === 0" class="text-tx3 text-sm mb-3">
+            No conductors registered yet — add one below so they can receive an access code.
           </p>
 
-          <ul v-else class="space-y-2">
+          <ul v-else class="space-y-2 mb-4">
             <li
               v-for="c in conductors"
               :key="c.id"
@@ -132,13 +132,51 @@
                   <span v-else>never signed in</span>
                 </p>
               </div>
-              <button
-                @click="resendConductorCode(c)"
-                :disabled="resendingId === c.id"
-                class="btn-secondary text-xs py-1 px-2.5 shrink-0 disabled:opacity-50"
-              >{{ resendingId === c.id ? 'Sending…' : resentId === c.id ? 'Sent ✓' : 'Resend code' }}</button>
+              <div class="flex items-center gap-2 shrink-0">
+                <button
+                  v-if="!c.is_primary"
+                  @click="makePrimaryConductor(c)"
+                  :disabled="savingConductor"
+                  class="text-xs text-tx3 hover:text-niknax-600 dark:hover:text-niknax-400 disabled:opacity-50"
+                  title="The primary conductor can't be removed by other conductors"
+                >Make primary</button>
+                <button
+                  @click="resendConductorCode(c)"
+                  :disabled="resendingId === c.id"
+                  class="btn-secondary text-xs py-1 px-2.5 disabled:opacity-50"
+                >{{ resendingId === c.id ? 'Sending…' : resentId === c.id ? 'Sent ✓' : 'Resend code' }}</button>
+                <button
+                  @click="removeConductor(c)"
+                  :disabled="savingConductor"
+                  class="text-xs text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50"
+                >Remove</button>
+              </div>
             </li>
           </ul>
+
+          <!-- Add a conductor -->
+          <form @submit.prevent="addConductor" class="flex flex-col sm:flex-row gap-2">
+            <input
+              v-model="newConductor.email"
+              type="email"
+              class="input flex-1"
+              placeholder="conductor@example.com"
+              required
+            />
+            <input
+              v-model="newConductor.username"
+              class="input sm:w-44"
+              placeholder="username (optional)"
+              maxlength="60"
+            />
+            <button type="submit" :disabled="savingConductor" class="btn-secondary text-sm py-2 shrink-0">
+              {{ savingConductor ? 'Adding…' : 'Add' }}
+            </button>
+          </form>
+          <p class="text-xs text-tx3 mt-1.5">
+            Adding someone doesn't email them automatically — use <strong>Resend code</strong> once
+            they're listed.
+          </p>
 
           <p v-if="conductorError" class="text-red-600 dark:text-red-400 text-sm mt-3">{{ conductorError }}</p>
         </div>
@@ -1500,6 +1538,85 @@ async function loadConductors() {
     .order('is_primary', { ascending: false })
   conductors.value = data || []
   loadingConductors.value = false
+}
+
+// Admins write to train_conductors directly — the "admin manage conductors"
+// RLS policy covers it, so no RPC round-trip is needed.
+const newConductor    = ref({ email: '', username: '' })
+const savingConductor = ref(false)
+
+async function addConductor() {
+  const email = newConductor.value.email.trim()
+  if (!email) return
+
+  conductorError.value  = ''
+  savingConductor.value = true
+
+  const { error } = await supabase.from('train_conductors').insert({
+    train_id:   route.params.id,
+    email,
+    email_key:  email.toLowerCase(),
+    username:   newConductor.value.username.trim().replace(/^@+/, '') || null,
+    // First one added becomes primary, so a train always has an owner.
+    is_primary: conductors.value.length === 0,
+  })
+
+  if (error) {
+    conductorError.value = error.code === '23505'
+      ? 'That email is already a conductor on this train.'
+      : (error.message || 'Could not add that conductor.')
+  } else {
+    newConductor.value = { email: '', username: '' }
+    await loadConductors()
+  }
+  savingConductor.value = false
+}
+
+async function removeConductor(c) {
+  const warning = c.is_primary
+    ? `${c.email} is the PRIMARY conductor. Removing them leaves this train without an owner until you set another.\n\nRemove anyway?`
+    : `Remove ${c.email} as a conductor?\n\nThey'll lose access immediately.`
+  if (!confirm(warning)) return
+
+  conductorError.value  = ''
+  savingConductor.value = true
+
+  // Revoke live sessions first, so removal takes effect immediately rather
+  // than whenever their 90-day token happens to expire.
+  await supabase
+    .from('conductor_sessions')
+    .update({ revoked_at: new Date().toISOString() })
+    .eq('train_id', route.params.id)
+    .eq('email_key', c.email.toLowerCase())
+    .is('revoked_at', null)
+
+  const { error } = await supabase.from('train_conductors').delete().eq('id', c.id)
+
+  if (error) conductorError.value = error.message || 'Could not remove that conductor.'
+  else await loadConductors()
+
+  savingConductor.value = false
+}
+
+async function makePrimaryConductor(c) {
+  conductorError.value  = ''
+  savingConductor.value = true
+
+  // Exactly one primary per train.
+  const { error: clearErr } = await supabase
+    .from('train_conductors')
+    .update({ is_primary: false })
+    .eq('train_id', route.params.id)
+
+  const { error } = clearErr || await supabase
+    .from('train_conductors')
+    .update({ is_primary: true })
+    .eq('id', c.id)
+
+  if (error) conductorError.value = error.message || 'Could not update the primary conductor.'
+  else await loadConductors()
+
+  savingConductor.value = false
 }
 
 async function resendConductorCode(c) {

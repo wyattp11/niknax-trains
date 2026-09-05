@@ -31,7 +31,7 @@ values
   ('webhook_function_url',
    'https://favwuajyktuwuikkpmxe.supabase.co/functions/v1/send-notification'),
   ('webhook_anon_key',
-   'PASTE_YOUR_ANON_KEY_HERE')
+   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhdnd1YWp5a3R1d3Vpa2twbXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NTcyNzcsImV4cCI6MjA5NzAzMzI3N30.ne1kblyZlwbXKvfH_Grl3wo6isPVImRou6MwICqhHyQ')
 on conflict (key) do update set value = excluded.value;
 
 
