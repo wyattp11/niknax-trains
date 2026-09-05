@@ -121,6 +121,37 @@
             <label class="label">District / Niknax Event Link</label>
             <input v-model="editForm.district_link" class="input" type="url" placeholder="https://districtapp.tv/…" />
           </div>
+
+          <div>
+            <label class="label">Train Graphic</label>
+            <ImageUpload
+              :current-url="editForm.cover_url"
+              @file-selected="onCoverSelected"
+              @cleared="editForm.cover_url = null; coverFile = null; coverPct = 0; coverStatus = ''"
+            />
+            <p v-if="coverStatus" class="text-xs text-tx3 mt-1.5">{{ coverStatus }}</p>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="label mb-0">Sign-Up Rules &amp; Criteria</label>
+              <button
+                type="button"
+                @click="showRules = !showRules"
+                class="text-xs text-niknax-600 dark:text-niknax-400 hover:underline"
+              >{{ showRules ? 'Hide' : 'Edit rules' }}</button>
+            </div>
+            <p class="text-xs text-tx3 mb-2">
+              Shown to sellers before they can claim a slot on your train.
+            </p>
+            <textarea
+              v-if="showRules"
+              v-model="editForm.rules_md"
+              class="input font-mono text-xs"
+              rows="14"
+            />
+          </div>
+
           <p v-if="detailsError" class="text-red-600 dark:text-red-400 text-sm">{{ detailsError }}</p>
           <div class="flex justify-end">
             <button @click="saveDetails" :disabled="savingDetails" class="btn-primary text-sm py-2">
@@ -209,10 +240,28 @@
 
           <!-- Day cards -->
           <div v-for="day in days" :key="day.id" class="card">
-            <div class="flex items-center justify-between mb-4">
-              <div>
+            <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+              <div v-if="editingDayId === day.id" class="flex items-end gap-2 flex-wrap">
+                <div>
+                  <label class="label">Date</label>
+                  <input v-model="dayEdit.day_date" type="date" class="input py-1.5 text-sm" />
+                </div>
+                <div>
+                  <label class="label">Label</label>
+                  <input v-model="dayEdit.day_label" class="input py-1.5 text-sm" placeholder="Day 1" maxlength="60" />
+                </div>
+                <button @click="saveDayEdit(day)" :disabled="savingDayId === day.id" class="btn-primary text-xs py-1.5 px-3">
+                  {{ savingDayId === day.id ? '…' : 'Save' }}
+                </button>
+                <button @click="editingDayId = null" class="text-tx3 hover:text-tx1 text-xs">Cancel</button>
+              </div>
+              <div v-else>
                 <span class="font-semibold text-tx1">{{ formatDate(day.day_date) }}</span>
                 <span v-if="day.day_label" class="text-tx3 text-sm ml-2">{{ day.day_label }}</span>
+                <button
+                  @click="startDayEdit(day)"
+                  class="ml-2 text-xs text-niknax-600 hover:text-niknax-500 dark:text-niknax-400"
+                >Edit date</button>
               </div>
               <div class="flex items-center gap-3">
                 <button
@@ -430,6 +479,47 @@
           <p v-if="conductorError" class="text-red-600 dark:text-red-400 text-sm">{{ conductorError }}</p>
         </section>
 
+        <!-- Change history -->
+        <section class="card mb-8">
+          <button
+            @click="toggleHistory"
+            class="flex items-center justify-between w-full text-left"
+            :aria-expanded="showHistory"
+          >
+            <span class="text-base font-semibold text-tx1">
+              Change History
+              <span v-if="history.length" class="text-tx3 font-normal text-sm">({{ history.length }})</span>
+            </span>
+            <span class="text-tx3 text-lg">{{ showHistory ? '▲' : '▼' }}</span>
+          </button>
+
+          <div v-if="showHistory" class="mt-4">
+            <p v-if="loadingHistory" class="text-tx3 text-sm py-4 text-center">Loading…</p>
+
+            <p v-else-if="history.length === 0" class="text-tx3 text-sm py-4">
+              No changes recorded yet.
+            </p>
+
+            <ol v-else class="space-y-2 max-h-96 overflow-y-auto">
+              <li
+                v-for="h in history"
+                :key="h.id"
+                class="border-l-2 pl-3 py-1.5"
+                :class="{
+                  'border-green-500': h.action === 'INSERT',
+                  'border-amber-500': h.action === 'UPDATE',
+                  'border-red-500':   h.action === 'DELETE',
+                }"
+              >
+                <p class="text-sm text-tx1">{{ h.summary }}</p>
+                <p class="text-xs text-tx3">
+                  {{ h.actor ? '@' + h.actor : 'someone' }} · {{ formatHistoryTime(h.created_at) }}
+                </p>
+              </li>
+            </ol>
+          </div>
+        </section>
+
         <!-- Error -->
         <p v-if="actionError" class="text-red-600 dark:text-red-400 text-sm mb-4" role="alert">{{ actionError }}</p>
       </template>
@@ -441,7 +531,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import PublicNav from '../../components/PublicNav.vue'
-import { supabase } from '../../lib/supabase.js'
+import ImageUpload from '../../components/ImageUpload.vue'
+import { supabase, uploadWithProgress } from '../../lib/supabase.js'
 import { getConductorSession, setConductorSession, clearConductorSession } from '../../lib/conductorAuth.js'
 import { formatDate, parseTime, addMinutes } from '../../lib/timeUtils.js'
 
@@ -636,6 +727,65 @@ async function confirmClearSeller(slot) {
   clearingSlotId.value = null
 }
 
+// ── Day date / label ──────────────────────────────────────────────────────
+const editingDayId = ref(null)
+const savingDayId  = ref(null)
+const dayEdit      = ref({ day_date: '', day_label: '' })
+
+function startDayEdit(day) {
+  editingDayId.value = day.id
+  dayEdit.value = { day_date: day.day_date, day_label: day.day_label || '' }
+}
+
+async function saveDayEdit(day) {
+  savingDayId.value = day.id
+  actionError.value = ''
+
+  const { data, error } = await supabase.rpc('update_member_train_day', {
+    p_train_id:  train.value.id,
+    p_token:     authToken.value,
+    p_day_id:    day.id,
+    p_day_date:  dayEdit.value.day_date || null,
+    p_day_label: dayEdit.value.day_label ?? '',
+  })
+
+  if (error) {
+    actionError.value = handleRpcError(error, 'Could not update that day.')
+  } else {
+    Object.assign(day, data)
+    editingDayId.value = null
+  }
+  savingDayId.value = null
+}
+
+// ── Change history ────────────────────────────────────────────────────────
+const history        = ref([])
+const showHistory    = ref(false)
+const loadingHistory = ref(false)
+
+async function toggleHistory() {
+  showHistory.value = !showHistory.value
+  if (showHistory.value && history.value.length === 0) await loadHistory()
+}
+
+async function loadHistory() {
+  loadingHistory.value = true
+  const { data, error } = await supabase.rpc('conductor_train_history', {
+    p_train_id: train.value.id,
+    p_token:    authToken.value,
+    p_limit:    200,
+  })
+  if (error) actionError.value = handleRpcError(error, 'Could not load history.')
+  history.value = data || []
+  loadingHistory.value = false
+}
+
+function formatHistoryTime(iso) {
+  return new Date(iso).toLocaleString(undefined, {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+  })
+}
+
 // ── Co-conductors ─────────────────────────────────────────────────────────
 const newConductorEmail = ref('')
 const addingConductor   = ref(false)
@@ -735,6 +885,8 @@ async function load() {
     tagline:       t.tagline || '',
     description:   t.description || '',
     district_link: t.district_link || '',
+    cover_url:     t.cover_url || '',
+    rules_md:      t.rules_md || '',
   }
 
   loading.value = false
@@ -748,9 +900,47 @@ const savingDetails = ref(false)
 const detailsError  = ref('')
 const detailsSaved  = ref(false)
 
+// ── Cover image ───────────────────────────────────────────────────────────
+const coverFile   = ref(null)
+const coverPct    = ref(0)
+const coverStatus = ref('')
+const showRules   = ref(false)
+
+function onCoverSelected(file) {
+  coverFile.value = file
+  coverStatus.value = file ? 'Graphic will upload when you save.' : ''
+}
+
+async function uploadCoverIfNeeded() {
+  if (!coverFile.value) return editForm.value.cover_url || null
+
+  const ext = (coverFile.value.name.split('.').pop() || 'jpg').toLowerCase()
+  coverStatus.value = 'Uploading graphic…'
+  const url = await uploadWithProgress(
+    'train-graphics',
+    `${train.value.id}/cover.${ext}`,
+    coverFile.value,
+    (pct) => { coverPct.value = pct },
+  )
+  coverStatus.value = 'Graphic uploaded ✓'
+  coverFile.value = null
+  return url
+}
+
 async function saveDetails() {
   detailsError.value = ''
   savingDetails.value = true
+
+  let coverUrl = editForm.value.cover_url || null
+  try {
+    coverUrl = await uploadCoverIfNeeded()
+  } catch (e) {
+    detailsError.value = e?.message || 'Could not upload the graphic.'
+    coverStatus.value = ''
+    savingDetails.value = false
+    return
+  }
+
   const { data, error } = await supabase.rpc('update_member_train', {
     p_train_id:      train.value.id,
     p_conductor:     authToken.value,
@@ -758,6 +948,8 @@ async function saveDetails() {
     p_tagline:       editForm.value.tagline.trim() || null,
     p_description:   editForm.value.description.trim() || null,
     p_district_link: editForm.value.district_link.trim() || null,
+    p_rules_md:      editForm.value.rules_md?.trim() || null,
+    p_cover_url:     coverUrl,
   })
   if (error) {
     detailsError.value = error.message

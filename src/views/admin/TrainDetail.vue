@@ -1718,12 +1718,13 @@ async function toggleHistory() {
 
 async function loadHistory() {
   loadingHistory.value = true
-  const { data } = await supabase
-    .from('train_history')
-    .select('*')
-    .eq('train_id', route.params.id)
-    .order('created_at', { ascending: false })
-    .limit(500)
+  // Goes through an RPC rather than the view: train_history now bypasses RLS
+  // so a security-definer function can expose it to conductors too, which
+  // means it can't be readable directly.
+  const { data } = await supabase.rpc('admin_train_history', {
+    p_train_id: route.params.id,
+    p_limit:    500,
+  })
   history.value = data || []
   loadingHistory.value = false
 }
