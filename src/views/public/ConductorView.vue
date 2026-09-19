@@ -165,7 +165,7 @@
 
           <div>
             <div class="flex items-center justify-between mb-1">
-              <label class="label mb-0">Sign-Up Rules &amp; Criteria</label>
+              <label class="label mb-0">Rules &amp; Criteria</label>
               <button
                 type="button"
                 @click="showRules = !showRules"

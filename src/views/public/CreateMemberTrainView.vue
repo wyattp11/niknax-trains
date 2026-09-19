@@ -196,7 +196,7 @@
 
             <!-- Rules -->
             <section class="card space-y-3">
-              <h2 class="text-lg font-semibold text-niknax-600 dark:text-niknax-300">Sign-Up Rules &amp; Criteria</h2>
+              <h2 class="text-lg font-semibold text-niknax-600 dark:text-niknax-300">Rules &amp; Criteria</h2>
               <p class="text-xs text-tx3">Shown to sellers before they can claim a slot. Pre-filled with the standard template.</p>
               <textarea v-model="form.rules_md" class="input font-mono text-xs" rows="12" />
             </section>

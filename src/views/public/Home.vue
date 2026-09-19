@@ -140,11 +140,28 @@
             <span v-if="ev.published" class="text-niknax-600 dark:text-niknax-400 group-hover:translate-x-1 transition-transform text-xl shrink-0 font-bold">→</span>
           </component>
 
-          <!-- Conductor entry point. Sits outside the card link — nesting a
-               link inside a link isn't valid — and is shown on every member
-               train so a conductor can get back in from any device. -->
-          <div v-if="ev.is_member_train" class="flex justify-end mt-1.5">
+          <!-- Action row. Sits outside the card link — nesting a link inside a
+               link isn't valid. -->
+          <div v-if="ev.rules_md || ev.is_member_train" class="flex justify-end flex-wrap gap-2 mt-1.5">
+            <!-- Rules are also on hover, but hover doesn't exist on a phone, so
+                 this button is the only way in on touch. Shown at every width:
+                 a tappable control beats a hover nobody knows is there. -->
+            <button
+              v-if="ev.rules_md"
+              type="button"
+              @click="openRulesModal(ev)"
+              class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg
+                     bg-surface border-2 border-niknax-600 text-niknax-700 dark:text-niknax-300
+                     hover:bg-niknax-50 dark:hover:bg-niknax-950 shadow-sm transition-colors"
+            >
+              <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
+              Rules &amp; Criteria
+            </button>
+
+            <!-- Shown on every member train so a conductor can get back in
+                 from any device. -->
             <RouterLink
+              v-if="ev.is_member_train"
               :to="`/train/${ev.id}/conductor`"
               class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg
                      bg-niknax-600 hover:bg-niknax-500 text-white shadow-sm transition-colors"
@@ -180,7 +197,7 @@
                 <div class="bg-niknax-600 text-white px-4 py-2 flex items-center justify-between gap-2">
                   <span class="flex items-center gap-2">
                     <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
-                    <span class="text-sm font-semibold">Sign-Up Rules &amp; Criteria</span>
+                    <span class="text-sm font-semibold">Rules &amp; Criteria</span>
                   </span>
                   <span class="text-[0.65rem] uppercase tracking-wide opacity-75">Scroll to read</span>
                 </div>
@@ -249,6 +266,56 @@
 
     <!-- ── Bottom accent stripe ── -->
     <div class="h-3 bg-niknax-600 shrink-0"></div>
+
+    <!-- ── Rules & Criteria modal ── -->
+    <!-- Teleported to body so the card's transform and overflow can't clip it. -->
+    <Teleport to="body">
+      <div
+        v-if="rulesModalTrain"
+        class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4"
+        @click.self="rulesModalTrain = null"
+      >
+        <div
+          ref="rulesModalRef"
+          class="bg-surface border border-bd rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="home-rules-title"
+          tabindex="-1"
+        >
+          <div class="px-6 pt-6 pb-3 border-b border-bd shrink-0 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <h3 id="home-rules-title" class="text-lg font-bold text-tx1">Rules &amp; Criteria</h3>
+              <p class="text-sm text-tx3 truncate">{{ rulesModalTrain.name }}</p>
+            </div>
+            <button
+              @click="rulesModalTrain = null"
+              class="text-tx3 hover:text-tx1 text-xl leading-none shrink-0"
+              aria-label="Close"
+            >✕</button>
+          </div>
+
+          <!-- data-no-autofocus: the rendered markdown can contain links, and
+               focusing one on open scrolls the panel to it, which reads as the
+               modal jumping to the bottom. -->
+          <div class="rules-content overflow-y-auto px-6 py-4 flex-1" data-no-autofocus>
+            <div v-html="renderMarkdown(rulesModalTrain.rules_md)"></div>
+          </div>
+
+          <div class="px-6 py-4 border-t border-bd shrink-0 flex flex-col sm:flex-row gap-2">
+            <RouterLink
+              v-if="rulesModalTrain.published"
+              :to="`/train/${rulesModalTrain.id}`"
+              class="btn-primary flex-1 text-center"
+              @click="rulesModalTrain = null"
+            >
+              View event
+            </RouterLink>
+            <button @click="rulesModalTrain = null" class="btn-secondary flex-1">Close</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -262,6 +329,7 @@ import { useOnboardingStore } from '../../stores/onboarding.js'
 import EventCalendar from '../../components/EventCalendar.vue'
 import TrainAnimation from '../../components/TrainAnimation.vue'
 import { renderMarkdown } from '../../lib/renderMarkdown.js'
+import { useModalA11y } from '../../composables/useModalA11y.js'
 
 const theme      = useThemeStore()
 const onboarding = useOnboardingStore()
@@ -276,14 +344,39 @@ const rawTrains = ref([])
 const hoveredRulesId = ref(null)
 let rulesHideTimer = null
 
+// Touch browsers fire a synthetic mouseenter on tap, which would pop the hover
+// panel open on a device that can't dismiss it by moving a cursor away. On
+// touch the button below is the way in, so hover is switched off entirely.
+const isCoarsePointer =
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(pointer: coarse)').matches
+
 function showRules(id) {
+  if (isCoarsePointer) return
   clearTimeout(rulesHideTimer)
   hoveredRulesId.value = id
 }
 
 function scheduleHideRules() {
+  if (isCoarsePointer) return
   clearTimeout(rulesHideTimer)
   rulesHideTimer = setTimeout(() => { hoveredRulesId.value = null }, 400)
+}
+
+// Tap-to-open rules. Works at every width — on touch it's the only way to read
+// them, and on desktop it's a visible affordance for a hover nobody discovers.
+const rulesModalTrain = ref(null)
+const { modalRef: rulesModalRef } = useModalA11y(
+  () => !!rulesModalTrain.value,
+  () => { rulesModalTrain.value = null }
+)
+
+function openRulesModal(ev) {
+  // Close the hover panel so the two can't be up at once at md and above.
+  clearTimeout(rulesHideTimer)
+  hoveredRulesId.value = null
+  rulesModalTrain.value = ev
 }
 
 // Ticking clock so the Live Now badge appears and clears on its own. A badge

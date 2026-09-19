@@ -57,7 +57,7 @@
           </div>
 
           <div>
-            <label class="label">Sign-Up Rules &amp; Criteria (Markdown)</label>
+            <label class="label">Rules &amp; Criteria (Markdown)</label>
             <p class="text-xs text-tx3 mb-2">
               Shown to sellers before they can claim a slot — they must scroll through and
               acknowledge it first. Pre-filled with the standard template; edit freely for this event.

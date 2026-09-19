@@ -590,7 +590,7 @@
           tabindex="-1"
         >
           <div class="px-6 pt-6 pb-3 border-b border-bd shrink-0">
-            <h3 id="rules-modal-title" class="text-lg font-bold text-tx1">Sign-Up Rules &amp; Criteria</h3>
+            <h3 id="rules-modal-title" class="text-lg font-bold text-tx1">Rules &amp; Criteria</h3>
             <p class="text-tx3 text-sm mt-1">Please read everything below before signing up.</p>
           </div>
 
@@ -644,7 +644,7 @@
           tabindex="-1"
         >
           <div class="px-6 pt-6 pb-3 border-b border-bd shrink-0 flex items-start justify-between gap-4">
-            <h3 id="rules-viewer-title" class="text-lg font-bold text-tx1">Sign-Up Rules &amp; Criteria</h3>
+            <h3 id="rules-viewer-title" class="text-lg font-bold text-tx1">Rules &amp; Criteria</h3>
             <button @click="rulesViewerOpen = false" class="text-tx3 hover:text-tx1 text-xl leading-none" aria-label="Close">✕</button>
           </div>
 
