@@ -1686,6 +1686,9 @@ async function load() {
     .from('train_days')
     .select('*')
     .eq('train_id', id)
+    // Chronological, not creation order — day_order goes stale as soon as a
+    // day is added out of sequence or an existing date is edited.
+    .order('day_date')
     .order('day_order')
 
   days.value = d || []

@@ -249,17 +249,22 @@ async function duplicateTrain(train) {
       .from('train_days')
       .select('*, slots(*)')
       .eq('train_id', train.id)
+      // Chronological so the duplicate's day_order comes out in date order
+      // even if the original's had drifted.
+      .order('day_date')
       .order('day_order')
     if (daysErr) throw daysErr
 
-    for (const oldDay of oldDays || []) {
+    for (const [dayIdx, oldDay] of (oldDays || []).entries()) {
       const { data: newDay, error: dayErr } = await supabase
         .from('train_days')
         .insert({
           train_id: newTrain.id,
           day_date: oldDay.day_date,
           day_label: oldDay.day_label,
-          day_order: oldDay.day_order,
+          // Index of the date-ordered fetch, not the original's value — so a
+          // duplicate comes out clean even if the original's order had drifted.
+          day_order: dayIdx,
         })
         .select()
         .single()

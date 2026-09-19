@@ -1531,7 +1531,10 @@ async function load() {
   if (t) {
     editForm.value = { name: t.name, tagline: t.tagline || '', description: t.description || '', district_link: t.district_link || '', cover_url: t.cover_url || '', rules_md: t.rules_md || '' }
 
-    const { data: d } = await supabase.from('train_days').select('*').eq('train_id', id).order('day_order')
+    const { data: d } = await supabase.from('train_days').select('*').eq('train_id', id)
+      // Chronological, not creation order — day_order goes stale as soon as a
+      // day is added out of sequence or a date is edited.
+      .order('day_date').order('day_order')
     days.value = d || []
 
     // Initialise editable day dates/labels
@@ -1585,6 +1588,11 @@ async function saveDetails() {
     day.day_date  = editDayDates.value[day.id]
     day.day_label = editDayLabels.value[day.id] || null
   }
+
+  // Editing a date can reorder the event, so bring day_order back in line.
+  // Display sorts by date regardless, but day_order still drives the
+  // "Day N" label placeholders and is what other tools read.
+  await resequenceDayOrder()
 
   Object.assign(train.value, editForm.value)
   savingDetails.value = false
@@ -1787,6 +1795,33 @@ const newDay = ref({
   kickoff_duration: 10,
 })
 
+/**
+ * Renumbers day_order to match date order.
+ *
+ * Views sort by day_date so display is already correct, but day_order is still
+ * what the "Day N" label placeholders count from and what a future tool would
+ * reasonably trust. Keeping the two in agreement avoids the slot_order class
+ * of bug repeating at the day level.
+ */
+async function resequenceDayOrder() {
+  const byDate = [...days.value].sort((a, b) =>
+    String(a.day_date).localeCompare(String(b.day_date))
+  )
+
+  const updates = byDate
+    .map((day, i) => ({ day, order: i }))
+    .filter(({ day, order }) => day.day_order !== order)
+
+  if (!updates.length) return
+
+  await Promise.all(
+    updates.map(({ day, order }) =>
+      supabase.from('train_days').update({ day_order: order }).eq('id', day.id)
+    )
+  )
+  for (const { day, order } of updates) day.day_order = order
+}
+
 async function addDay() {
   addDayError.value = ''
 
@@ -1867,6 +1902,8 @@ async function addDay() {
 
     // Full reload so the realtime subscription picks up the new day's slots.
     await load()
+    // A day added out of sequence leaves day_order trailing the dates.
+    await resequenceDayOrder()
     showAddDay.value = false
     newDay.value = {
       day_date: '', day_label: '', start_time: f.start_time,

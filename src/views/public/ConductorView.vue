@@ -1033,7 +1033,8 @@ async function load() {
     await loadLobby()
   }
 
-  const { data: d } = await supabase.from('train_days').select('*').eq('train_id', id).order('day_order')
+  const { data: d } = await supabase.from('train_days').select('*').eq('train_id', id)
+    .order('day_date').order('day_order')
   days.value = d || []
 
   if (days.value.length) {
