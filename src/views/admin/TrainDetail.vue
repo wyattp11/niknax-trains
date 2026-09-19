@@ -459,17 +459,115 @@
           </div>
         </div>
 
+        <!-- ── Add a day ──
+             A train can be created without any days, and the schedule section
+             below only renders days that exist — so without this there was no
+             way in. Also the route for adding a second day to any train. -->
+        <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <h3 class="text-lg font-semibold text-tx2">
+            Schedule
+            <span v-if="days.length" class="text-tx3 font-normal text-sm">
+              ({{ days.length }} {{ days.length === 1 ? 'day' : 'days' }})
+            </span>
+          </h3>
+          <button @click="showAddDay = !showAddDay" class="btn-secondary text-sm py-1.5">
+            {{ showAddDay ? 'Cancel' : '+ Add Day' }}
+          </button>
+        </div>
+
+        <div v-if="showAddDay" class="card mb-8 border-2 border-niknax-200 dark:border-niknax-700 space-y-4">
+          <h4 class="text-sm font-semibold text-tx2">New Day</h4>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="label" for="new-day-date">Date *</label>
+              <input id="new-day-date" v-model="newDay.day_date" type="date" class="input" required />
+            </div>
+            <div>
+              <label class="label" for="new-day-label">Label (optional)</label>
+              <input id="new-day-label" v-model="newDay.day_label" class="input" placeholder="Day 2" maxlength="60" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="label" for="new-day-start">Start Time (ET)</label>
+              <input id="new-day-start" v-model="newDay.start_time" type="time" step="60" class="input" />
+            </div>
+            <div>
+              <label class="label" for="new-day-dur">Slot Duration (min)</label>
+              <input id="new-day-dur" v-model.number="newDay.slot_duration" type="number" min="5" max="120" class="input" />
+            </div>
+            <div>
+              <label class="label" for="new-day-count">Number of Slots</label>
+              <input id="new-day-count" v-model.number="newDay.slot_count" type="number" min="1" max="100" class="input" />
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-end gap-4">
+            <label class="flex items-center gap-2 text-sm text-tx2 cursor-pointer select-none">
+              <input v-model="newDay.include_kickoff" type="checkbox" class="accent-niknax-600 w-4 h-4" />
+              Include a Kickoff slot
+            </label>
+            <div v-if="newDay.include_kickoff" class="w-32">
+              <label class="label">Kickoff (min)</label>
+              <input v-model.number="newDay.kickoff_duration" type="number" min="5" max="120" class="input py-1.5" />
+            </div>
+          </div>
+
+          <p class="text-xs text-tx3">
+            <template v-if="newDay.include_kickoff">
+              {{ newDay.kickoff_duration }}-min Kickoff at {{ newDay.start_time }} ET, then
+              {{ newDay.slot_count }} open slots of {{ newDay.slot_duration }} min each.
+            </template>
+            <template v-else>
+              {{ newDay.slot_count }} open slots of {{ newDay.slot_duration }} min each,
+              starting at {{ newDay.start_time }} ET. No Kickoff row.
+            </template>
+          </p>
+
+          <p v-if="addDayError" class="text-red-600 dark:text-red-400 text-sm" role="alert">{{ addDayError }}</p>
+
+          <div class="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+            <button @click="showAddDay = false" class="btn-secondary w-full sm:w-auto">Cancel</button>
+            <button @click="addDay" :disabled="addingDay" class="btn-primary w-full sm:w-auto">
+              {{ addingDay ? 'Adding…' : 'Add Day' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- No days yet -->
+        <div v-if="!days.length && !showAddDay" class="card text-center py-12 mb-8">
+          <div class="text-4xl mb-3" aria-hidden="true">📅</div>
+          <p class="text-tx1 font-medium mb-1">No days scheduled yet</p>
+          <p class="text-tx3 text-sm mb-5 max-w-md mx-auto">
+            This train was created without a schedule. Add a day and its slots will be
+            generated for you.
+          </p>
+          <button @click="showAddDay = true" class="btn-primary">+ Add the first day</button>
+        </div>
+
         <!-- ── Schedule ──
              One container per calendar day. An overnight train stores its
              after-midnight slots under the start date, but showing them there
              reads as a mistake, so they get their own dated section. -->
         <div v-for="group in calendarGroups" :key="group.key" class="mb-10">
-          <h3 class="text-lg font-semibold text-niknax-600 dark:text-niknax-300 mb-1">
-            {{ group.day.day_label && group.offset === 0 ? `${group.day.day_label} — ` : '' }}{{ formatDate(group.dateKey) }}
-            <span v-if="group.offset > 0" class="text-sm font-normal text-tx3">
-              (continued from {{ formatDate(group.day.day_date) }})
-            </span>
-          </h3>
+          <div class="flex items-center justify-between gap-3 mb-1 flex-wrap">
+            <h3 class="text-lg font-semibold text-niknax-600 dark:text-niknax-300">
+              {{ group.day.day_label && group.offset === 0 ? `${group.day.day_label} — ` : '' }}{{ formatDate(group.dateKey) }}
+              <span v-if="group.offset > 0" class="text-sm font-normal text-tx3">
+                (continued from {{ formatDate(group.day.day_date) }})
+              </span>
+            </h3>
+            <!-- Only on the first section of a day — the continuation isn't a
+                 separate day and removing it would be ambiguous. -->
+            <button
+              v-if="group.offset === 0"
+              @click="confirmRemoveDay(group.day)"
+              :disabled="removingDayId === group.day.id"
+              class="text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300 text-xs disabled:opacity-50"
+            >{{ removingDayId === group.day.id ? 'Removing…' : 'Remove day' }}</button>
+          </div>
 
           <div
             v-if="group.offset === 0 && hasOutOfOrderSlots(slotsByDay[group.day.id] || [])"
@@ -1655,6 +1753,128 @@ async function toggleUpcoming() {
   await supabase.from('trains').update({ is_upcoming: val }).eq('id', train.value.id)
   train.value.is_upcoming = val
 }
+
+// ── Add / remove a day ────────────────────────────────────────────────────
+// A train can be created with no days at all, and the schedule section only
+// renders days that exist — so this is the only way into one of those.
+const showAddDay  = ref(false)
+const addingDay   = ref(false)
+const addDayError = ref('')
+
+const newDay = ref({
+  day_date:         '',
+  day_label:        '',
+  start_time:       '10:30',
+  slot_duration:    30,
+  slot_count:       24,
+  include_kickoff:  true,
+  kickoff_duration: 10,
+})
+
+async function addDay() {
+  addDayError.value = ''
+
+  const f = newDay.value
+  if (!f.day_date) {
+    addDayError.value = 'Pick a date for this day.'
+    return
+  }
+  if (f.slot_duration < 5 || f.slot_duration > 120) {
+    addDayError.value = 'Slot duration must be 5–120 minutes.'
+    return
+  }
+  if (f.slot_count < 1 || f.slot_count > 100) {
+    addDayError.value = 'Slot count must be 1–100.'
+    return
+  }
+  if (days.value.some(d => d.day_date === f.day_date)) {
+    if (!confirm(`This train already has a day on ${f.day_date}. Add another anyway?`)) return
+  }
+
+  addingDay.value = true
+
+  try {
+    const nextOrder = days.value.reduce((m, d) => Math.max(m, d.day_order ?? 0), -1) + 1
+
+    const { data: day, error: dayErr } = await supabase
+      .from('train_days')
+      .insert({
+        train_id:  route.params.id,
+        day_date:  f.day_date,
+        day_label: f.day_label.trim() || null,
+        day_order: nextOrder,
+      })
+      .select()
+      .single()
+    if (dayErr) throw dayErr
+
+    // Same generation shape as Create Train: optional kickoff at slot_order 0,
+    // then contiguous seller slots.
+    const kickoffDur = f.include_kickoff ? (f.kickoff_duration || 10) : 0
+    const orderBase  = f.include_kickoff ? 1 : 0
+    const rows = []
+
+    if (f.include_kickoff) {
+      rows.push({
+        train_day_id: day.id,
+        start_time:   f.start_time,
+        duration_min: kickoffDur,
+        username:     null,
+        label:        'Kickoff',
+        is_pre_assigned: false,
+        slot_order:   0,
+      })
+    }
+
+    generateSlotTimes(addMinutes(f.start_time, kickoffDur), f.slot_duration, f.slot_count)
+      .forEach((time, i) => {
+        rows.push({
+          train_day_id: day.id,
+          start_time:   time,
+          duration_min: f.slot_duration,
+          username:     null,
+          label:        null,
+          is_pre_assigned: false,
+          slot_order:   i + orderBase,
+        })
+      })
+
+    const { error: slotErr } = await supabase.from('slots').insert(rows)
+    if (slotErr) throw slotErr
+
+    // Full reload so the realtime subscription picks up the new day's slots.
+    await load()
+    showAddDay.value = false
+    newDay.value = {
+      day_date: '', day_label: '', start_time: f.start_time,
+      slot_duration: f.slot_duration, slot_count: f.slot_count,
+      include_kickoff: f.include_kickoff, kickoff_duration: f.kickoff_duration,
+    }
+  } catch (e) {
+    addDayError.value = e?.message || 'Could not add that day.'
+  }
+  addingDay.value = false
+}
+
+async function confirmRemoveDay(day) {
+  const daySlots = slotsByDay.value[day.id] || []
+  const taken    = daySlots.filter(s => s.username)
+
+  const warning = taken.length
+    ? `Remove ${formatDate(day.day_date)}?\n\nThis deletes all ${daySlots.length} slots, including ${taken.length} with sellers signed up:\n${taken.map(s => '@' + s.username).join(', ')}\n\nThis cannot be undone.`
+    : `Remove ${formatDate(day.day_date)} and its ${daySlots.length} slots?`
+
+  if (!confirm(warning)) return
+
+  removingDayId.value = day.id
+  await supabase.from('slots').delete().eq('train_day_id', day.id)
+  const { error } = await supabase.from('train_days').delete().eq('id', day.id)
+  if (error) scheduleError.value = error.message || 'Could not remove that day.'
+  else await load()
+  removingDayId.value = null
+}
+
+const removingDayId = ref(null)
 
 // ── Lobby & substitution ──────────────────────────────────────────────────
 const lobbyMembers    = ref([])
