@@ -19,6 +19,44 @@ export function parseTime(timeStr) {
 }
 
 /**
+ * Coerce a time value to 24-hour "HH:MM", or null if it can't be read.
+ *
+ * `<input type="time">` normally yields 24-hour values, but not everywhere:
+ * some browsers fall back to a plain text field, where a user types "3:00 PM"
+ * literally. Passing that to parseTime() reads the 3 and silently discards the
+ * PM — 3 PM becomes 3 AM, which is exactly the kind of failure that only shows
+ * up after the slots are written.
+ *
+ * Accepts "15:00", "3:00 PM", "3pm", "03:00:00", "1530".
+ */
+export function normalizeTimeInput(value) {
+  const raw = String(value ?? '').trim()
+  if (!raw) return null
+
+  const m = raw.match(/^(\d{1,2})(?::?(\d{2}))?(?::\d{2})?\s*([AaPp])\.?[Mm]?\.?$/)
+             || raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
+             || raw.match(/^(\d{2})(\d{2})$/)
+  if (!m) return null
+
+  let hours   = Number(m[1])
+  const mins  = Number(m[2] ?? 0)
+  const half  = m[3] ? m[3].toLowerCase() : null
+
+  if (!Number.isFinite(hours) || !Number.isFinite(mins)) return null
+  if (mins > 59) return null
+
+  if (half) {
+    if (hours < 1 || hours > 12) return null
+    if (half === 'p' && hours !== 12) hours += 12   // 3 PM  -> 15
+    if (half === 'a' && hours === 12) hours = 0     // 12 AM -> 0
+  } else if (hours > 23) {
+    return null
+  }
+
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+}
+
+/**
  * Format hours + minutes as "H:MM AM/PM"
  */
 export function formatHHMM(hours, minutes) {

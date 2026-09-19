@@ -996,7 +996,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
-import { allZones, addMinutes, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS, slotDayOffsets, slotDateTime, slotInsertPosition, groupSlotsByCalendarDay, hasOutOfOrderSlots, isTrainLive } from '../../lib/timeUtils.js'
+import { allZones, addMinutes, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS, slotDayOffsets, slotDateTime, slotInsertPosition, groupSlotsByCalendarDay, hasOutOfOrderSlots, isTrainLive, normalizeTimeInput } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 
@@ -1401,11 +1401,17 @@ function initScheduleForms() {
     const daySlots = [...(slotsByDay.value[day.id] || [])]
     const kickoff = daySlots.find(isKickoffSlot)
     const sellerSlots = daySlots.filter(slot => !isKickoffSlot(slot))
+    // A day with no slots yet needs sensible defaults, not values derived from
+    // nothing. Previously slot_count came out as 1 and include_kickoff as
+    // false, so applying the schedule to an empty day created a single slot
+    // and no kickoff — regardless of what you'd typed.
+    const isEmpty = daySlots.length === 0
+
     forms[day.id] = {
-      start_time: timeInputValue(kickoff?.start_time || sellerSlots[0]?.start_time || '12:00'),
+      start_time: timeInputValue(kickoff?.start_time || sellerSlots[0]?.start_time || '10:30'),
       slot_duration: sellerSlots[0]?.duration_min || 30,
-      slot_count: Math.max(1, sellerSlots.length || 1),
-      include_kickoff: !!kickoff,
+      slot_count: isEmpty ? 24 : Math.max(1, sellerSlots.length),
+      include_kickoff: isEmpty ? true : !!kickoff,
       kickoff_duration: kickoff?.duration_min || 10,
     }
   }
@@ -1604,6 +1610,16 @@ async function applyScheduleChanges() {
       scheduleError.value = 'Kickoff duration must be 5-120 minutes.'
       return
     }
+
+    // Refuse to write a time we can't read rather than silently storing
+    // something wrong. Also rescues a 12-hour value from a browser whose
+    // time input falls back to a text field.
+    const normalized = normalizeTimeInput(form.start_time)
+    if (!normalized) {
+      scheduleError.value = `"${form.start_time}" isn't a time we can read. Use 24-hour HH:MM (15:00) or include AM/PM.`
+      return
+    }
+    form.start_time = normalized
   }
 
   // Removing a kickoff that someone has already claimed loses their sign-up,
@@ -1779,6 +1795,13 @@ async function addDay() {
     addDayError.value = 'Pick a date for this day.'
     return
   }
+
+  const startTime = normalizeTimeInput(f.start_time)
+  if (!startTime) {
+    addDayError.value = `"${f.start_time}" isn't a time we can read. Use 24-hour HH:MM (15:00) or include AM/PM.`
+    return
+  }
+  f.start_time = startTime
   if (f.slot_duration < 5 || f.slot_duration > 120) {
     addDayError.value = 'Slot duration must be 5–120 minutes.'
     return
@@ -2246,6 +2269,13 @@ function addSlotToDay(day) {
 }
 
 async function saveNewSlot() {
+  const startTime = normalizeTimeInput(newSlot.value.start_time)
+  if (!startTime) {
+    scheduleError.value = `"${newSlot.value.start_time}" isn't a time we can read. Use 24-hour HH:MM (15:00) or include AM/PM.`
+    return
+  }
+  newSlot.value.start_time = startTime
+
   savingSlot.value = true
 
   // Derive slot_order from the clock instead of appending. A slot added with a
