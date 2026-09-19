@@ -2216,9 +2216,13 @@ function startEdit(slot) {
 }
 
 async function saveSlotUsername(slot) {
+  // A DB trigger clears seller_link whenever a slot changes hands, so the old
+  // seller's "Watch on District" link can't linger on someone else's slot.
+  // Mirror that locally instead of refetching.
   const { error } = await supabase.from('slots').update({ username: editUsername.value || null }).eq('id', slot.id)
   if (!error) {
     slot.username = editUsername.value || null
+    slot.seller_link = null
     editingSlot.value = null
     // A DB trigger drops them from the lobby if they were waiting. Refresh
     // directly rather than waiting on the realtime round-trip.
@@ -2283,7 +2287,11 @@ async function toggleSlotReserved(slot) {
   const { error } = await supabase.from('slots').update(patch).eq('id', slot.id)
   if (!error) {
     slot.is_pre_assigned = makeReserved
-    if ('username' in patch) slot.username = null
+    if ('username' in patch) {
+      slot.username = null
+      // The DB trigger drops the departing seller's link too.
+      slot.seller_link = null
+    }
   }
 }
 
