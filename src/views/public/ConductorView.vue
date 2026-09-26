@@ -516,6 +516,15 @@
           <p v-if="conductorError" class="text-red-600 dark:text-red-400 text-sm">{{ conductorError }}</p>
         </section>
 
+        <!-- Interested sellers -->
+        <InterestPanel
+          v-if="authToken && train"
+          class="mb-8"
+          :train="train"
+          :token="authToken"
+          @updated="patch => Object.assign(train, patch)"
+        />
+
         <!-- Lobby -->
         <section v-if="lobbyMembers.length" class="card mb-8">
           <h2 class="text-base font-semibold text-[#B3123C] mb-1">
@@ -637,6 +646,7 @@ import { ref, computed, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import PublicNav from '../../components/PublicNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
+import InterestPanel from '../../components/InterestPanel.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
 import { getConductorSession, setConductorSession, clearConductorSession } from '../../lib/conductorAuth.js'
 import { formatDate, parseTime, addMinutes } from '../../lib/timeUtils.js'

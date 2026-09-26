@@ -102,14 +102,13 @@
             @mouseenter="ev.rules_md && showRules(ev.id)"
             @mouseleave="scheduleHideRules"
           >
-          <component
-            :is="ev.published ? RouterLink : 'div'"
-            :to="ev.published ? `/train/${ev.id}` : undefined"
+          <!-- Arriving Soon trains link too — straight to the "I'm interested"
+               box, since that's the one thing a visitor can do before boarding. -->
+          <RouterLink
+            :to="ev.published ? `/train/${ev.id}` : `/train/${ev.id}#interest`"
             :data-tour="idx === 0 ? 'first-event-card' : undefined"
-            class="flex items-stretch gap-4 card transition-all"
-            :class="ev.published
-              ? 'group cursor-pointer hover:border-niknax-600 hover:shadow-md hover:-translate-y-0.5'
-              : 'opacity-70'"
+            class="flex items-stretch gap-4 card transition-all group cursor-pointer
+                   hover:border-niknax-600 hover:shadow-md hover:-translate-y-0.5"
           >
             <img
               v-if="ev.cover_url"
@@ -135,10 +134,32 @@
               </div>
               <p v-if="ev.tagline" class="text-tx3 text-sm truncate">{{ ev.tagline }}</p>
               <p v-if="ev.dateRange" class="text-tx3 text-xs mt-0.5 font-mono">{{ ev.dateRange }}</p>
+
+              <!-- Arriving Soon extras: countdown and interest count -->
+              <div v-if="!ev.published" class="flex flex-wrap items-center gap-2 mt-2">
+                <span
+                  v-if="countdownText(ev.signups_open_at, nowTick)"
+                  class="inline-flex items-center gap-1 text-xs font-semibold text-tx2"
+                >
+                  <ion-icon name="alarm-outline" aria-hidden="true"></ion-icon>
+                  Sign-ups open {{ countdownText(ev.signups_open_at, nowTick) }}
+                </span>
+                <span
+                  v-if="interestCounts[ev.id] > 0"
+                  class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full
+                         bg-[#FEA0CE] text-[#2A2118]"
+                >
+                  <ion-icon name="hand-left-outline" aria-hidden="true"></ion-icon>
+                  {{ interestCounts[ev.id] }} interested
+                </span>
+                <span class="text-xs font-semibold text-niknax-600 dark:text-niknax-400 underline underline-offset-2">
+                  I'm interested
+                </span>
+              </div>
             </div>
 
-            <span v-if="ev.published" class="text-niknax-600 dark:text-niknax-400 group-hover:translate-x-1 transition-transform text-xl shrink-0 font-bold">→</span>
-          </component>
+            <span class="text-niknax-600 dark:text-niknax-400 group-hover:translate-x-1 transition-transform text-xl shrink-0 font-bold">→</span>
+          </RouterLink>
 
           <!-- Action row. Sits outside the card link — nesting a link inside a
                link isn't valid. -->
@@ -304,8 +325,7 @@
 
           <div class="px-6 py-4 border-t border-bd shrink-0 flex flex-col sm:flex-row gap-2">
             <RouterLink
-              v-if="rulesModalTrain.published"
-              :to="`/train/${rulesModalTrain.id}`"
+              :to="rulesModalTrain.published ? `/train/${rulesModalTrain.id}` : `/train/${rulesModalTrain.id}#interest`"
               class="btn-primary flex-1 text-center"
               @click="rulesModalTrain = null"
             >
@@ -330,6 +350,7 @@ import EventCalendar from '../../components/EventCalendar.vue'
 import TrainAnimation from '../../components/TrainAnimation.vue'
 import { renderMarkdown } from '../../lib/renderMarkdown.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
+import { countdownText } from '../../lib/signupReminder.js'
 
 const theme      = useThemeStore()
 const onboarding = useOnboardingStore()
@@ -395,6 +416,18 @@ async function load() {
     .order('created_at', { ascending: false })
   rawTrains.value = data || []
   loading.value   = false
+  loadInterestCounts()
+}
+
+// Public interest counts for Arriving Soon cards. Trains whose conductor hid
+// the count come back missing, so they simply show nothing.
+const interestCounts = ref({})
+
+async function loadInterestCounts() {
+  const ids = rawTrains.value.filter(t => !t.published && t.is_upcoming).map(t => t.id)
+  if (!ids.length) { interestCounts.value = {}; return }
+  const { data } = await supabase.rpc('train_interest_counts', { p_train_ids: ids })
+  interestCounts.value = Object.fromEntries((data || []).map(r => [r.train_id, r.interest_count]))
 }
 
 function enrich(t) {

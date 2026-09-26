@@ -126,6 +126,13 @@
           </ol>
         </div>
 
+        <!-- ── Interested sellers ── -->
+        <InterestPanel
+          class="mb-6"
+          :train="train"
+          @updated="patch => Object.assign(train, patch)"
+        />
+
         <!-- ── Conductors (member trains only) ── -->
         <div v-if="train.is_member_train" class="card mb-6">
           <h3 class="font-semibold text-niknax-600 dark:text-niknax-300 mb-1">Conductors</h3>
@@ -995,6 +1002,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
+import InterestPanel from '../../components/InterestPanel.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
 import { allZones, addMinutes, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS, slotDayOffsets, slotDateTime, slotInsertPosition, groupSlotsByCalendarDay, hasOutOfOrderSlots, isTrainLive, normalizeTimeInput } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'

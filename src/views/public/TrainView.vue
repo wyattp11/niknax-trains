@@ -170,6 +170,102 @@
 
       <!-- Schedule -->
       <main data-tour="schedule-section" class="max-w-4xl mx-auto px-4 py-10 flex-1">
+        <!-- ── Interest ──
+             Only while the train is Arriving Soon. It's the one thing a visitor
+             can do before sign-ups open, so it sits above the schedule. -->
+        <section v-if="interestActive" id="interest" class="mb-12 scroll-mt-6">
+          <div class="card border-2 border-[#FEA0CE]">
+            <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+              <div class="min-w-0">
+                <h2 class="font-display text-2xl text-tx1">Sign-ups open soon</h2>
+                <p v-if="signupsCountdown" class="text-sm text-tx2 mt-1">
+                  Opening <strong class="text-tx1">{{ signupsCountdown }}</strong>
+                  <span class="text-tx3"> · {{ openDateLabel(train.signups_open_at) }}</span>
+                </p>
+                <p v-if="signupsCountdown" class="text-xs text-tx3 font-mono mt-0.5">
+                  {{ openTimeZonesLabel(train.signups_open_at) }}
+                </p>
+                <p v-else-if="train.signups_open_at" class="text-sm text-tx2 mt-1">
+                  Opening any moment now — keep this page handy.
+                </p>
+                <p v-else class="text-sm text-tx2 mt-1">
+                  Let the conductor know you want a spot, and check back when it's boarding.
+                </p>
+              </div>
+
+              <span
+                v-if="interestShowCount && interestCount > 0"
+                class="inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-full
+                       bg-[#FEA0CE] text-[#2A2118] shrink-0"
+              >
+                <ion-icon name="hand-left-outline" aria-hidden="true"></ion-icon>
+                {{ interestCount }} {{ interestCount === 1 ? 'seller' : 'sellers' }} interested
+              </span>
+            </div>
+
+            <!-- Already on the list -->
+            <div v-if="interestJoined" class="space-y-3" aria-live="polite">
+              <p class="text-green-700 dark:text-green-400 text-sm">
+                You're on the list, @{{ interestUsername }}. The conductor can see you're in.
+                <button type="button" @click="withdrawInterest" :disabled="interestBusy"
+                        class="underline underline-offset-2 ml-1 text-tx3">Undo</button>
+              </p>
+            </div>
+
+            <!-- Join the list -->
+            <form v-else @submit.prevent="expressInterest" class="space-y-3">
+              <div class="flex flex-col sm:flex-row gap-2">
+                <div class="relative flex-1">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-tx3 select-none">@</span>
+                  <input
+                    v-model="interestUsername"
+                    class="input pl-7"
+                    placeholder="your District username"
+                    maxlength="60"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    required
+                    :disabled="interestBusy"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  :disabled="interestBusy || !interestUsername.trim()"
+                  class="bg-[#FEA0CE] hover:bg-[#F9927C] text-[#2A2118] font-bold px-5 py-2 rounded-lg
+                         transition-colors shrink-0 disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                >
+                  <ion-icon name="hand-left-outline" aria-hidden="true"></ion-icon>
+                  {{ interestBusy ? '…' : "I'm interested" }}
+                </button>
+              </div>
+              <p v-if="interestError" class="text-red-600 dark:text-red-400 text-sm" role="alert">{{ interestError }}</p>
+            </form>
+
+            <!-- Calendar reminder for the moment sign-ups open -->
+            <details v-if="signupsCountdown" class="calendar-menu relative mt-4 inline-block">
+              <summary class="list-none cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap
+                              btn-secondary text-sm">
+                <ion-icon name="alarm-outline" aria-hidden="true"></ion-icon>
+                Remind me when sign-ups open
+              </summary>
+              <div class="mt-1 sm:absolute sm:left-0 sm:z-20 sm:w-48 bg-surface border-2 border-[#FEA0CE] rounded-lg p-1 shadow-lg shadow-[#FEA0CE]/20">
+                <a
+                  :href="signupsGoogleUrl"
+                  target="_blank"
+                  rel="noopener"
+                  class="block rounded-md px-3 py-2 text-sm font-semibold text-tx1 hover:bg-[#FEA0CE]/20"
+                  @click="closeCalendarMenu"
+                >Google Calendar</a>
+                <button
+                  type="button"
+                  @click="downloadSignupsReminder"
+                  class="block w-full text-left rounded-md px-3 py-2 text-sm font-semibold text-tx1 hover:bg-[#FEA0CE]/20"
+                >Apple / Outlook (.ics)</button>
+              </div>
+            </details>
+          </div>
+        </section>
+
         <!-- One section per calendar day. A train running past midnight stores
              its late slots under the start date; showing them there reads as a
              mistake, so they get their own dated section. -->
@@ -821,6 +917,9 @@ import { renderMarkdown } from '../../lib/renderMarkdown.js'
 import { getConductorToken } from '../../lib/conductorAuth.js'
 import { isStaffRole, staffTier } from '../../lib/roles.js'
 import TrainChat from '../../components/TrainChat.vue'
+import {
+  countdownText, openDateLabel, openTimeZonesLabel, googleReminderUrl, downloadReminderIcs,
+} from '../../lib/signupReminder.js'
 
 const route = useRoute()
 const theme = useThemeStore()
@@ -838,6 +937,90 @@ const signupSuccess  = ref(null)   // { username, slot, day } after successful c
 const signupUsername = ref('')
 const signupError    = ref('')
 const signupBlocked  = ref(false)   // true when an active strike blocks this claim
+
+// ── Interest (Arriving Soon trains) ──────────────────────────────────────
+// Real clock for the countdown. nowET below is an Eastern wall-clock stand-in
+// for slot math and isn't a true instant, so it can't be compared against a
+// timestamptz.
+const realNow = ref(new Date())
+
+const interestCount     = ref(0)
+const interestShowCount = ref(false)
+const interestUsername  = ref('')
+const interestBusy      = ref(false)
+const interestError     = ref('')
+const interestJoined    = ref(false)
+
+const interestActive = computed(() =>
+  !!train.value && !train.value.published && !!train.value.is_upcoming && !trainIsPast.value
+)
+
+const signupsCountdown = computed(() =>
+  countdownText(train.value?.signups_open_at, realNow.value)
+)
+
+const signupsGoogleUrl = computed(() =>
+  googleReminderUrl(train.value, location.href.split('#')[0]) || '#'
+)
+
+function downloadSignupsReminder(event) {
+  downloadReminderIcs(train.value, location.href.split('#')[0])
+  closeCalendarMenu(event)
+}
+
+function interestStorageKey() {
+  return `niknax_interest_${route.params.id}`
+}
+
+function applyInterestState(data) {
+  interestShowCount.value = !!data?.show_count
+  interestCount.value     = Number(data?.count || 0)
+}
+
+async function loadInterest() {
+  if (!interestActive.value) return
+  const { data } = await supabase.rpc('train_interest_public', { p_train_id: route.params.id })
+  applyInterestState(data)
+  // The list itself is private, so "am I on it?" is remembered on this device.
+  try {
+    const saved = localStorage.getItem(interestStorageKey())
+    if (saved) {
+      interestUsername.value = saved
+      interestJoined.value = true
+    }
+  } catch { /* private mode */ }
+}
+
+async function expressInterest() {
+  interestError.value = ''
+  interestBusy.value  = true
+  const who = interestUsername.value.trim().replace(/^@+/, '')
+  const { data, error } = await supabase.rpc('express_train_interest', {
+    p_train_id: route.params.id,
+    p_username: who,
+  })
+  if (error) {
+    interestError.value = error.message || 'Could not add you to the list.'
+  } else {
+    applyInterestState(data)
+    interestUsername.value = who
+    interestJoined.value = true
+    try { localStorage.setItem(interestStorageKey(), who) } catch { /* private mode */ }
+  }
+  interestBusy.value = false
+}
+
+async function withdrawInterest() {
+  interestBusy.value = true
+  const { data } = await supabase.rpc('withdraw_train_interest', {
+    p_train_id: route.params.id,
+    p_username: interestUsername.value.trim().replace(/^@+/, ''),
+  })
+  applyInterestState(data)
+  interestJoined.value = false
+  try { localStorage.removeItem(interestStorageKey()) } catch { /* private mode */ }
+  interestBusy.value = false
+}
 
 // ── Lobby ─────────────────────────────────────────────────────────────────
 // A waiting list that only appears once every claimable slot is taken.
@@ -1869,8 +2052,16 @@ async function loadAndScroll() {
   await load()
   conductorToken.value = getConductorToken(route.params.id)
   await loadLobby()
-  clockInterval = setInterval(() => { nowET.value = getCurrentET() }, 30_000)
+  await loadInterest()
+  clockInterval = setInterval(() => {
+    nowET.value = getCurrentET()
+    realNow.value = new Date()
+  }, 30_000)
   await nextTick()
+  // Home-page cards for Arriving Soon trains link straight to the interest box.
+  if (route.hash === '#interest') {
+    document.getElementById('interest')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
   if (activeSlotId.value) {
     const slotPrefix = window.matchMedia('(min-width: 768px)').matches ? 'slot-desktop' : 'slot-mobile'
     document.getElementById(`${slotPrefix}-${activeSlotId.value}`)
