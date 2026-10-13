@@ -35,6 +35,14 @@
             <a v-if="train.published" :href="`/train/${train.id}`" target="_blank" class="btn-secondary text-sm text-center whitespace-nowrap">
               View Public ↗
             </a>
+            <button
+              @click="duplicateThisTrain"
+              :disabled="duplicating"
+              class="btn-secondary text-sm whitespace-nowrap inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
+            >
+              <ion-icon name="copy-outline" aria-hidden="true"></ion-icon>
+              {{ duplicating ? 'Duplicating…' : 'Duplicate' }}
+            </button>
             <button v-if="!train.published" @click="publish" :disabled="publishing" class="btn-primary text-sm whitespace-nowrap">
               {{ publishing ? '…' : '🚀 Publish' }}
             </button>
@@ -1943,6 +1951,23 @@ async function confirmRemoveDay(day) {
 }
 
 const removingDayId = ref(null)
+
+// ── Duplicate ─────────────────────────────────────────────────────────────
+const duplicating = ref(false)
+
+async function duplicateThisTrain() {
+  if (!confirm(`Duplicate "${train.value.name}"?\n\nThe copy keeps the details, days, slot times and reserved names, starts empty and unpublished, and opens here so you can edit it.`)) return
+  duplicating.value = true
+  const { data, error } = await supabase.rpc('duplicate_train', { p_train_id: train.value.id })
+  duplicating.value = false
+  if (error) {
+    alert(`Could not duplicate train: ${error.message || error}`)
+    return
+  }
+  // Full load rather than router.push: this view doesn't re-fetch when only
+  // the :id param changes, so a push would keep showing the original.
+  window.location.assign(`/admin/trains/${data.train_id}`)
+}
 
 // ── Lobby & substitution ──────────────────────────────────────────────────
 const lobbyMembers    = ref([])

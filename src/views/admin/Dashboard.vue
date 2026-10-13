@@ -58,6 +58,14 @@
                 <RouterLink :to="`/train/${train.id}`" target="_blank" class="btn-secondary text-sm py-1.5 text-center whitespace-nowrap">
                   View
                 </RouterLink>
+                <button
+                  @click="duplicateTrain(train)"
+                  :disabled="duplicatingId === train.id"
+                  class="btn-secondary text-sm py-1.5 text-center whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-60"
+                >
+                  <ion-icon name="copy-outline" aria-hidden="true"></ion-icon>
+                  {{ duplicatingId === train.id ? 'Duplicating…' : 'Duplicate' }}
+                </button>
                 <RouterLink :to="`/admin/trains/${train.id}`" class="btn-primary text-sm py-1.5 text-center whitespace-nowrap">
                   Manage
                 </RouterLink>
@@ -226,67 +234,14 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+// One RPC does the whole copy in a single transaction — the old browser-side
+// version ran several inserts and could leave a half-built copy on failure.
 async function duplicateTrain(train) {
   duplicatingId.value = train.id
   try {
-    const { data: newTrain, error: trainErr } = await supabase
-      .from('trains')
-      .insert({
-        name: `${train.name} (Copy)`,
-        tagline: train.tagline || null,
-        description: train.description || null,
-        district_link: train.district_link || null,
-        rules_md: train.rules_md || null,
-        cover_url: train.cover_url || null,
-        published: false,
-        is_upcoming: false,
-      })
-      .select()
-      .single()
-    if (trainErr) throw trainErr
-
-    const { data: oldDays, error: daysErr } = await supabase
-      .from('train_days')
-      .select('*, slots(*)')
-      .eq('train_id', train.id)
-      // Chronological so the duplicate's day_order comes out in date order
-      // even if the original's had drifted.
-      .order('day_date')
-      .order('day_order')
-    if (daysErr) throw daysErr
-
-    for (const [dayIdx, oldDay] of (oldDays || []).entries()) {
-      const { data: newDay, error: dayErr } = await supabase
-        .from('train_days')
-        .insert({
-          train_id: newTrain.id,
-          day_date: oldDay.day_date,
-          day_label: oldDay.day_label,
-          // Index of the date-ordered fetch, not the original's value — so a
-          // duplicate comes out clean even if the original's order had drifted.
-          day_order: dayIdx,
-        })
-        .select()
-        .single()
-      if (dayErr) throw dayErr
-
-      const slotsToInsert = (oldDay.slots || []).map(s => ({
-        train_day_id: newDay.id,
-        start_time: s.start_time,
-        duration_min: s.duration_min,
-        username: s.is_pre_assigned ? s.username : null,
-        seller_link: null,
-        label: s.label,
-        is_pre_assigned: s.is_pre_assigned,
-        slot_order: s.slot_order,
-      }))
-      if (slotsToInsert.length) {
-        const { error: slotsErr } = await supabase.from('slots').insert(slotsToInsert)
-        if (slotsErr) throw slotsErr
-      }
-    }
-
-    router.push(`/admin/trains/${newTrain.id}`)
+    const { data, error } = await supabase.rpc('duplicate_train', { p_train_id: train.id })
+    if (error) throw error
+    router.push(`/admin/trains/${data.train_id}`)
   } catch (err) {
     alert(`Could not duplicate train: ${err.message || err}`)
   } finally {

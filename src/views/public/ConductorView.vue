@@ -120,6 +120,14 @@
             </p>
           </div>
           <div class="flex items-center gap-3 shrink-0">
+            <button
+              @click="duplicateThisTrain"
+              :disabled="duplicating"
+              class="btn-secondary text-sm py-1.5 inline-flex items-center gap-1.5 disabled:opacity-60"
+            >
+              <ion-icon name="copy-outline" aria-hidden="true"></ion-icon>
+              {{ duplicating ? 'Duplicating…' : 'Duplicate' }}
+            </button>
             <button @click="signOutConductor" class="text-tx3 hover:text-tx1 text-sm">Sign out</button>
             <button
               v-if="isPrimary"
@@ -899,6 +907,33 @@ async function saveDayEdit(day) {
     editingDayId.value = null
   }
   savingDayId.value = null
+}
+
+// ── Duplicate ─────────────────────────────────────────────────────────────
+// The server signs this conductor into the copy and hands back a session, so
+// they land in it without needing a new access code.
+const duplicating = ref(false)
+
+async function duplicateThisTrain() {
+  if (!confirm(`Duplicate "${train.value.name}"?\n\nThe copy keeps your details, days, slot times and conductors, and starts with no sellers. Like any new member train, the Niknax team approves it before it goes public.`)) return
+  duplicating.value = true
+  const { data, error } = await supabase.rpc('duplicate_train', {
+    p_train_id: train.value.id,
+    p_token:    authToken.value,
+  })
+  duplicating.value = false
+  if (error) {
+    alert(`Could not duplicate train: ${handleRpcError(error, 'Something went wrong.')}`)
+    return
+  }
+  setConductorSession(data.train_id, {
+    token:     data.token,
+    email:     authEmail.value,
+    username:  authedUsername.value,
+    expiresAt: data.expires_at,
+  })
+  // Full load: this view doesn't re-fetch when only the :id param changes.
+  window.location.assign(`/train/${data.train_id}/conductor`)
 }
 
 // ── Lobby & substitution ──────────────────────────────────────────────────
