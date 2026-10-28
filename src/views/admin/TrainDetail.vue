@@ -184,7 +184,7 @@
                   @click="generateConductorCode(c)"
                   :disabled="resendingId === c.id"
                   class="btn-secondary text-xs py-1 px-2.5 disabled:opacity-50"
-                >{{ resendingId === c.id ? '…' : 'Generate code' }}</button>
+                >{{ resendingId === c.id ? '…' : (c.last_seen_at ? 'New code' : 'Generate code') }}</button>
                 <button
                   @click="removeConductor(c)"
                   :disabled="savingConductor"
@@ -230,11 +230,13 @@
                   {{ revealedCode.code }}
                 </p>
                 <p class="text-xs text-tx3 mt-1">
-                  Good for 48 hours · expires {{ formatTimestamp(revealedCode.expires_at) }}
+                  Their personal code · works on any device, as many times as needed
                 </p>
                 <p class="text-xs text-tx3 mt-1.5 max-w-sm">
-                  Send this to them however you like. They enter it on
-                  <strong>Manage your train</strong> and stay signed in for 90 days.
+                  Send this to them however you like and ask them to keep it. They enter it on
+                  <strong>Manage your train</strong> whenever they're signed out — new phone,
+                  different browser, anything. It stops working when you generate a new one
+                  or a week after the train's last day. This is the only time it's shown.
                 </p>
                 <!-- A train still awaiting review isn't listed publicly, so
                      its conductor has no way to find the page. Send the link
@@ -2111,10 +2113,11 @@ async function makePrimaryConductor(c) {
 }
 
 /**
- * Issues a 48-hour access code for one conductor. Shown on screen for the
- * admin to pass on however they like — no email involved.
+ * Issues a conductor's personal, reusable access code (retiring any earlier
+ * one). Shown once on screen for the admin to pass on — no email involved.
  */
 async function generateConductorCode(c) {
+  if (c.last_seen_at && !confirm(`Issue a new code for ${c.username ? '@' + c.username : c.email}?\n\nTheir current code will stop working. Anywhere they're already signed in stays signed in.`)) return
   conductorError.value = ''
   resendingId.value    = c.id
 

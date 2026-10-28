@@ -40,8 +40,8 @@
                 @input="gateCode = formatCodeInput(gateCode)"
               />
               <p class="text-xs text-tx3 mt-1.5">
-                The 8-character code from your Niknax admin. Codes are good for 48 hours —
-                once you're in, you'll stay signed in on this device for 90 days.
+                Your personal 8-character code from the Niknax admin. It works on any phone or
+                computer, as many times as you need — keep it somewhere handy.
               </p>
             </div>
 
@@ -53,7 +53,7 @@
           </form>
 
           <p class="text-xs text-tx3 border-t border-bd pt-4">
-            Don't have a code, or has yours expired? Ask the Niknax team for a new one.
+            Lost your code? Ask the Niknax team and they'll issue you a new one.
           </p>
         </div>
       </div>
