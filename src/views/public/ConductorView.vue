@@ -371,6 +371,10 @@
               </div>
             </div>
 
+            <datalist id="kickoff-suggestions">
+              <option v-for="u in kickoffSuggestions" :key="u" :value="u" />
+            </datalist>
+
             <!-- Slot table -->
             <div class="overflow-x-auto -mx-2">
               <table class="w-full text-sm min-w-[500px]">
@@ -399,8 +403,41 @@
                       <td class="px-2 py-2 text-tx3 text-xs">{{ slot.duration_min }}m</td>
                       <td class="px-2 py-2 text-tx3 text-xs">{{ slot.label || '—' }}</td>
                       <td class="px-2 py-2">
-                        <span v-if="slot.username" class="flex items-center gap-1.5">
+                        <!-- Kickoff: the conductor picks who hosts it -->
+                        <form
+                          v-if="kickoffEditId === slot.id"
+                          @submit.prevent="saveKickoff(slot)"
+                          class="flex items-center gap-1"
+                        >
+                          <div class="relative">
+                            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-tx3 text-xs select-none">@</span>
+                            <input
+                              v-model="kickoffInput"
+                              @input="searchKickoffSuggestions"
+                              list="kickoff-suggestions"
+                              class="input text-xs py-1 pl-5 w-36"
+                              placeholder="username"
+                              maxlength="60"
+                              autocomplete="off"
+                              autocapitalize="off"
+                              :disabled="savingKickoff"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            :disabled="savingKickoff || !kickoffInput.trim()"
+                            class="text-green-700 dark:text-green-400 text-xs font-medium disabled:opacity-50"
+                          >{{ savingKickoff ? '…' : 'Save' }}</button>
+                          <button type="button" @click="kickoffEditId = null" class="text-tx3 text-xs">✕</button>
+                        </form>
+                        <span v-else-if="slot.username" class="flex items-center gap-1.5">
                           <span class="text-tx1 text-xs font-medium">@{{ slot.username }}</span>
+                          <button
+                            v-if="isKickoff(slot) || slot.slot_order === 0"
+                            @click="startKickoffEdit(slot)"
+                            class="text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 text-xs"
+                            title="Put someone else in the kickoff"
+                          >Change</button>
                           <button
                             @click="confirmClearSeller(slot)"
                             :disabled="clearingSlotId === slot.id"
@@ -408,6 +445,11 @@
                             :title="`Release this slot — removes @${slot.username} from the train`"
                           >{{ clearingSlotId === slot.id ? '…' : '✕' }}</button>
                         </span>
+                        <button
+                          v-else-if="isKickoff(slot) || slot.slot_order === 0"
+                          @click="startKickoffEdit(slot)"
+                          class="text-xs font-semibold text-niknax-600 hover:text-niknax-500 dark:text-niknax-400"
+                        >+ Set kickoff host</button>
                         <span v-else class="text-tx3 text-xs italic">— open —</span>
                       </td>
                       <td class="px-2 py-2 text-right">
@@ -872,6 +914,57 @@ async function confirmClearSeller(slot) {
     if (local) { local.username = null; local.seller_link = null }
   }
   clearingSlotId.value = null
+}
+
+// ── Kickoff host ──────────────────────────────────────────────────────────
+// Member-train kickoffs can't be claimed publicly, so the conductor sets them.
+// Any username is accepted; known sellers are suggested as they type.
+const kickoffEditId      = ref(null)
+const kickoffInput       = ref('')
+const savingKickoff      = ref(false)
+const kickoffSuggestions = ref([])
+let kickoffSearchTimer   = null
+
+function startKickoffEdit(slot) {
+  kickoffEditId.value = slot.id
+  kickoffInput.value  = slot.username || ''
+  kickoffSuggestions.value = []
+}
+
+function searchKickoffSuggestions() {
+  clearTimeout(kickoffSearchTimer)
+  const q = kickoffInput.value.trim().replace(/^@+/, '')
+  if (q.length < 2) { kickoffSuggestions.value = []; return }
+  kickoffSearchTimer = setTimeout(async () => {
+    // Escape LIKE wildcards so "_" or "%" in a handle match literally.
+    const safe = q.replace(/[\\%_]/g, (c) => '\\' + c)
+    const { data } = await supabase
+      .from('members_signup_search')
+      .select('username')
+      .ilike('username', `${safe}%`)
+      .limit(8)
+    kickoffSuggestions.value = (data || []).map(r => r.username)
+  }, 200)
+}
+
+async function saveKickoff(slot) {
+  savingKickoff.value = true
+  const { data, error } = await supabase.rpc('assign_member_train_kickoff', {
+    p_train_id: train.value.id,
+    p_token:    authToken.value,
+    p_slot_id:  slot.id,
+    p_username: kickoffInput.value.trim().replace(/^@+/, ''),
+  })
+  if (error) {
+    actionError.value = handleRpcError(error, 'Could not set the kickoff host.')
+  } else {
+    const local = slots.value.find(s => s.id === slot.id)
+    if (local) Object.assign(local, data)
+    kickoffEditId.value = null
+    // They may have just come out of the lobby.
+    if (lobbyMembers.value.length) loadLobby()
+  }
+  savingKickoff.value = false
 }
 
 // ── Train status ──────────────────────────────────────────────────────────
