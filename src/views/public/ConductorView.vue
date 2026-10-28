@@ -65,6 +65,14 @@
           <RouterLink :to="`/train/${train.id}`" class="text-niknax-600 hover:text-niknax-500 dark:text-niknax-400 dark:hover:text-niknax-300 text-sm" target="_blank">View public page ↗</RouterLink>
         </div>
 
+        <div v-if="sessionCheckFailed" class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-4 py-3 mb-6 flex items-start justify-between gap-3" role="status">
+          <p class="text-sm text-amber-800 dark:text-amber-300">
+            Couldn't reach the server to check your sign-in. You're still signed in — if a save
+            fails, check your connection and try again.
+          </p>
+          <button type="button" @click="loadSessionInfo" class="text-sm font-semibold text-amber-800 dark:text-amber-300 underline underline-offset-2 shrink-0">Retry</button>
+        </div>
+
         <!-- Status banner -->
         <div v-if="!train.published && !train.is_upcoming" class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-4 py-3 mb-6 flex items-start gap-2">
           <span class="text-amber-600 dark:text-amber-400 mt-0.5">⏳</span>
@@ -671,6 +679,9 @@ const slots   = ref([])
 // Access is proven by receiving a one-time code at a registered email, not by
 // typing a username. Every write RPC takes the resulting session token.
 const authToken      = ref('')
+// True when we couldn't reach the server to confirm the session (not the same
+// as the session being invalid). Shown as a soft warning, never a sign-out.
+const sessionCheckFailed = ref(false)
 const authEmail      = ref('')
 const authedUsername = ref(null)   // display only
 const isPrimary      = ref(false)
@@ -723,11 +734,23 @@ function applySession(session) {
 
 async function loadSessionInfo() {
   if (!authToken.value) return
-  const { data } = await supabase.rpc('conductor_session_info', {
+  const { data, error } = await supabase.rpc('conductor_session_info', {
     p_train_id: train.value.id,
     p_token:    authToken.value,
   })
-  if (data?.valid) {
+
+  // Only an explicit "not valid" from the server ends the session. A dropped
+  // connection, a timeout or a server hiccup used to land here too (data was
+  // null), and signing out also wipes the stored token — so one bad signal
+  // on a phone permanently logged the conductor out of a perfectly good
+  // 90-day session.
+  if (error || !data) {
+    sessionCheckFailed.value = true
+    return
+  }
+  sessionCheckFailed.value = false
+
+  if (data.valid) {
     isPrimary.value  = !!data.is_primary
     conductors.value = data.conductors || []
     if (data.username) authedUsername.value = data.username
