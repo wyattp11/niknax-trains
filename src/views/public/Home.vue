@@ -93,14 +93,10 @@
         </div>
 
         <div v-else class="space-y-3">
-          <!-- Wrapper carries the hover so the popup can sit outside the card
-               without the card's own transform clipping it. -->
           <div
             v-for="(ev, idx) in events"
             :key="ev.id"
             class="relative"
-            @mouseenter="ev.rules_md && showRules(ev.id)"
-            @mouseleave="scheduleHideRules"
           >
           <!-- Arriving Soon trains link too — straight to the "I'm interested"
                box, since that's the one thing a visitor can do before boarding. -->
@@ -167,17 +163,57 @@
             <!-- Rules are also on hover, but hover doesn't exist on a phone, so
                  this button is the only way in on touch. Shown at every width:
                  a tappable control beats a hover nobody knows is there. -->
-            <button
+            <!-- Hovering the button (desktop) previews the rules; clicking or
+                 tapping opens the full modal. The preview is tied to the button,
+                 not the whole card, and opens ABOVE it over its own card.
+                 Opening it below covered the next card, so moving the cursor
+                 down the list landed on the panel and every click missed. -->
+            <span
               v-if="ev.rules_md"
-              type="button"
-              @click="openRulesModal(ev)"
-              class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg
-                     bg-surface border-2 border-niknax-600 text-niknax-700 dark:text-niknax-300
-                     hover:bg-niknax-50 dark:hover:bg-niknax-950 shadow-sm transition-colors"
+              class="relative inline-flex"
+              @mouseenter="showRules(ev.id)"
+              @mouseleave="scheduleHideRules"
             >
-              <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
-              Rules &amp; Criteria
-            </button>
+              <button
+                type="button"
+                @click="openRulesModal(ev)"
+                class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg
+                       bg-surface border-2 border-niknax-600 text-niknax-700 dark:text-niknax-300
+                       hover:bg-niknax-50 dark:hover:bg-niknax-950 shadow-sm transition-colors"
+              >
+                <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
+                Rules &amp; Criteria
+              </button>
+
+              <Transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="opacity-0 translate-y-1"
+                leave-active-class="transition duration-100 ease-in"
+                leave-to-class="opacity-0"
+              >
+                <!-- pb-2 (not margin) bridges the gap so the cursor can move
+                     from the button onto the panel to scroll it. -->
+                <div
+                  v-if="hoveredRulesId === ev.id"
+                  class="hidden md:block absolute z-30 right-0 bottom-full pb-2 w-[min(36rem,85vw)]"
+                  role="tooltip"
+                >
+                  <div class="bg-surface border-2 border-niknax-600 rounded-xl shadow-2xl overflow-hidden">
+                    <div class="bg-niknax-600 text-white px-4 py-2 flex items-center justify-between gap-2">
+                      <span class="flex items-center gap-2">
+                        <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
+                        <span class="text-sm font-semibold">Rules &amp; Criteria</span>
+                      </span>
+                      <span class="text-[0.65rem] uppercase tracking-wide opacity-75">Click for full view</span>
+                    </div>
+                    <div
+                      class="rules-content px-4 py-3 max-h-[18rem] overflow-y-auto overscroll-contain text-sm"
+                      v-html="renderMarkdown(ev.rules_md)"
+                    ></div>
+                  </div>
+                </div>
+              </Transition>
+            </span>
 
             <!-- Shown on every member train so a conductor can get back in
                  from any device. -->
@@ -193,42 +229,6 @@
             </RouterLink>
           </div>
 
-          <!-- Guidelines on hover. Desktop only — hidden below lg, where
-               there's no hover and not enough room to place it. -->
-          <Transition
-            enter-active-class="transition duration-150 ease-out"
-            enter-from-class="opacity-0 translate-y-1"
-            leave-active-class="transition duration-100 ease-in"
-            leave-to-class="opacity-0"
-          >
-            <!-- Floats below the card rather than beside it: the events list
-                 is max-w-5xl, so there's no room to the side even on wide
-                 screens. Absolute so it overlays instead of shifting the list.
-                 Padding (not margin) supplies the visual gap, so the panel's
-                 hitbox reaches the card and the cursor can travel between the
-                 two without passing over dead space. -->
-            <div
-              v-if="hoveredRulesId === ev.id"
-              class="hidden md:block absolute z-30 left-0 right-0 top-full pt-2"
-              role="tooltip"
-              @mouseenter="showRules(ev.id)"
-              @mouseleave="scheduleHideRules"
-            >
-              <div class="bg-surface border-2 border-niknax-600 rounded-xl shadow-2xl overflow-hidden">
-                <div class="bg-niknax-600 text-white px-4 py-2 flex items-center justify-between gap-2">
-                  <span class="flex items-center gap-2">
-                    <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
-                    <span class="text-sm font-semibold">Rules &amp; Criteria</span>
-                  </span>
-                  <span class="text-[0.65rem] uppercase tracking-wide opacity-75">Scroll to read</span>
-                </div>
-                <div
-                  class="rules-content px-4 py-3 max-h-[22rem] overflow-y-auto overscroll-contain text-sm"
-                  v-html="renderMarkdown(ev.rules_md)"
-                ></div>
-              </div>
-            </div>
-          </Transition>
           </div>
         </div>
       </section>
