@@ -58,3 +58,24 @@ export function clearConductorSession(trainId) {
 export function getConductorToken(trainId) {
   return getConductorSession(trainId)?.token || ''
 }
+
+/**
+ * Every unexpired conductor session stored on this device, newest first.
+ * Used to step into another of the same person's trains without re-entering
+ * the code (see conductor_session_hop).
+ */
+export function listConductorSessions() {
+  const out = []
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (!k || !k.startsWith('niknax_conductor_')) continue
+      const trainId = k.slice('niknax_conductor_'.length)
+      const session = getConductorSession(trainId)   // drops expired ones
+      if (session) out.push({ trainId, ...session })
+    }
+  } catch {
+    // Storage unavailable — nothing to offer.
+  }
+  return out.sort((a, b) => String(b.expiresAt || '').localeCompare(String(a.expiresAt || '')))
+}

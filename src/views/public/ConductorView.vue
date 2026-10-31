@@ -40,8 +40,9 @@
                 @input="gateCode = formatCodeInput(gateCode)"
               />
               <p class="text-xs text-tx3 mt-1.5">
-                Your personal 8-character code from the Niknax admin. It works on any phone or
-                computer, as many times as you need — keep it somewhere handy.
+                Your personal 8-character code from the Niknax admin. It works for every train
+                you conduct — including copies and new ones — on any phone or computer. Keep it
+                somewhere handy.
               </p>
             </div>
 
@@ -706,7 +707,7 @@ import PublicNav from '../../components/PublicNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import InterestPanel from '../../components/InterestPanel.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
-import { getConductorSession, setConductorSession, clearConductorSession } from '../../lib/conductorAuth.js'
+import { getConductorSession, setConductorSession, clearConductorSession, listConductorSessions } from '../../lib/conductorAuth.js'
 import { formatDate, parseTime, addMinutes } from '../../lib/timeUtils.js'
 
 const route  = useRoute()
@@ -761,6 +762,15 @@ async function submitCode() {
       username:  data.username,
       expiresAt: data.expires_at,
     })
+    // One code covers all their trains — keep a session for each.
+    for (const other of data.other_sessions || []) {
+      setConductorSession(other.train_id, {
+        token:     other.token,
+        email:     other.email,
+        username:  other.username,
+        expiresAt: other.expires_at,
+      })
+    }
     applySession({ token: data.token, email: data.email, username: data.username })
     await loadSessionInfo()
     await loadLobby()
@@ -1177,6 +1187,28 @@ const slotsByDay = computed(() => {
   return map
 })
 
+async function hopFromAnotherTrain(trainId) {
+  for (const other of listConductorSessions()) {
+    if (other.trainId === trainId) continue
+    const { data, error } = await supabase.rpc('conductor_session_hop', {
+      p_from_train_id: other.trainId,
+      p_token:         other.token,
+      p_to_train_id:   trainId,
+    })
+    if (!error && data?.token) {
+      const session = {
+        token:     data.token,
+        email:     data.email,
+        username:  data.username,
+        expiresAt: data.expires_at,
+      }
+      setConductorSession(trainId, session)
+      return session
+    }
+  }
+  return null
+}
+
 async function load() {
   loading.value = true
   const id = route.params.id
@@ -1187,7 +1219,10 @@ async function load() {
 
   // Restore a stored session. The server re-validates the token, so a revoked
   // or expired one is rejected even though it's still in localStorage.
-  const session = getConductorSession(id)
+  // No session for this train yet (a copy, or a train made since they last
+  // entered their code)? If this device is signed into another of their
+  // trains, step across from that one instead of asking for the code.
+  const session = getConductorSession(id) || await hopFromAnotherTrain(id)
   if (session?.token) {
     applySession(session)
     await loadSessionInfo()
