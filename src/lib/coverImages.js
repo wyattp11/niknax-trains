@@ -77,21 +77,23 @@ function publicUrl(path) {
 
 /**
  * Shrinks and uploads a train graphic. Returns the cover URL to save on the
- * train. onProgress gets 0–100.
+ * train. onProgress gets 0–100. opts.base: a reserved path (conductors).
  */
-export async function uploadCover(trainId, fileOrBlob, onProgress) {
+export async function uploadCover(trainId, fileOrBlob, onProgress, opts = {}) {
   onProgress?.(5)
   const { full, thumb } = await prepareCover(fileOrBlob)
   onProgress?.(35)
 
-  const base = `${trainId}/cover-${Date.now()}`
-  const opts = { contentType: 'image/jpeg', cacheControl: ONE_YEAR, upsert: false }
+  // Conductors can't pick their own file names: they upload to a slot the
+  // server reserved for them (see conductor_cover_upload_slot).
+  const base = opts.base || `${trainId}/cover-${Date.now()}`
+  const fileOpts = { contentType: 'image/jpeg', cacheControl: ONE_YEAR, upsert: false }
 
-  const { error: e1 } = await supabase.storage.from(BUCKET).upload(`${base}-thumb.jpg`, thumb, opts)
+  const { error: e1 } = await supabase.storage.from(BUCKET).upload(`${base}-thumb.jpg`, thumb, fileOpts)
   if (e1) throw e1
   onProgress?.(55)
 
-  const { error: e2 } = await supabase.storage.from(BUCKET).upload(`${base}.jpg`, full, opts)
+  const { error: e2 } = await supabase.storage.from(BUCKET).upload(`${base}.jpg`, full, fileOpts)
   if (e2) throw e2
   onProgress?.(100)
 

@@ -1285,7 +1285,14 @@ async function uploadCoverIfNeeded() {
   if (!coverFile.value) return editForm.value.cover_url || null
 
   coverStatus.value = 'Uploading graphic…'
-  const url = await uploadCoverImage(train.value.id, coverFile.value, (pct) => { coverPct.value = pct })
+  const { data: slot, error: slotErr } = await supabase.rpc('conductor_cover_upload_slot', {
+    p_train_id: train.value.id,
+    p_token:    authToken.value,
+  })
+  if (slotErr) throw new Error(handleRpcError(slotErr, 'Could not start the upload.'))
+  const url = await uploadCoverImage(
+    train.value.id, coverFile.value, (pct) => { coverPct.value = pct }, { base: slot.base },
+  )
   coverStatus.value = 'Graphic uploaded ✓'
   coverFile.value = null
   return url
