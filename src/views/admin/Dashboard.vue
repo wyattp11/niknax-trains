@@ -30,7 +30,9 @@
               <!-- Thumbnail -->
               <img
                 v-if="train.cover_url"
-                :src="train.cover_url"
+                :src="coverThumb(train.cover_url)"
+                loading="lazy"
+                decoding="async"
                 class="w-28 h-28 rounded-lg object-cover shrink-0"
                 alt=""
               />
@@ -129,7 +131,9 @@
             >
               <img
                 v-if="train.cover_url"
-                :src="train.cover_url"
+                :src="coverThumb(train.cover_url)"
+                loading="lazy"
+                decoding="async"
                 class="w-28 h-28 rounded-lg object-cover shrink-0 grayscale"
                 alt=""
               />
@@ -174,6 +178,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import { supabase } from '../../lib/supabase.js'
+import { coverThumb } from '../../lib/coverImages.js'
 import { trainStatus, STATUS_BADGE_CLASS, isPastTrain, isTrainLive } from '../../lib/timeUtils.js'
 
 const router = useRouter()

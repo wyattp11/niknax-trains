@@ -707,6 +707,7 @@ import PublicNav from '../../components/PublicNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import InterestPanel from '../../components/InterestPanel.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
+import { uploadCover as uploadCoverImage } from '../../lib/coverImages.js'
 import { getConductorSession, setConductorSession, clearConductorSession, listConductorSessions } from '../../lib/conductorAuth.js'
 import { formatDate, parseTime, addMinutes } from '../../lib/timeUtils.js'
 
@@ -1283,14 +1284,8 @@ function onCoverSelected(file) {
 async function uploadCoverIfNeeded() {
   if (!coverFile.value) return editForm.value.cover_url || null
 
-  const ext = (coverFile.value.name.split('.').pop() || 'jpg').toLowerCase()
   coverStatus.value = 'Uploading graphic…'
-  const url = await uploadWithProgress(
-    'train-graphics',
-    `${train.value.id}/cover.${ext}`,
-    coverFile.value,
-    (pct) => { coverPct.value = pct },
-  )
+  const url = await uploadCoverImage(train.value.id, coverFile.value, (pct) => { coverPct.value = pct })
   coverStatus.value = 'Graphic uploaded ✓'
   coverFile.value = null
   return url

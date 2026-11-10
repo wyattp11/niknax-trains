@@ -108,7 +108,9 @@
           >
             <img
               v-if="ev.cover_url"
-              :src="ev.cover_url"
+              :src="coverThumb(ev.cover_url)"
+              loading="lazy"
+              decoding="async"
               class="w-28 h-full min-h-28 rounded-lg object-cover shrink-0"
               alt=""
             />
@@ -260,7 +262,9 @@
           >
             <img
               v-if="ev.cover_url"
-              :src="ev.cover_url"
+              :src="coverThumb(ev.cover_url)"
+              loading="lazy"
+              decoding="async"
               class="w-28 h-full min-h-28 rounded-lg object-cover shrink-0 grayscale"
               alt=""
             />
@@ -351,6 +355,7 @@ import TrainAnimation from '../../components/TrainAnimation.vue'
 import { renderMarkdown } from '../../lib/renderMarkdown.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
 import { countdownText } from '../../lib/signupReminder.js'
+import { coverThumb } from '../../lib/coverImages.js'
 
 const theme      = useThemeStore()
 const onboarding = useOnboardingStore()

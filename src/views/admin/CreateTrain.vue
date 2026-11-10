@@ -190,6 +190,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
+import { uploadCover as uploadCoverImage } from '../../lib/coverImages.js'
 import { generateSlotTimes, addMinutes } from '../../lib/timeUtils.js'
 import { DEFAULT_RULES_TEMPLATE } from '../../lib/defaultRulesTemplate.js'
 
@@ -212,13 +213,9 @@ const form = ref({
 
 async function uploadCover(trainId) {
   if (!coverFile.value) return null
-  const extByType = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' }
-  const ext  = extByType[coverFile.value.type]
-  if (!ext) throw new Error('Unsupported image type.')
-  const path = `${trainId}/cover.${ext}`
   uploadPct.value    = 0
   uploadStatus.value = 'Uploading graphic…'
-  const url = await uploadWithProgress('train-graphics', path, coverFile.value, (pct) => {
+  const url = await uploadCoverImage(trainId, coverFile.value, (pct) => {
     uploadPct.value = pct
   })
   uploadPct.value    = 100

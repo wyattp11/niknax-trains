@@ -68,6 +68,36 @@
             </button>
           </div>
         </section>
+
+        <!-- ── Graphics bandwidth ── -->
+        <section class="card space-y-4">
+          <div>
+            <h2 class="font-semibold text-niknax-600 dark:text-niknax-300">Optimize Graphics</h2>
+            <p class="text-xs text-tx3 mt-1">
+              Train graphics uploaded before November 2026 were stored full-size, and the site
+              loaded them in full even for small thumbnails — that's what used up the Supabase
+              bandwidth quota. This shrinks each one (up to 1600 px, plus a small thumbnail)
+              and points the train at the new copy. Graphics still look the same. Safe to run
+              more than once; already-optimized trains are skipped.
+            </p>
+          </div>
+
+          <p class="text-sm text-tx2">
+            <strong>{{ unoptimized.length }}</strong> of {{ coverTrains.length }} train graphics need optimizing.
+          </p>
+
+          <div v-if="optimizing || optimizeLog.length" class="bg-sur2 rounded-lg p-3 max-h-48 overflow-y-auto text-xs font-mono space-y-0.5">
+            <p v-for="(line, i) in optimizeLog" :key="i" :class="line.startsWith('✗') ? 'text-red-600 dark:text-red-400' : 'text-tx2'">{{ line }}</p>
+          </div>
+
+          <div class="flex justify-end">
+            <button
+              @click="optimizeAll"
+              :disabled="optimizing || !unoptimized.length"
+              class="btn-primary disabled:opacity-50"
+            >{{ optimizing ? `Optimizing… ${optimizeDone}/${optimizeTotal}` : 'Optimize graphics' }}</button>
+          </div>
+        </section>
       </template>
     </main>
   </div>
@@ -77,6 +107,7 @@
 import { ref, computed, onMounted } from 'vue'
 import AdminNav from '../../components/AdminNav.vue'
 import { supabase } from '../../lib/supabase.js'
+import { uploadCover, isUnoptimizedCover } from '../../lib/coverImages.js'
 
 const DEFAULTS = {
   strike_block_message:
@@ -130,5 +161,45 @@ async function save() {
   saving.value = false
 }
 
-onMounted(load)
+// ── Optimize graphics ─────────────────────────────────────────────────────
+const coverTrains   = ref([])
+const optimizing    = ref(false)
+const optimizeLog   = ref([])
+const optimizeDone  = ref(0)
+const optimizeTotal = ref(0)
+
+const unoptimized = computed(() => coverTrains.value.filter(t => isUnoptimizedCover(t.cover_url)))
+
+async function loadCoverTrains() {
+  const { data } = await supabase.from('trains').select('id, name, cover_url').not('cover_url', 'is', null)
+  coverTrains.value = data || []
+}
+
+async function optimizeAll() {
+  optimizing.value    = true
+  optimizeLog.value   = []
+  optimizeDone.value  = 0
+  const list = [...unoptimized.value]
+  optimizeTotal.value = list.length
+
+  // One at a time: gentle on bandwidth, and a failure only affects one train.
+  for (const t of list) {
+    try {
+      const res = await fetch(t.cover_url, { cache: 'no-store' })
+      if (!res.ok) throw new Error(`download failed (${res.status})`)
+      const original = await res.blob()
+      const url = await uploadCover(t.id, original)
+      const { error } = await supabase.from('trains').update({ cover_url: url }).eq('id', t.id)
+      if (error) throw error
+      t.cover_url = url
+      optimizeLog.value.push(`✓ ${t.name} — ${(original.size / 1048576).toFixed(1)} MB → optimized`)
+    } catch (err) {
+      optimizeLog.value.push(`✗ ${t.name} — ${err.message || err}`)
+    }
+    optimizeDone.value++
+  }
+  optimizing.value = false
+}
+
+onMounted(() => { load(); loadCoverTrains() })
 </script>

@@ -45,7 +45,7 @@
       <div
         class="relative border-b border-bd"
         :class="train.cover_url ? '' : 'bg-base'"
-        :style="train.cover_url ? `background-image: url(${train.cover_url}); background-size: cover; background-position: center;` : ''"
+        :style="train.cover_url ? `background-image: url(${coverThumb(train.cover_url)}); background-size: cover; background-position: center;` : ''"
       >
         <div
           class="px-6 py-10 max-w-4xl mx-auto"
@@ -784,7 +784,7 @@
 
             <!-- Graphic download card -->
             <div v-if="train.cover_url" class="bg-gray-800 rounded-xl overflow-hidden mb-5">
-              <img :src="train.cover_url" class="w-full object-cover max-h-48" :alt="`${train.name} promotional graphic`" />
+              <img :src="coverThumb(train.cover_url)" loading="lazy" decoding="async" class="w-full object-cover max-h-48" :alt="`${train.name} promotional graphic`" />
               <div class="p-3 flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <p class="text-white text-sm font-semibold">Train Graphic</p>
@@ -917,6 +917,7 @@ import { renderMarkdown } from '../../lib/renderMarkdown.js'
 import { getConductorToken } from '../../lib/conductorAuth.js'
 import { isStaffRole, staffTier } from '../../lib/roles.js'
 import TrainChat from '../../components/TrainChat.vue'
+import { coverThumb } from '../../lib/coverImages.js'
 import {
   countdownText, openDateLabel, openTimeZonesLabel, googleReminderUrl, downloadReminderIcs,
 } from '../../lib/signupReminder.js'

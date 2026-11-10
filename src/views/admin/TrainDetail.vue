@@ -1019,6 +1019,7 @@ import AdminNav from '../../components/AdminNav.vue'
 import ImageUpload from '../../components/ImageUpload.vue'
 import InterestPanel from '../../components/InterestPanel.vue'
 import { supabase, uploadWithProgress } from '../../lib/supabase.js'
+import { uploadCover as uploadCoverImage } from '../../lib/coverImages.js'
 import { allZones, addMinutes, formatDate, generateSlotTimes, trainStatus, STATUS_BADGE_CLASS, slotDayOffsets, slotDateTime, slotInsertPosition, groupSlotsByCalendarDay, hasOutOfOrderSlots, isTrainLive, normalizeTimeInput } from '../../lib/timeUtils.js'
 import { useThemeStore } from '../../stores/theme.js'
 import { useModalA11y } from '../../composables/useModalA11y.js'
@@ -1069,13 +1070,9 @@ const editUploadStatus = ref('')
 
 async function uploadCover(trainId) {
   if (!editCoverFile.value) return null
-  const extByType = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' }
-  const ext  = extByType[editCoverFile.value.type]
-  if (!ext) throw new Error('Unsupported image type.')
-  const path = `${trainId}/cover.${ext}`
   editUploadPct.value    = 0
   editUploadStatus.value = 'Uploading graphic…'
-  const url = await uploadWithProgress('train-graphics', path, editCoverFile.value, (pct) => {
+  const url = await uploadCoverImage(trainId, editCoverFile.value, (pct) => {
     editUploadPct.value = pct
   })
   editUploadPct.value    = 100
